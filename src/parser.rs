@@ -251,6 +251,70 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
             parser.consume_const(&[0x00])?;
             Ok(MemoryGrow)
         }
+
+        // Numeric instructions
+        0x41 => {
+            let b1 = parser.consume_byte()?;
+            let b2 = parser.consume_byte()?;
+            let b3 = parser.consume_byte()?;
+            let b4 = parser.consume_byte()?;
+            Ok(I32Const(i32::from_le_bytes([b1, b2, b3, b4])))
+        }
+        0x42 => {
+            let b1 = parser.consume_byte()?;
+            let b2 = parser.consume_byte()?;
+            let b3 = parser.consume_byte()?;
+            let b4 = parser.consume_byte()?;
+            let b5 = parser.consume_byte()?;
+            let b6 = parser.consume_byte()?;
+            let b7 = parser.consume_byte()?;
+            let b8 = parser.consume_byte()?;
+            Ok(I64Const(i64::from_le_bytes([
+                b1, b2, b3, b4, b5, b6, b7, b8,
+            ])))
+        }
+        0x43 => {
+            let b1 = parser.consume_byte()?;
+            let b2 = parser.consume_byte()?;
+            let b3 = parser.consume_byte()?;
+            let b4 = parser.consume_byte()?;
+            Ok(F32Const(f32::from_le_bytes([b1, b2, b3, b4])))
+        }
+        0x44 => {
+            let b1 = parser.consume_byte()?;
+            let b2 = parser.consume_byte()?;
+            let b3 = parser.consume_byte()?;
+            let b4 = parser.consume_byte()?;
+            let b5 = parser.consume_byte()?;
+            let b6 = parser.consume_byte()?;
+            let b7 = parser.consume_byte()?;
+            let b8 = parser.consume_byte()?;
+            Ok(F64Const(f64::from_le_bytes([
+                b1, b2, b3, b4, b5, b6, b7, b8,
+            ])))
+        }
+        0x45 => Ok(I32Eqz),
+        0x46 => Ok(I32Eq),
+        0x47 => Ok(I32Ne),
+        0x48 => Ok(I32Lt_s),
+        0x49 => Ok(I32Lt_u),
+        0x4A => Ok(I32Gt_s),
+        0x4B => Ok(I32Gt_u),
+        0x4C => Ok(I32Le_s),
+        0x4D => Ok(I32Le_u),
+        0x4E => Ok(I32Ge_s),
+        0x4F => Ok(I32Ge_u),
+        0x50 => Ok(I64Eqz),
+        0x51 => Ok(I64Eq),
+        0x52 => Ok(I64Ne),
+        0x53 => Ok(I64Lt_s),
+        0x54 => Ok(I64Lt_u),
+        0x55 => Ok(I64Gt_s),
+        0x56 => Ok(I64Gt_u),
+        0x57 => Ok(I64Le_s),
+        0x58 => Ok(I64Le_u),
+        0x59 => Ok(I64Ge_s),
+        0x5A => Ok(I64Ge_u),
         other => Err(ParseError::UnexpectedOpCode(other)),
     }
 }

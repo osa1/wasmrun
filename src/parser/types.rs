@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 #[derive(Debug)]
 pub enum ValType {
     I32,
@@ -170,6 +172,64 @@ pub enum Instruction {
     MemorySize,
     // 0x40
     MemoryGrow,
+
+    //
+    // Numeric instructions
+    //
+
+    // 0x41
+    I32Const(i32),
+    // 0x42
+    I64Const(i64),
+    // 0x43
+    F32Const(f32),
+    // 0x44
+    F64Const(f64),
+    // 0x45
+    I32Eqz,
+    // 0x46
+    I32Eq,
+    // 0x47
+    I32Ne,
+    // 0x48
+    I32Lt_s,
+    // 0x49
+    I32Lt_u,
+    // 0x4A
+    I32Gt_s,
+    // 0x4B
+    I32Gt_u,
+    // 0x4C
+    I32Le_s,
+    // 0x4D
+    I32Le_u,
+    // 0x4E
+    I32Ge_s,
+    // 0x4F
+    I32Ge_u,
+    // 0x50
+    I64Eqz,
+    // 0x51
+    I64Eq,
+    // 0x52
+    I64Ne,
+    // 0x53
+    I64Lt_s,
+    // 0x54
+    I64Lt_u,
+    // 0x55
+    I64Gt_s,
+    // 0x56
+    I64Gt_u,
+    // 0x57
+    I64Le_s,
+    // 0x58
+    I64Le_u,
+    // 0x59
+    I64Ge_s,
+    // 0x5A
+    I64Ge_u,
+
 }
 
 #[derive(Debug)]
