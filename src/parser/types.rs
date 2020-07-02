@@ -381,6 +381,82 @@ pub enum Instruction {
     F64Max,
     // 0xA6
     F64Copysign,
+    // 0xA7
+    I32Wrapi64,
+    // 0xA8
+    I32Truncf32_s,
+    // 0xA9
+    I32Truncf32_u,
+    // 0xAA
+    I32Truncf64_s,
+    // 0xAB
+    I32Truncf64_u,
+    // 0xAC
+    I64Extendi32_s,
+    // 0xAD
+    I64Extendi32_u,
+    // 0xAE
+    I64Truncf32_s,
+    // 0xAF
+    I64Truncf32_u,
+    // 0xB0
+    I64Truncf64_s,
+    // 0xB1
+    I64Truncf64_u,
+    // 0xB2
+    F32Converti32_s,
+    // 0xB3
+    F32Converti32_u,
+    // 0xB4
+    F32Converti64_s,
+    // 0xB5
+    F32Converti64_u,
+    // 0xB6
+    F32Demotef64,
+    // 0xB7
+    F64Converti32_s,
+    // 0xB8
+    F64Converti32_u,
+    // 0xB9
+    F64Converti64_s,
+    // 0xBA
+    F64Converti64_u,
+    // 0xBB
+    F64Promotef32,
+    // 0xBC
+    I32Reinterpretf32,
+    // 0xBD
+    I64Reinterpretf64,
+    // 0xBE
+    F32Reinterpreti32,
+    // 0xBF
+    F64Reinterpreti64,
+    // 0xC0
+    I32Extend8_s,
+    // 0xC1
+    I32Extend16_s,
+    // 0xC2
+    I64Extend8_s,
+    // 0xC3
+    I64Extend16_s,
+    // 0xC4
+    I64Extend32_s,
+    // 0xFC 0x00
+    I32TruncSatf32_s,
+    // 0xFC 0x01
+    I32TruncSatf32_u,
+    // 0xFC 0x02
+    I32TruncSatf64_s,
+    // 0xFC 0x03
+    I32TruncSatf64_u,
+    // 0xFC 0x04
+    I64TruncSatf32_s,
+    // 0xFC 0x05
+    I64TruncSatf32_u,
+    // 0xFC 0x06
+    I64TruncSatf64_s,
+    // 0xFC 0x07
+    I64TruncSatf64_u,
 }
 
 #[derive(Debug)]
