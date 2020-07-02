@@ -55,7 +55,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Decode an unsigned LEB128 value
+    /// Decode an unsigned LEB128 value
     pub fn consume_uleb128(&mut self) -> Result<u32> {
         let mut result = 0;
         let mut shift = 0;
@@ -73,7 +73,32 @@ impl<'a> Parser<'a> {
         Ok(result)
     }
 
-    // Read one byte without consuming.
+    /// Decode a signed LEB128 value
+    pub fn consume_sleb128(&mut self) -> Result<i32> {
+        let mut result = 0;
+        let mut shift = 0;
+
+        let size = 33;
+
+        let mut byte = self.consume_byte()?;
+        loop {
+            println!("sleb byte: {:x?}", byte);
+            result |= ((byte & 0b0111_1111) as i32) << shift;
+            if byte & 0b1000_0000 == 0 {
+                break;
+            }
+            shift += 7;
+            byte = self.consume_byte()?;
+        }
+
+        if shift < size && byte & 0b0100_0000 != 0 { // or 0x40
+            result |= !0 << shift;
+        }
+
+        Ok(result)
+    }
+
+    /// Read one byte without consuming.
     pub fn byte(&self) -> Result<u8> {
         match self.bytes.get(0) {
             None => Err(ParseError::NotEnoughBytes {
