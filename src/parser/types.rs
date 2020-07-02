@@ -229,7 +229,102 @@ pub enum Instruction {
     I64Ge_s,
     // 0x5A
     I64Ge_u,
-
+    // 0x5B
+    F32Eq,
+    // 0x5C
+    F32Ne,
+    // 0x5D
+    F32Lt,
+    // 0x5E
+    F32Gt,
+    // 0x5F
+    F32Le,
+    // 0x60
+    F32Ge,
+    // 0x61
+    F64Eq,
+    // 0x62
+    F64Ne,
+    // 0x63
+    F64Lt,
+    // 0x64
+    F64Gt,
+    // 0x65
+    F64Le,
+    // 0x66
+    F64Ge,
+    // 0x67
+    I32Clz,
+    // 0x68
+    I32Ctz,
+    // 0x69
+    I32Popcnt,
+    // 0x6A
+    I32Add,
+    // 0x6B
+    I32Sub,
+    // 0x6C
+    I32Mul,
+    // 0x6D
+    I32Div_s,
+    // 0x6E
+    I32Div_u,
+    // 0x6F
+    I32Rem_s,
+    // 0x70
+    I32Rem_u,
+    // 0x71
+    I32And,
+    // 0x72
+    I32Or,
+    // 0x73
+    I32Xor,
+    // 0x74
+    I32Shl,
+    // 0x75
+    I32Shr_s,
+    // 0x76
+    I32Shr_u,
+    // 0x77
+    I32Rotl,
+    // 0x78
+    I32Rotr,
+    // 0x79
+    I64Clz,
+    // 0x7A
+    I64Ctz,
+    // 0x7B
+    I64Popcnt,
+    // 0x7C
+    I64Add,
+    // 0x7D
+    I64Sub,
+    // 0x7E
+    I64Mul,
+    // 0x7F
+    I64Div_s,
+    // 0x80
+    I64Div_u,
+    // 0x81
+    I64Rem_s,
+    // 0x82
+    I64Rem_u,
+    // 0x83
+    I64And,
+    // 0x84
+    I64Or,
+    // 0x85
+    I64Xor,
+    // 0x86
+    I64Shl,
+    // 0x87
+    I64Shr_s,
+    // 0x88
+    I64Shr_u,
+    // 0x89
+    I64Rotl,
+    // 0x8A
+    I64Rotr,
 }
 
 #[derive(Debug)]
