@@ -325,6 +325,62 @@ pub enum Instruction {
     I64Rotl,
     // 0x8A
     I64Rotr,
+    // 0x8B
+    F32Abs,
+    // 0x8C
+    F32Neg,
+    // 0x8D
+    F32Ceil,
+    // 0x8E
+    F32Floor,
+    // 0x8F
+    F32Trunc,
+    // 0x90
+    F32Nearest,
+    // 0x91
+    F32Sqrt,
+    // 0x92
+    F32Add,
+    // 0x93
+    F32Sub,
+    // 0x94
+    F32Mul,
+    // 0x95
+    F32Div,
+    // 0x96
+    F32Min,
+    // 0x97
+    F32Max,
+    // 0x98
+    F32Copysign,
+    // 0x99
+    F64Abs,
+    // 0x9A
+    F64Neg,
+    // 0x9B
+    F64Ceil,
+    // 0x9C
+    F64Floor,
+    // 0x9D
+    F64Trunc,
+    // 0x9E
+    F64Nearest,
+    // 0x9F
+    F64Sqrt,
+    // 0xA0
+    F64Add,
+    // 0xA1
+    F64Sub,
+    // 0xA2
+    F64Mul,
+    // 0xA3
+    F64Div,
+    // 0xA4
+    F64Min,
+    // 0xA5
+    F64Max,
+    // 0xA6
+    F64Copysign,
 }
 
 #[derive(Debug)]
