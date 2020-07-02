@@ -219,8 +219,46 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
         0x23 => Ok(GlobalGet(parser.consume_uleb128()?)),
         0x24 => Ok(GlobalSet(parser.consume_uleb128()?)),
 
-        _ => todo!(),
+        // Memory instructions
+        0x28 => Ok(I32Load(parse_memarg(parser)?)),
+        0x29 => Ok(I64Load(parse_memarg(parser)?)),
+        0x2A => Ok(F32Load(parse_memarg(parser)?)),
+        0x2B => Ok(F64Load(parse_memarg(parser)?)),
+        0x2C => Ok(I32Load8s(parse_memarg(parser)?)),
+        0x2D => Ok(I32Load8u(parse_memarg(parser)?)),
+        0x2E => Ok(I32Load16s(parse_memarg(parser)?)),
+        0x2F => Ok(I32Load16u(parse_memarg(parser)?)),
+        0x30 => Ok(I64Load8s(parse_memarg(parser)?)),
+        0x31 => Ok(I64Load8u(parse_memarg(parser)?)),
+        0x32 => Ok(I64Load16s(parse_memarg(parser)?)),
+        0x33 => Ok(I64Load16u(parse_memarg(parser)?)),
+        0x34 => Ok(I64Load32s(parse_memarg(parser)?)),
+        0x35 => Ok(I64Load32u(parse_memarg(parser)?)),
+        0x36 => Ok(I32Store(parse_memarg(parser)?)),
+        0x37 => Ok(I64Store(parse_memarg(parser)?)),
+        0x38 => Ok(F32Store(parse_memarg(parser)?)),
+        0x39 => Ok(F64Store(parse_memarg(parser)?)),
+        0x3A => Ok(I32Store8(parse_memarg(parser)?)),
+        0x3B => Ok(I32Store16(parse_memarg(parser)?)),
+        0x3C => Ok(I64Store8(parse_memarg(parser)?)),
+        0x3D => Ok(I64Store16(parse_memarg(parser)?)),
+        0x3E => Ok(I64Store32(parse_memarg(parser)?)),
+        0x3F => {
+            parser.consume_const(&[0x00])?;
+            Ok(MemorySize)
+        }
+        0x40 => {
+            parser.consume_const(&[0x00])?;
+            Ok(MemoryGrow)
+        }
+        other => Err(ParseError::UnexpectedOpCode(other)),
     }
+}
+
+fn parse_memarg<'a>(parser: &mut Parser<'a>) -> Result<MemArg> {
+    let align = parser.consume_uleb128()?;
+    let offset = parser.consume_uleb128()?;
+    Ok(MemArg { align, offset })
 }
 
 fn parse_block<'a>(parser: &mut Parser<'a>) -> Result<Block> {

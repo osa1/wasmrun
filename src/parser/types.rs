@@ -120,8 +120,56 @@ pub enum Instruction {
     // Memory instructions
     //
 
-
-
+    // 0x28
+    I32Load(MemArg),
+    // 0x29
+    I64Load(MemArg),
+    // 0x2A
+    F32Load(MemArg),
+    // 0x2B
+    F64Load(MemArg),
+    // 0x2C
+    I32Load8s(MemArg),
+    // 0x2D
+    I32Load8u(MemArg),
+    // 0x2E
+    I32Load16s(MemArg),
+    // 0x2F
+    I32Load16u(MemArg),
+    // 0x30
+    I64Load8s(MemArg),
+    // 0x31
+    I64Load8u(MemArg),
+    // 0x32
+    I64Load16s(MemArg),
+    // 0x33
+    I64Load16u(MemArg),
+    // 0x34
+    I64Load32s(MemArg),
+    // 0x35
+    I64Load32u(MemArg),
+    // 0x36
+    I32Store(MemArg),
+    // 0x37
+    I64Store(MemArg),
+    // 0x38
+    F32Store(MemArg),
+    // 0x39
+    F64Store(MemArg),
+    // 0x3A
+    I32Store8(MemArg),
+    // 0x3B
+    I32Store16(MemArg),
+    // 0x3C
+    I64Store8(MemArg),
+    // 0x3D
+    I64Store16(MemArg),
+    // 0x3E
+    I64Store32(MemArg),
+    // 0x3F
+    MemorySize,
+    // 0x40
+    MemoryGrow,
 }
 
 #[derive(Debug)]
@@ -148,4 +196,10 @@ pub enum BlockType {
 pub struct BrTable {
     pub tbl: Vec<LabelIdx>,
     pub def: LabelIdx,
+}
+
+#[derive(Debug)]
+pub struct MemArg {
+    pub align: u32,
+    pub offset: u32,
 }

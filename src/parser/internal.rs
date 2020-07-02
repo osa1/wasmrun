@@ -6,6 +6,7 @@ pub enum ParseError {
     SectionNotEmpty { remains: Vec<u8> },
     Utf8Error(::std::str::Utf8Error),
     UnexpectedSectionType { expected: u8, found: u8 },
+    UnexpectedOpCode(u8),
 }
 
 pub type Result<A> = ::std::result::Result<A, ParseError>;
