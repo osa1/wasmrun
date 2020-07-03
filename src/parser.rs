@@ -61,8 +61,8 @@ pub fn parse(bytes: &[u8]) -> Result<()> {
 
     skip_customsecs(&mut parser)?;
 
-    // let code = parse_code(&mut parser)?;
-    // println!("code: {:?}", code);
+    let code = parse_code(&mut parser)?;
+    println!("code: {:?}", code);
 
     Ok(())
 }
@@ -529,11 +529,26 @@ fn parse_br_table<'a>(parser: &mut Parser<'a>) -> Result<BrTable> {
 
 fn parse_block_type<'a>(parser: &mut Parser<'a>) -> Result<BlockType> {
     match parser.byte()? {
-        0x40 => Ok(BlockType::Empty),
-        0x7F => Ok(BlockType::ValType(ValType::I32)),
-        0x7E => Ok(BlockType::ValType(ValType::I64)),
-        0x7D => Ok(BlockType::ValType(ValType::F32)),
-        0x7C => Ok(BlockType::ValType(ValType::F64)),
+        0x40 => {
+            parser.skip(1)?;
+            Ok(BlockType::Empty)
+        }
+        0x7F => {
+            parser.skip(1)?;
+            Ok(BlockType::ValType(ValType::I32))
+        }
+        0x7E => {
+            parser.skip(1)?;
+            Ok(BlockType::ValType(ValType::I64))
+        }
+        0x7D => {
+            parser.skip(1)?;
+            Ok(BlockType::ValType(ValType::F32))
+        }
+        0x7C => {
+            parser.skip(1)?;
+            Ok(BlockType::ValType(ValType::F64))
+        }
         _ => Ok(BlockType::TypeIdx(parser.consume_sleb128()? as u32)), // TODO: sleb128 is probably buggy
     }
 }
