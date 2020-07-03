@@ -64,6 +64,20 @@ pub fn parse(bytes: &[u8]) -> Result<()> {
     let code = parse_code(&mut parser)?;
     println!("code: {:?}", code);
 
+    skip_customsecs(&mut parser)?;
+
+    let data = parse_data(&mut parser)?;
+    println!("data: {:?}", data);
+
+    skip_customsecs(&mut parser)?;
+
+    if !parser.all_consumed() {
+        return Err(ParseError::SectionNotEmpty {
+            remains: parser.get_bytes().to_owned(),
+            offset: parser.get_cursor(),
+        });
+    }
+
     Ok(())
 }
 
@@ -209,6 +223,21 @@ fn parse_code<'a>(parser: &mut Parser<'a>) -> Result<Vec<Fun>> {
 
             let expr = parse_expr(&mut function_data_parser)?;
             Ok(Fun { locals, expr })
+        })
+    })
+}
+
+fn parse_data<'a>(parser: &mut Parser<'a>) -> Result<Vec<Data>> {
+    parse_section(parser, 11, &|parser| {
+        parse_vec(parser, &|parser| {
+            let data = parser.consume_uleb128()?;
+            let offset = parse_expr(parser)?;
+            let init: Vec<u8> = parse_vec(parser, &|parser| parser.consume_byte())?;
+            Ok(Data {
+                data: data as u32,
+                offset,
+                init,
+            })
         })
     })
 }

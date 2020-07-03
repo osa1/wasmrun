@@ -526,3 +526,10 @@ pub struct Fun {
     pub locals: Vec<Local>,
     pub expr: Expr,
 }
+
+#[derive(Debug)]
+pub struct Data {
+    pub data: MemIdx,
+    pub offset: Expr,
+    pub init: Vec<u8>,
+}
