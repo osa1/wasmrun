@@ -17,45 +17,43 @@ pub fn parse(bytes: &[u8]) -> Result<()> {
     skip_customsecs(&mut parser)?;
 
     let fun_tys = parse_type_section(&mut parser)?;
-
     println!("{:#?}", fun_tys);
 
     skip_customsecs(&mut parser)?;
 
     let imports = parse_imports(&mut parser)?;
-
     println!("{:?}", imports);
 
     skip_customsecs(&mut parser)?;
 
     let funs = parse_fun_section(&mut parser)?;
-
     println!("{:?}", funs);
 
     skip_customsecs(&mut parser)?;
 
     let tables = parse_table_section(&mut parser)?;
-
     println!("tables: {:?}", tables);
 
     skip_customsecs(&mut parser)?;
 
     let mems = parse_mem_section(&mut parser)?;
-
     println!("mems: {:?}", mems);
 
     skip_customsecs(&mut parser)?;
 
     let globals = parse_globals(&mut parser)?;
-
     println!("globals: {:?}", globals);
 
     skip_customsecs(&mut parser)?;
 
     let exports = parse_exports(&mut parser)?;
-
     println!("exports: {:?}", exports);
 
+    let start = parse_start(&mut parser); // optional
+    println!("start: {:?}", start);
+
+    let elem = parse_element(&mut parser)?;
+    println!("elem: {:?}", elem);
 
     Ok(())
 }
@@ -191,10 +189,37 @@ fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Export>> {
         let vec_len = parser.consume_uleb128()?;
         let mut vec = Vec::with_capacity(vec_len as usize);
 
-        for _ in 0 .. vec_len {
+        for _ in 0..vec_len {
             let nm = parse_name(parser)?;
             let desc = parse_export_desc(parser)?;
             vec.push(Export { nm, desc });
+        }
+
+        Ok(vec)
+    })
+}
+
+fn parse_start<'a>(parser: &mut Parser<'a>) -> Result<FuncIdx> {
+    parse_section(parser, 8, &|parser| Ok(parser.consume_uleb128()? as u32))
+}
+
+fn parse_element<'a>(parser: &mut Parser<'a>) -> Result<Vec<Element>> {
+    parse_section(parser, 9, &|parser| {
+        let vec_len = parser.consume_uleb128()?;
+        let mut vec = Vec::with_capacity(vec_len as usize);
+
+        for _ in 0..vec_len {
+            let table = parser.consume_uleb128()? as u32;
+            let expr = parse_expr(parser)?;
+
+            let vec_len = parser.consume_uleb128()?;
+            let mut init = Vec::with_capacity(vec_len as usize);
+
+            for _ in 0..vec_len {
+                init.push(parser.consume_uleb128()? as u32);
+            }
+
+            vec.push(Element { table, expr, init });
         }
 
         Ok(vec)
@@ -207,7 +232,7 @@ fn parse_export_desc<'a>(parser: &mut Parser<'a>) -> Result<ExportDesc> {
         0x01 => Ok(ExportDesc::Table(parser.consume_uleb128()? as u32)),
         0x02 => Ok(ExportDesc::Mem(parser.consume_uleb128()? as u32)),
         0x03 => Ok(ExportDesc::Global(parser.consume_uleb128()? as u32)),
-        _ => todo!()
+        _ => todo!(),
     }
 }
 

@@ -507,3 +507,10 @@ pub struct Export {
     pub nm: String,
     pub desc: ExportDesc,
 }
+
+#[derive(Debug)]
+pub struct Element {
+    pub table: TableIdx,
+    pub expr: Expr,
+    pub init: Vec<FuncIdx>,
+}
