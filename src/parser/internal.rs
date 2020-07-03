@@ -1,12 +1,36 @@
 #[derive(Debug)]
 pub enum ParseError {
-    NotEnoughBytes { expected: usize, found: usize },
-    UnexpectedConst { expected: Vec<u8>, found: Vec<u8> },
-    UnexpectedValType { found: u8 },
-    SectionNotEmpty { remains: Vec<u8> },
-    Utf8Error(::std::str::Utf8Error),
-    UnexpectedSectionType { expected: u8, found: u8 },
-    UnexpectedOpCode(u8),
+    NotEnoughBytes {
+        expected: usize,
+        found: usize,
+        offset: usize,
+    },
+    UnexpectedConst {
+        expected: Vec<u8>,
+        found: Vec<u8>,
+        offset: usize,
+    },
+    UnexpectedValType {
+        found: u8,
+        offset: usize,
+    },
+    SectionNotEmpty {
+        remains: Vec<u8>,
+        offset: usize,
+    },
+    Utf8Error {
+        error: ::std::str::Utf8Error,
+        offset: usize,
+    },
+    UnexpectedSectionType {
+        expected: u8,
+        found: u8,
+        offset: usize,
+    },
+    UnexpectedOpCode {
+        op: u8,
+        offset: usize,
+    },
 }
 
 pub type Result<A> = ::std::result::Result<A, ParseError>;
@@ -14,15 +38,29 @@ pub type Result<A> = ::std::result::Result<A, ParseError>;
 #[derive(Debug)]
 pub struct Parser<'a> {
     bytes: &'a [u8],
+    cursor: usize,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(bytes: &'a [u8]) -> Parser<'a> {
-        Parser { bytes }
+        Parser { bytes, cursor: 0 }
     }
 
     pub fn get_bytes(&self) -> &[u8] {
         self.bytes
+    }
+
+    pub fn get_cursor(&self) -> usize {
+        self.cursor
+    }
+
+    pub fn fork(&mut self, n: usize) -> Result<Parser<'a>> {
+        let cursor = self.cursor;
+        let data = self.consume(n)?;
+        Ok(Parser {
+            bytes: data,
+            cursor,
+        })
     }
 
     pub fn consume(&mut self, n: usize) -> Result<&'a [u8]> {
@@ -30,11 +68,13 @@ impl<'a> Parser<'a> {
         if len >= n {
             let (consumed, rest) = self.bytes.split_at(n);
             self.bytes = rest;
+            self.cursor += n;
             Ok(consumed)
         } else {
             Err(ParseError::NotEnoughBytes {
                 expected: n,
                 found: len,
+                offset: self.cursor,
             })
         }
     }
@@ -52,6 +92,7 @@ impl<'a> Parser<'a> {
             Err(ParseError::UnexpectedConst {
                 expected: expect.to_owned(),
                 found: slice.to_owned(),
+                offset: self.cursor - expect.len(),
             })
         }
     }
@@ -104,6 +145,7 @@ impl<'a> Parser<'a> {
             None => Err(ParseError::NotEnoughBytes {
                 expected: 1,
                 found: 0,
+                offset: self.cursor,
             }),
             Some(byte) => Ok(*byte),
         }
@@ -114,10 +156,12 @@ impl<'a> Parser<'a> {
             None => Err(ParseError::NotEnoughBytes {
                 expected: 1,
                 found: 0,
+                offset: self.cursor,
             }),
             Some(byte) => {
                 let byte = *byte;
                 self.bytes = &self.bytes[1..];
+                self.cursor += 1;
                 Ok(byte)
             }
         }

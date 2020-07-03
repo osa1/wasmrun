@@ -78,6 +78,7 @@ fn parse_section<'a, A>(
             return Err(ParseError::UnexpectedSectionType {
                 expected: section_ty,
                 found: other,
+                offset: parser.get_cursor(),
             });
         }
         Err(err) => {
@@ -88,14 +89,14 @@ fn parse_section<'a, A>(
     parser.skip(1)?;
 
     let section_size = parser.consume_uleb128()?;
-    let section_data = parser.consume(section_size as usize)?;
+    let mut section_parser = parser.fork(section_size as usize)?;
 
-    let mut section_parser = Parser::new(section_data);
     let ret = parse(&mut section_parser)?;
 
     if !section_parser.all_consumed() {
         return Err(ParseError::SectionNotEmpty {
             remains: section_parser.get_bytes().to_owned(),
+            offset: section_parser.get_cursor(),
         });
     }
 
@@ -236,8 +237,7 @@ fn parse_code<'a>(parser: &mut Parser<'a>) -> Result<Vec<Fun>> {
 
         for _ in 0..vec_len {
             let size = parser.consume_uleb128()?;
-            let function_data = parser.consume(size as usize)?;
-            let mut function_data_parser = Parser::new(function_data);
+            let mut function_data_parser = parser.fork(size as usize)?;
 
             let locals_len = function_data_parser.consume_uleb128()?;
             let mut locals = Vec::with_capacity(locals_len as usize);
@@ -506,10 +506,16 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
                 0x05 => Ok(I64TruncSatf32_u),
                 0x06 => Ok(I64TruncSatf64_s),
                 0x07 => Ok(I64TruncSatf64_u),
-                _other => Err(ParseError::UnexpectedOpCode(0xFC)), // TODO show 'other'
+                _other => Err(ParseError::UnexpectedOpCode {
+                    op: 0xFC,
+                    offset: parser.get_cursor() - 1,
+                }), // TODO show 'other'
             }
         }
-        other => Err(ParseError::UnexpectedOpCode(other)),
+        other => Err(ParseError::UnexpectedOpCode {
+            op: other,
+            offset: parser.get_cursor() - 1,
+        }),
     }
 }
 
@@ -626,7 +632,10 @@ fn parse_valtype<'a>(parser: &mut Parser<'a>) -> Result<ValType> {
         0x7E => Ok(ValType::I64),
         0x7D => Ok(ValType::F32),
         0x7C => Ok(ValType::F64),
-        _ => Err(ParseError::UnexpectedValType { found: byte }),
+        _ => Err(ParseError::UnexpectedValType {
+            found: byte,
+            offset: parser.get_cursor() - 1,
+        }),
     }
 }
 
@@ -680,6 +689,9 @@ fn parse_name<'a>(parser: &mut Parser<'a>) -> Result<String> {
     let str_bytes = parser.consume(str_size as usize)?;
     match ::std::str::from_utf8(str_bytes) {
         Ok(str) => Ok(str.to_owned()),
-        Err(err) => Err(ParseError::Utf8Error(err)),
+        Err(err) => Err(ParseError::Utf8Error {
+            error: err,
+            offset: parser.get_cursor() - str_size as usize,
+        }),
     }
 }
