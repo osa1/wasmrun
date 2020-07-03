@@ -50,6 +50,13 @@ pub fn parse(bytes: &[u8]) -> Result<()> {
 
     println!("globals: {:?}", globals);
 
+    skip_customsecs(&mut parser)?;
+
+    let exports = parse_exports(&mut parser)?;
+
+    println!("exports: {:?}", exports);
+
+
     Ok(())
 }
 
@@ -169,18 +176,39 @@ fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Vec<Global>> {
         let vec_len = parser.consume_uleb128()?;
         let mut vec = Vec::with_capacity(vec_len as usize);
 
-        println!("global size: {}", vec_len);
-
         for _ in 0..vec_len {
             let ty = parse_global_type(parser)?;
-            println!("global type: {:?}", ty);
             let expr = parse_expr(parser)?;
-            println!("global expr: {:?}", expr);
             vec.push(Global { ty, expr });
         }
 
         Ok(vec)
     })
+}
+
+fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Export>> {
+    parse_section(parser, 7, &|parser| {
+        let vec_len = parser.consume_uleb128()?;
+        let mut vec = Vec::with_capacity(vec_len as usize);
+
+        for _ in 0 .. vec_len {
+            let nm = parse_name(parser)?;
+            let desc = parse_export_desc(parser)?;
+            vec.push(Export { nm, desc });
+        }
+
+        Ok(vec)
+    })
+}
+
+fn parse_export_desc<'a>(parser: &mut Parser<'a>) -> Result<ExportDesc> {
+    match parser.consume_byte()? {
+        0x00 => Ok(ExportDesc::Func(parser.consume_uleb128()? as u32)),
+        0x01 => Ok(ExportDesc::Table(parser.consume_uleb128()? as u32)),
+        0x02 => Ok(ExportDesc::Mem(parser.consume_uleb128()? as u32)),
+        0x03 => Ok(ExportDesc::Global(parser.consume_uleb128()? as u32)),
+        _ => todo!()
+    }
 }
 
 fn parse_expr<'a>(parser: &mut Parser<'a>) -> Result<Expr> {

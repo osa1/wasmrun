@@ -1,5 +1,13 @@
 #![allow(non_camel_case_types)]
 
+pub type TypeIdx = u32;
+pub type FuncIdx = u32;
+pub type TableIdx = u32;
+pub type MemIdx = u32;
+pub type GlobalIdx = u32;
+pub type LocalIdx = u32;
+pub type LabelIdx = u32;
+
 #[derive(Debug)]
 pub enum ValType {
     I32,
@@ -22,11 +30,6 @@ pub struct Import {
     pub name: String,
     pub desc: ImportDesc,
 }
-
-pub type FuncIdx = u32;
-pub type TypeIdx = u32;
-pub type LabelIdx = u32;
-pub type LocalIdx = u32;
 
 #[derive(Debug)]
 pub enum ImportDesc {
@@ -489,4 +492,18 @@ pub struct BrTable {
 pub struct MemArg {
     pub align: u32,
     pub offset: u32,
+}
+
+#[derive(Debug)]
+pub enum ExportDesc {
+    Func(FuncIdx),
+    Table(TableIdx),
+    Mem(MemIdx),
+    Global(GlobalIdx),
+}
+
+#[derive(Debug)]
+pub struct Export {
+    pub nm: String,
+    pub desc: ExportDesc,
 }
