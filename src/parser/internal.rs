@@ -57,14 +57,14 @@ impl<'a> Parser<'a> {
     }
 
     /// Decode an unsigned LEB128 value
-    pub fn consume_uleb128(&mut self) -> Result<u32> {
+    pub fn consume_uleb128(&mut self) -> Result<u64> {
         let mut result = 0;
         let mut shift = 0;
 
         loop {
             let byte = self.consume_byte()?;
             println!("uleb byte: {:x?}", byte);
-            result |= ((byte & 0b0111_1111) as u32) << shift;
+            result |= (u64::from(byte & 0b0111_1111)) << shift;
             if byte & 0b1000_0000 == 0 {
                 break;
             }
@@ -75,7 +75,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Decode a signed LEB128 value
-    pub fn consume_sleb128(&mut self) -> Result<i32> {
+    pub fn consume_sleb128(&mut self) -> Result<i64> {
         let mut result = 0;
         let mut shift = 0;
 
@@ -84,7 +84,7 @@ impl<'a> Parser<'a> {
         let mut byte = self.consume_byte()?;
         loop {
             println!("sleb byte: {:x?}", byte);
-            result |= ((byte & 0b0111_1111) as i32) << shift;
+            result |= (i64::from(byte & 0b0111_1111)) << shift;
             if byte & 0b1000_0000 == 0 {
                 break;
             }
@@ -92,7 +92,8 @@ impl<'a> Parser<'a> {
             byte = self.consume_byte()?;
         }
 
-        if shift < size && byte & 0b0100_0000 != 0 { // or 0x40
+        if shift < size && byte & 0b0100_0000 != 0 {
+            // or 0x40
             result |= !0 << shift;
         }
 

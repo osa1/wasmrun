@@ -48,7 +48,7 @@ pub fn parse(bytes: &[u8]) -> Result<()> {
 
     let globals = parse_globals(&mut parser)?;
 
-    println!("globals: {:?}", mems);
+    println!("globals: {:?}", globals);
 
     Ok(())
 }
@@ -130,7 +130,7 @@ fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<TypeIdx>> {
         let mut vec = Vec::with_capacity(vec_len as usize);
 
         for _ in 0..vec_len {
-            vec.push(parser.consume_uleb128()?);
+            vec.push(parser.consume_uleb128()? as u32);
         }
 
         Ok(vec)
@@ -169,9 +169,13 @@ fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Vec<Global>> {
         let vec_len = parser.consume_uleb128()?;
         let mut vec = Vec::with_capacity(vec_len as usize);
 
+        println!("global size: {}", vec_len);
+
         for _ in 0..vec_len {
             let ty = parse_global_type(parser)?;
+            println!("global type: {:?}", ty);
             let expr = parse_expr(parser)?;
+            println!("global expr: {:?}", expr);
             vec.push(Global { ty, expr });
         }
 
@@ -197,15 +201,15 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
         0x02 => Ok(Block(parse_block(parser)?)),
         0x03 => Ok(Loop(parse_block(parser)?)),
         0x04 => Ok(If(parse_if(parser)?)),
-        0x0C => Ok(Br(parser.consume_uleb128()?)),
-        0x0D => Ok(BrIf(parser.consume_uleb128()?)),
+        0x0C => Ok(Br(parser.consume_uleb128()? as u32)),
+        0x0D => Ok(BrIf(parser.consume_uleb128()? as u32)),
         0x0E => Ok(BrTable(parse_br_table(parser)?)),
         0x0F => Ok(Return),
-        0x10 => Ok(Call(parser.consume_uleb128()?)),
+        0x10 => Ok(Call(parser.consume_uleb128()? as u32)),
         0x11 => {
             let type_idx = parser.consume_uleb128()?;
             parser.consume_const(&[0x00])?;
-            Ok(CallIndirect(type_idx))
+            Ok(CallIndirect(type_idx as u32))
         }
 
         // Parametric instructions
@@ -213,11 +217,11 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
         0x1B => Ok(Select),
 
         // Variable instructions
-        0x20 => Ok(LocalGet(parser.consume_uleb128()?)),
-        0x21 => Ok(LocalSet(parser.consume_uleb128()?)),
-        0x22 => Ok(LocalTee(parser.consume_uleb128()?)),
-        0x23 => Ok(GlobalGet(parser.consume_uleb128()?)),
-        0x24 => Ok(GlobalSet(parser.consume_uleb128()?)),
+        0x20 => Ok(LocalGet(parser.consume_uleb128()? as u32)),
+        0x21 => Ok(LocalSet(parser.consume_uleb128()? as u32)),
+        0x22 => Ok(LocalTee(parser.consume_uleb128()? as u32)),
+        0x23 => Ok(GlobalGet(parser.consume_uleb128()? as u32)),
+        0x24 => Ok(GlobalSet(parser.consume_uleb128()? as u32)),
 
         // Memory instructions
         0x28 => Ok(I32Load(parse_memarg(parser)?)),
@@ -254,24 +258,12 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
 
         // Numeric instructions
         0x41 => {
-            let b1 = parser.consume_byte()?;
-            let b2 = parser.consume_byte()?;
-            let b3 = parser.consume_byte()?;
-            let b4 = parser.consume_byte()?;
-            Ok(I32Const(i32::from_le_bytes([b1, b2, b3, b4])))
+            let i = parser.consume_sleb128()?;
+            Ok(I32Const(i as i32))
         }
         0x42 => {
-            let b1 = parser.consume_byte()?;
-            let b2 = parser.consume_byte()?;
-            let b3 = parser.consume_byte()?;
-            let b4 = parser.consume_byte()?;
-            let b5 = parser.consume_byte()?;
-            let b6 = parser.consume_byte()?;
-            let b7 = parser.consume_byte()?;
-            let b8 = parser.consume_byte()?;
-            Ok(I64Const(i64::from_le_bytes([
-                b1, b2, b3, b4, b5, b6, b7, b8,
-            ])))
+            let i = parser.consume_sleb128()?;
+            Ok(I64Const(i))
         }
         0x43 => {
             let b1 = parser.consume_byte()?;
@@ -439,8 +431,8 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
 }
 
 fn parse_memarg<'a>(parser: &mut Parser<'a>) -> Result<MemArg> {
-    let align = parser.consume_uleb128()?;
-    let offset = parser.consume_uleb128()?;
+    let align = parser.consume_uleb128()? as u32;
+    let offset = parser.consume_uleb128()? as u32;
     Ok(MemArg { align, offset })
 }
 
@@ -488,9 +480,9 @@ fn parse_br_table<'a>(parser: &mut Parser<'a>) -> Result<BrTable> {
     let mut tbl = Vec::with_capacity(vec_len as usize);
 
     for _ in 0..vec_len {
-        tbl.push(parser.consume_uleb128()?);
+        tbl.push(parser.consume_uleb128()? as u32);
     }
-    let def = parser.consume_uleb128()?;
+    let def = parser.consume_uleb128()? as u32;
 
     Ok(BrTable { tbl, def })
 }
@@ -557,7 +549,7 @@ fn parse_valtype<'a>(parser: &mut Parser<'a>) -> Result<ValType> {
 
 fn parse_importdesc<'a>(parser: &mut Parser<'a>) -> Result<ImportDesc> {
     match parser.consume_byte()? {
-        0x00 => Ok(ImportDesc::Func(parser.consume_uleb128()?)),
+        0x00 => Ok(ImportDesc::Func(parser.consume_uleb128()? as u32)),
         0x01 => {
             parser.consume_const(&[0x70])?;
             Ok(ImportDesc::Table(parse_limits(parser)?))
@@ -577,12 +569,12 @@ fn parse_global_type<'a>(parser: &mut Parser<'a>) -> Result<GlobalType> {
 fn parse_limits<'a>(parser: &mut Parser<'a>) -> Result<Limits> {
     match parser.consume_byte()? {
         0x00 => Ok(Limits {
-            min: parser.consume_uleb128()?,
+            min: parser.consume_uleb128()? as u32,
             max: None,
         }),
         0x01 => {
-            let min = parser.consume_uleb128()?;
-            let max = parser.consume_uleb128()?;
+            let min = parser.consume_uleb128()? as u32;
+            let max = parser.consume_uleb128()? as u32;
             Ok(Limits {
                 min,
                 max: Some(max),
