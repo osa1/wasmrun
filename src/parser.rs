@@ -61,8 +61,8 @@ pub fn parse(bytes: &[u8]) -> Result<()> {
 
     skip_customsecs(&mut parser)?;
 
-    let code = parse_code(&mut parser)?;
-    println!("code: {:?}", code);
+    // let code = parse_code(&mut parser)?;
+    // println!("code: {:?}", code);
 
     Ok(())
 }
@@ -103,103 +103,78 @@ fn parse_section<'a, A>(
     Ok(ret)
 }
 
+fn parse_vec<'a, A>(
+    parser: &mut Parser<'a>,
+    parse: &dyn Fn(&mut Parser<'a>) -> Result<A>,
+) -> Result<Vec<A>> {
+    let vec_len = parser.consume_uleb128()?;
+    let mut vec = Vec::with_capacity(vec_len as usize);
+    for _ in 0..vec_len {
+        vec.push(parse(parser)?);
+    }
+    Ok(vec)
+}
+
 fn parse_type_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<FuncType>> {
-    parse_section(parser, 1, &|parser: &mut Parser<'a>| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut fun_tys: Vec<FuncType> = Vec::with_capacity(vec_len as usize);
-        for _ in 0..vec_len {
+    parse_section(parser, 1, &|parser| {
+        parse_vec(parser, &|parser| {
             parser.consume_const(&[0x60])?;
             let args = parse_resulttype(parser)?;
             let ret = parse_resulttype(parser)?;
-            fun_tys.push(FuncType { args, ret });
-        }
-
-        Ok(fun_tys)
+            Ok(FuncType { args, ret })
+        })
     })
 }
 
 fn parse_imports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Import>> {
     parse_section(parser, 2, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut imports: Vec<Import> = Vec::with_capacity(vec_len as usize);
-        for _ in 0..vec_len {
+        parse_vec(parser, &|parser| {
             let module = parse_name(parser)?;
             let name = parse_name(parser)?;
             let desc = parse_importdesc(parser)?;
-            imports.push(Import { module, name, desc });
-        }
-
-        Ok(imports)
+            Ok(Import { module, name, desc })
+        })
     })
 }
 
 fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<TypeIdx>> {
     parse_section(parser, 3, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
-            vec.push(parser.consume_uleb128()? as u32);
-        }
-
-        Ok(vec)
+        parse_vec(parser, &|parser| Ok(parser.consume_uleb128()? as u32))
     })
 }
 
 fn parse_table_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<Limits>> {
     parse_section(parser, 4, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
+        parse_vec(parser, &|parser| {
             parser.consume_const(&[0x70])?;
-            vec.push(parse_limits(parser)?);
-        }
-
-        Ok(vec)
+            Ok(parse_limits(parser)?)
+        })
     })
 }
 
 fn parse_mem_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<Limits>> {
     parse_section(parser, 5, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
-            vec.push(parse_limits(parser)?);
-        }
-
-        Ok(vec)
+        parse_vec(parser, &|parser| Ok(parse_limits(parser)?))
     })
 }
 
 fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Vec<Global>> {
     parse_section(parser, 6, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
+        parse_vec(parser, &|parser| {
             let ty = parse_global_type(parser)?;
             let expr = parse_expr(parser)?;
-            vec.push(Global { ty, expr });
-        }
-
-        Ok(vec)
+            Ok(Global { ty, expr })
+        })
     })
 }
 
 fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Export>> {
     parse_section(parser, 7, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
+        parse_vec(parser, &|parser| {
             let nm = parse_name(parser)?;
             let desc = parse_export_desc(parser)?;
-            vec.push(Export { nm, desc });
-        }
-
-        Ok(vec)
+            Ok(Export { nm, desc })
+        })
     })
 }
 
@@ -209,50 +184,32 @@ fn parse_start<'a>(parser: &mut Parser<'a>) -> Result<FuncIdx> {
 
 fn parse_element<'a>(parser: &mut Parser<'a>) -> Result<Vec<Element>> {
     parse_section(parser, 9, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
+        parse_vec(parser, &|parser| {
             let table = parser.consume_uleb128()? as u32;
             let expr = parse_expr(parser)?;
 
-            let vec_len = parser.consume_uleb128()?;
-            let mut init = Vec::with_capacity(vec_len as usize);
+            let init = parse_vec(parser, &|parser| Ok(parser.consume_uleb128()? as u32))?;
 
-            for _ in 0..vec_len {
-                init.push(parser.consume_uleb128()? as u32);
-            }
-
-            vec.push(Element { table, expr, init });
-        }
-
-        Ok(vec)
+            Ok(Element { table, expr, init })
+        })
     })
 }
 
 fn parse_code<'a>(parser: &mut Parser<'a>) -> Result<Vec<Fun>> {
     parse_section(parser, 10, &|parser| {
-        let vec_len = parser.consume_uleb128()?;
-        let mut vec = Vec::with_capacity(vec_len as usize);
-
-        for _ in 0..vec_len {
+        parse_vec(parser, &|parser| {
             let size = parser.consume_uleb128()?;
             let mut function_data_parser = parser.fork(size as usize)?;
 
-            let locals_len = function_data_parser.consume_uleb128()?;
-            let mut locals = Vec::with_capacity(locals_len as usize);
-
-            for _ in 0..locals_len {
-                let n = function_data_parser.consume_uleb128()?;
-                let ty = parse_valtype(&mut function_data_parser)?;
-                locals.push(Local { n: n as u32, ty });
-            }
+            let locals = parse_vec(&mut function_data_parser, &|parser| {
+                let n = parser.consume_uleb128()?;
+                let ty = parse_valtype(parser)?;
+                Ok(Local { n: n as u32, ty })
+            })?;
 
             let expr = parse_expr(&mut function_data_parser)?;
-            vec.push(Fun { locals, expr });
-        }
-
-        Ok(vec)
+            Ok(Fun { locals, expr })
+        })
     })
 }
 
@@ -565,14 +522,8 @@ fn parse_if<'a>(parser: &mut Parser<'a>) -> Result<If> {
 }
 
 fn parse_br_table<'a>(parser: &mut Parser<'a>) -> Result<BrTable> {
-    let vec_len = parser.consume_uleb128()?;
-    let mut tbl = Vec::with_capacity(vec_len as usize);
-
-    for _ in 0..vec_len {
-        tbl.push(parser.consume_uleb128()? as u32);
-    }
+    let tbl = parse_vec(parser, &|parser| Ok(parser.consume_uleb128()? as u32))?;
     let def = parser.consume_uleb128()? as u32;
-
     Ok(BrTable { tbl, def })
 }
 
@@ -614,14 +565,7 @@ fn skip_customsecs<'a>(parser: &mut Parser<'a>) -> Result<()> {
 }
 
 fn parse_resulttype<'a>(parser: &mut Parser<'a>) -> Result<ResultType> {
-    let vec_len = parser.consume_uleb128()?;
-    let mut result_type = Vec::with_capacity(vec_len as usize);
-
-    for _ in 0..vec_len {
-        result_type.push(parse_valtype(parser)?);
-    }
-
-    Ok(result_type)
+    parse_vec(parser, &|parser| Ok(parse_valtype(parser)?))
 }
 
 fn parse_valtype<'a>(parser: &mut Parser<'a>) -> Result<ValType> {
