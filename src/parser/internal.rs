@@ -63,7 +63,6 @@ impl<'a> Parser<'a> {
 
         loop {
             let byte = self.consume_byte()?;
-            println!("uleb byte: {:x?}", byte);
             result |= (u64::from(byte & 0b0111_1111)) << shift;
             if byte & 0b1000_0000 == 0 {
                 break;
@@ -83,7 +82,6 @@ impl<'a> Parser<'a> {
 
         let mut byte = self.consume_byte()?;
         loop {
-            println!("sleb byte: {:x?}", byte);
             result |= (i64::from(byte & 0b0111_1111)) << shift;
             if byte & 0b1000_0000 == 0 {
                 break;

@@ -514,3 +514,15 @@ pub struct Element {
     pub expr: Expr,
     pub init: Vec<FuncIdx>,
 }
+
+#[derive(Debug)]
+pub struct Local {
+    pub n: u32,
+    pub ty: ValType,
+}
+
+#[derive(Debug)]
+pub struct Fun {
+    pub locals: Vec<Local>,
+    pub expr: Expr,
+}
