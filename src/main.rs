@@ -1,3 +1,4 @@
+mod exec;
 mod parser;
 
 fn main() {
@@ -5,5 +6,6 @@ fn main() {
     let file = &args[1];
 
     let bytes = std::fs::read(file).unwrap();
-    parser::parse(&bytes).unwrap();
+    let module = parser::parse(&bytes).unwrap();
+    println!("{:#?}", module);
 }

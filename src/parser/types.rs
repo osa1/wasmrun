@@ -9,6 +9,20 @@ pub type LocalIdx = u32;
 pub type LabelIdx = u32;
 
 #[derive(Debug)]
+pub struct Module {
+    pub types: Vec<FuncType>,
+    pub funs: Vec<Fun>,
+    pub tables: Vec<Table>,
+    pub mem_addrs: Vec<Limits>,
+    pub globals: Vec<Global>,
+    pub elems: Vec<Element>,
+    pub data: Vec<Data>,
+    pub start: Option<FuncIdx>,
+    pub imports: Vec<Import>,
+    pub exports: Vec<Export>,
+}
+
+#[derive(Debug)]
 pub enum ValType {
     I32,
     I64,
@@ -523,8 +537,20 @@ pub struct Local {
 
 #[derive(Debug)]
 pub struct Fun {
+    pub ty: TypeIdx,
     pub locals: Vec<Local>,
     pub expr: Expr,
+}
+
+#[derive(Debug)]
+pub struct Table {
+    pub limits: Limits,
+    pub elem_type: ElemType,
+}
+
+#[derive(Debug)]
+pub enum ElemType {
+    FuncRef,
 }
 
 #[derive(Debug)]
