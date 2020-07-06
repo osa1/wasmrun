@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+use std::rc::Rc;
+
 pub type TypeIdx = u32;
 pub type FuncIdx = u32;
 pub type TableIdx = u32;
@@ -22,7 +24,7 @@ pub struct Module {
     pub exports: Vec<Export>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ValType {
     I32,
     I64,
@@ -79,10 +81,10 @@ pub struct Global {
 
 #[derive(Debug)]
 pub struct Expr {
-    pub instrs: Vec<Instruction>,
+    pub instrs: Rc<[Instruction]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Instruction {
     //
     // Control instructions
@@ -476,33 +478,33 @@ pub enum Instruction {
     I64TruncSatf64_u,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub ty: BlockType,
-    pub instrs: Vec<Instruction>,
+    pub instrs: Rc<[Instruction]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct If {
     pub ty: BlockType,
-    pub then_instrs: Vec<Instruction>,
-    pub else_instrs: Vec<Instruction>,
+    pub then_instrs: Rc<[Instruction]>,
+    pub else_instrs: Rc<[Instruction]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BlockType {
     Empty, // 0x40
     ValType(ValType),
     TypeIdx(TypeIdx),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BrTable {
     pub tbl: Vec<LabelIdx>,
     pub def: LabelIdx,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MemArg {
     pub align: u32,
     pub offset: u32,

@@ -265,7 +265,9 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Result<Expr> {
         instrs.push(parse_instr(parser)?);
     }
     parser.skip(1)?; // consume 0x0B
-    Ok(Expr { instrs })
+    Ok(Expr {
+        instrs: instrs.into(),
+    })
 }
 
 fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
@@ -525,7 +527,10 @@ fn parse_block<'a>(parser: &mut Parser<'a>) -> Result<Block> {
         instrs.push(parse_instr(parser)?);
     }
     parser.skip(1)?; // consume 0x0B
-    Ok(Block { ty, instrs })
+    Ok(Block {
+        ty,
+        instrs: instrs.into(),
+    })
 }
 
 fn parse_if<'a>(parser: &mut Parser<'a>) -> Result<If> {
@@ -552,8 +557,8 @@ fn parse_if<'a>(parser: &mut Parser<'a>) -> Result<If> {
 
     Ok(If {
         ty,
-        then_instrs,
-        else_instrs,
+        then_instrs: then_instrs.into(),
+        else_instrs: else_instrs.into(),
     })
 }
 
