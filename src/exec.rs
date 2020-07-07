@@ -24,9 +24,14 @@ struct Module {
 
 struct Store {
     funcs: Vec<Func>,
-    tables: (),
-    mems: Vec<Vec<u8>>, // indexed by module idx
-    globals: (),
+    tables: Vec<Vec<Option<u32>>>, // indexed by table address (table_addrs), returns function address (index into Store.funcs)
+    mems: Vec<Vec<u8>>,            // indexed by module idx
+    globals: Vec<Global>,
+}
+
+struct Global {
+    value: Value,
+    mutable: bool, // Only needed for validation
 }
 
 pub struct Runtime {
@@ -113,6 +118,22 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 ip += 1;
             }
 
+            GlobalGet(idx) => {
+                let current_module = runtime.frames.current().module();
+                let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
+                let value = runtime.store.globals[global_idx as usize].value;
+                runtime.stack.push(value);
+                ip += 1;
+            }
+
+            GlobalSet(idx) => {
+                let current_module = runtime.frames.current().module();
+                let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
+                let value = runtime.stack.pop();
+                runtime.store.globals[global_idx as usize].value = value;
+                ip += 1;
+            }
+
             I32Const(i) => {
                 runtime.stack.push_i32(*i);
                 ip += 1;
@@ -149,6 +170,39 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 let instrs = fun.fun.expr.instrs.clone();
                 exec(runtime, &*instrs, 0);
                 runtime.frames.pop();
+                ip += 1;
+            }
+
+            CallIndirect(type_idx) => {
+                let module_idx = runtime.frames.current().module();
+                let table_idx = runtime.modules[module_idx].table_addrs[0];
+                let table = &runtime.store.tables[table_idx as usize];
+                let fun_idx = runtime.stack.pop_i32();
+                match table.get(fun_idx as usize) {
+                    None => {
+                        panic!("call_indirect: OOB function index (function idx={}, table idx={}, table size={})",
+                               fun_idx, table_idx, table.len());
+                    }
+                    Some(None) => {
+                        panic!("call_indirect: function index not initialized (function idx={}, table idx={})",
+                               fun_idx, table_idx);
+                    }
+                    Some(Some(fun_addr)) => {
+                        let fun = &runtime.store.funcs[*fun_addr as usize];
+
+                        let fun_ty = fun.fun.ty;
+                        if fun_ty != *type_idx {
+                            panic!("call_indirect: function type doesn't match expected type (fun ty={}, expected={})",
+                                   fun_ty, type_idx);
+                        }
+
+                        runtime.frames.push(fun);
+                        let instrs = fun.fun.expr.instrs.clone();
+                        exec(runtime, &*instrs, 0);
+                        runtime.frames.pop();
+                        ip += 1;
+                    }
+                }
             }
 
             Return => {

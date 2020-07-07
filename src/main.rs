@@ -8,7 +8,4 @@ fn main() {
     let bytes = std::fs::read(file).unwrap();
     let module = parser::parse(&bytes).unwrap();
     println!("{:#?}", module);
-
-
-
 }

@@ -133,9 +133,9 @@ pub enum Instruction {
     // 0x22
     LocalTee(LocalIdx),
     // 0x23
-    GlobalGet(LocalIdx),
+    GlobalGet(GlobalIdx),
     // 0x24
-    GlobalSet(LocalIdx),
+    GlobalSet(GlobalIdx),
 
     //
     // Memory instructions
