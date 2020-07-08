@@ -28,7 +28,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let tables = parse_table_section(&mut parser)?;
+    let tables = optional_section(parse_table_section(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
@@ -48,7 +48,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let elems = parse_element(&mut parser)?;
+    let elems = optional_section(parse_element(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
@@ -79,6 +79,14 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
         imports,
         exports,
     })
+}
+
+fn optional_section<A>(result: Result<A>, def: A) -> Result<A> {
+    match result {
+        Ok(res) => Ok(res),
+        Err(ParseError::UnexpectedSectionType { .. }) => Ok(def),
+        Err(other) => Err(other),
+    }
 }
 
 fn parse_section<'a, A>(

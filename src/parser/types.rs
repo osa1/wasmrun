@@ -13,10 +13,12 @@ pub type LabelIdx = u32;
 #[derive(Debug)]
 pub struct Module {
     pub types: Vec<FuncType>,
+
     pub funs: Vec<Fun>,
     pub tables: Vec<Table>,
     pub mem_addrs: Vec<Limits>,
     pub globals: Vec<Global>,
+
     pub elems: Vec<Element>,
     pub data: Vec<Data>,
     pub start: Option<FuncIdx>,

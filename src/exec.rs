@@ -9,10 +9,10 @@ mod value;
 use const_expr::ConstExpr;
 use frame::FrameStack;
 use stack::Stack;
-use store::{Global, Store};
+use store::{Global, ModuleIdx, Store};
 
 use crate::parser;
-use crate::parser::{Export, FuncType, Instruction, MemArg};
+use crate::parser::{Export, FuncIdx, FuncType, Instruction, MemArg};
 
 type Addr = u32;
 
@@ -24,6 +24,7 @@ struct Module {
     mem_addrs: Vec<Addr>,
     global_addrs: Vec<Addr>,
     exports: Vec<Export>,
+    start: Option<FuncIdx>,
 }
 
 #[derive(Default)]
@@ -35,7 +36,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn allocate_module(&mut self, parsed_module: parser::Module) {
+    pub fn allocate_module(&mut self, parsed_module: &mut parser::Module) -> ModuleIdx {
         // https://webassembly.github.io/spec/core/exec/modules.html
 
         let module_idx = self.modules.len();
@@ -43,14 +44,14 @@ impl Runtime {
         let mut inst = Module::default();
 
         // Allocate functions
-        for fun in parsed_module.funs {
+        for fun in parsed_module.funs.drain(..) {
             let fun_idx = self.store.funcs.len();
             self.store.funcs.push(store::Func { module_idx, fun });
             inst.func_addrs.push(fun_idx as u32);
         }
 
         // Allocate tables
-        for table in parsed_module.tables {
+        for table in parsed_module.tables.drain(..) {
             let table_idx = self.store.tables.len();
             self.store
                 .tables
@@ -60,14 +61,14 @@ impl Runtime {
 
         // Allocate memories
         assert_eq!(parsed_module.mem_addrs.len(), 1); // Should be the case currently
-        for mem in parsed_module.mem_addrs {
+        for mem in parsed_module.mem_addrs.drain(..) {
             let mem_idx = self.store.mems.len();
             self.store.mems.push(vec![0; mem.min as usize]);
             inst.mem_addrs.push(mem_idx as u32);
         }
 
         // Allocate globals
-        for global in parsed_module.globals {
+        for global in parsed_module.globals.drain(..) {
             let global_idx = self.store.globals.len();
             let value = match ConstExpr::from_expr(&global.expr) {
                 None => panic!(
@@ -88,8 +89,23 @@ impl Runtime {
             inst.global_addrs.push(global_idx as u32);
         }
 
+        // Set start
+        inst.start = parsed_module.start;
+
         // Done
         self.modules.push(inst);
+
+        module_idx
+    }
+
+    pub fn run_module(&mut self, module_idx: ModuleIdx) {
+        if let Some(func_idx) = self.modules[module_idx].start {
+            let module = &self.modules[module_idx];
+            let func_addr = module.func_addrs[func_idx as usize];
+            let fun = &self.store.funcs[func_addr as usize];
+            let instrs = fun.fun.expr.instrs.clone();
+            exec(self, &*instrs, 0);
+        }
     }
 }
 

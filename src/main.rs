@@ -8,9 +8,11 @@ fn main() {
     let file = &args[1];
 
     let bytes = std::fs::read(file).unwrap();
-    let module = parser::parse(&bytes).unwrap();
+    let mut module = parser::parse(&bytes).unwrap();
     println!("{:#?}", module);
 
     let mut runtime = Runtime::default();
-    runtime.allocate_module(module);
+    let module_idx = runtime.allocate_module(&mut module);
+
+    runtime.run_module(module_idx);
 }
