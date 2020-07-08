@@ -2,8 +2,10 @@ mod internal;
 pub mod types;
 
 use internal::*;
-pub use internal::{ParseError, Result};
+pub use internal::{ErrorKind, ParseError, Result};
 pub use types::*;
+
+use std::backtrace::Backtrace;
 
 pub fn parse(bytes: &[u8]) -> Result<Module> {
     let mut parser = Parser::new(bytes);
@@ -20,7 +22,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let imports = parse_imports(&mut parser)?;
+    let imports = optional_section(parse_imports(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
@@ -32,11 +34,11 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let mem_addrs = parse_mem_section(&mut parser)?;
+    let mem_addrs = optional_section(parse_mem_section(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
-    let globals = parse_globals(&mut parser)?;
+    let globals = optional_section(parse_globals(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
@@ -56,14 +58,17 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let data = parse_data(&mut parser)?;
+    let data = optional_section(parse_data(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
     if !parser.all_consumed() {
-        return Err(ParseError::SectionNotEmpty {
-            remains: parser.get_bytes().to_owned(),
+        return Err(ParseError {
+            kind: ErrorKind::SectionNotEmpty {
+                remains: parser.get_bytes().to_owned(),
+            },
             offset: parser.get_cursor(),
+            backtrace: Backtrace::capture(),
         });
     }
 
@@ -84,7 +89,10 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 fn optional_section<A>(result: Result<A>, def: A) -> Result<A> {
     match result {
         Ok(res) => Ok(res),
-        Err(ParseError::UnexpectedSectionType { .. }) => Ok(def),
+        Err(ParseError {
+            kind: ErrorKind::UnexpectedSectionType { .. } | ErrorKind::NotEnoughBytes { .. },
+            ..
+        }) => Ok(def),
         Err(other) => Err(other),
     }
 }
@@ -97,10 +105,13 @@ fn parse_section<'a, A>(
     match parser.byte() {
         Ok(ty) if ty == section_ty => {}
         Ok(other) => {
-            return Err(ParseError::UnexpectedSectionType {
-                expected: section_ty,
-                found: other,
+            return Err(ParseError {
+                kind: ErrorKind::UnexpectedSectionType {
+                    expected: section_ty,
+                    found: other,
+                },
                 offset: parser.get_cursor(),
+                backtrace: Backtrace::capture(),
             });
         }
         Err(err) => {
@@ -116,9 +127,12 @@ fn parse_section<'a, A>(
     let ret = parse(&mut section_parser)?;
 
     if !section_parser.all_consumed() {
-        return Err(ParseError::SectionNotEmpty {
-            remains: section_parser.get_bytes().to_owned(),
+        return Err(ParseError {
+            kind: ErrorKind::SectionNotEmpty {
+                remains: section_parser.get_bytes().to_owned(),
+            },
             offset: section_parser.get_cursor(),
+            backtrace: Backtrace::capture(),
         });
     }
 
@@ -509,15 +523,17 @@ fn parse_instr<'a>(parser: &mut Parser<'a>) -> Result<Instruction> {
                 0x05 => Ok(I64TruncSatf32_u),
                 0x06 => Ok(I64TruncSatf64_s),
                 0x07 => Ok(I64TruncSatf64_u),
-                _other => Err(ParseError::UnexpectedOpCode {
-                    op: 0xFC,
+                _other => Err(ParseError {
+                    kind: ErrorKind::UnexpectedOpCode { op: 0xFC },
                     offset: parser.get_cursor() - 1,
+                    backtrace: Backtrace::capture(),
                 }), // TODO show 'other'
             }
         }
-        other => Err(ParseError::UnexpectedOpCode {
-            op: other,
+        other => Err(ParseError {
+            kind: ErrorKind::UnexpectedOpCode { op: other },
             offset: parser.get_cursor() - 1,
+            backtrace: Backtrace::capture(),
         }),
     }
 }
@@ -640,9 +656,10 @@ fn parse_valtype<'a>(parser: &mut Parser<'a>) -> Result<ValType> {
         0x7E => Ok(ValType::I64),
         0x7D => Ok(ValType::F32),
         0x7C => Ok(ValType::F64),
-        _ => Err(ParseError::UnexpectedValType {
-            found: byte,
+        _ => Err(ParseError {
+            kind: ErrorKind::UnexpectedValType { found: byte },
             offset: parser.get_cursor() - 1,
+            backtrace: Backtrace::capture(),
         }),
     }
 }
@@ -697,9 +714,10 @@ fn parse_name<'a>(parser: &mut Parser<'a>) -> Result<String> {
     let str_bytes = parser.consume(str_size as usize)?;
     match ::std::str::from_utf8(str_bytes) {
         Ok(str) => Ok(str.to_owned()),
-        Err(err) => Err(ParseError::Utf8Error {
-            error: err,
+        Err(err) => Err(ParseError {
+            kind: ErrorKind::Utf8Error { error: err },
             offset: parser.get_cursor() - str_size as usize,
+            backtrace: Backtrace::capture(),
         }),
     }
 }

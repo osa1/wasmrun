@@ -1,36 +1,21 @@
+use std::backtrace::Backtrace;
+
 #[derive(Debug)]
-pub enum ParseError {
-    NotEnoughBytes {
-        expected: usize,
-        found: usize,
-        offset: usize,
-    },
-    UnexpectedConst {
-        expected: Vec<u8>,
-        found: Vec<u8>,
-        offset: usize,
-    },
-    UnexpectedValType {
-        found: u8,
-        offset: usize,
-    },
-    SectionNotEmpty {
-        remains: Vec<u8>,
-        offset: usize,
-    },
-    Utf8Error {
-        error: ::std::str::Utf8Error,
-        offset: usize,
-    },
-    UnexpectedSectionType {
-        expected: u8,
-        found: u8,
-        offset: usize,
-    },
-    UnexpectedOpCode {
-        op: u8,
-        offset: usize,
-    },
+pub struct ParseError {
+    pub kind: ErrorKind,
+    pub offset: usize,
+    pub backtrace: Backtrace, // inefficient but whatever
+}
+
+#[derive(Debug)]
+pub enum ErrorKind {
+    NotEnoughBytes { expected: usize, found: usize },
+    UnexpectedConst { expected: Vec<u8>, found: Vec<u8> },
+    UnexpectedValType { found: u8 },
+    SectionNotEmpty { remains: Vec<u8> },
+    Utf8Error { error: ::std::str::Utf8Error },
+    UnexpectedSectionType { expected: u8, found: u8 },
+    UnexpectedOpCode { op: u8 },
 }
 
 pub type Result<A> = ::std::result::Result<A, ParseError>;
@@ -71,10 +56,13 @@ impl<'a> Parser<'a> {
             self.cursor += n;
             Ok(consumed)
         } else {
-            Err(ParseError::NotEnoughBytes {
-                expected: n,
-                found: len,
+            Err(ParseError {
+                kind: ErrorKind::NotEnoughBytes {
+                    expected: n,
+                    found: len,
+                },
                 offset: self.cursor,
+                backtrace: Backtrace::capture(),
             })
         }
     }
@@ -89,10 +77,13 @@ impl<'a> Parser<'a> {
         if slice == expect {
             Ok(())
         } else {
-            Err(ParseError::UnexpectedConst {
-                expected: expect.to_owned(),
-                found: slice.to_owned(),
+            Err(ParseError {
+                kind: ErrorKind::UnexpectedConst {
+                    expected: expect.to_owned(),
+                    found: slice.to_owned(),
+                },
                 offset: self.cursor - expect.len(),
+                backtrace: Backtrace::capture(),
             })
         }
     }
@@ -142,21 +133,28 @@ impl<'a> Parser<'a> {
     /// Read one byte without consuming.
     pub fn byte(&self) -> Result<u8> {
         match self.bytes.get(0) {
-            None => Err(ParseError::NotEnoughBytes {
-                expected: 1,
-                found: 0,
+            None => Err(ParseError {
+                kind: ErrorKind::NotEnoughBytes {
+                    expected: 1,
+                    found: 0,
+                },
                 offset: self.cursor,
+                backtrace: Backtrace::capture(),
             }),
+
             Some(byte) => Ok(*byte),
         }
     }
 
     pub fn consume_byte(&mut self) -> Result<u8> {
         match self.bytes.get(0) {
-            None => Err(ParseError::NotEnoughBytes {
-                expected: 1,
-                found: 0,
+            None => Err(ParseError {
+                kind: ErrorKind::NotEnoughBytes {
+                    expected: 1,
+                    found: 0,
+                },
                 offset: self.cursor,
+                backtrace: Backtrace::capture(),
             }),
             Some(byte) => {
                 let byte = *byte;

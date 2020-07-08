@@ -1,3 +1,5 @@
+#![feature(backtrace, or_patterns)]
+
 mod exec;
 mod parser;
 
@@ -8,7 +10,13 @@ fn main() {
     let file = &args[1];
 
     let bytes = std::fs::read(file).unwrap();
-    let mut module = parser::parse(&bytes).unwrap();
+    let mut module = match parser::parse(&bytes) {
+        Ok(module) => module,
+        Err(err) => {
+            eprintln!("{:#?}", err);
+            ::std::process::exit(1);
+        }
+    };
     println!("{:#?}", module);
 
     let mut runtime = Runtime::default();

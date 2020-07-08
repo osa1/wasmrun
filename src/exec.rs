@@ -60,7 +60,7 @@ impl Runtime {
         }
 
         // Allocate memories
-        assert_eq!(parsed_module.mem_addrs.len(), 1); // Should be the case currently
+        assert!(parsed_module.mem_addrs.len() <= 1); // No more than 1
         for mem in parsed_module.mem_addrs.drain(..) {
             let mem_idx = self.store.mems.len();
             self.store.mems.push(vec![0; mem.min as usize]);
@@ -99,19 +99,22 @@ impl Runtime {
     }
 
     pub fn run_module(&mut self, module_idx: ModuleIdx) {
-        if let Some(func_idx) = self.modules[module_idx].start {
-            let module = &self.modules[module_idx];
-            let func_addr = module.func_addrs[func_idx as usize];
-            let fun = &self.store.funcs[func_addr as usize];
-            let instrs = fun.fun.expr.instrs.clone();
-            exec(self, &*instrs, 0);
-        }
+        let func_idx = 0;
+        let module = &self.modules[module_idx];
+        let func_addr = module.func_addrs[func_idx as usize];
+        let fun = &self.store.funcs[func_addr as usize];
+        self.frames.push(fun);
+        let instrs = fun.fun.expr.instrs.clone();
+        exec(self, &*instrs, 0);
     }
 }
 
 pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
     loop {
         use Instruction::*;
+
+        println!("{}: {:?}", ip, &instr[ip]);
+
         match &instr[ip] {
             I32Store(MemArg { align: _, offset }) => {
                 let value = runtime.stack.pop_i32();
