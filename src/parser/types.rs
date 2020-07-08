@@ -67,7 +67,7 @@ pub struct GlobalType {
     pub mut_: Mutability,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Mutability {
     Const,
     Var,
@@ -76,6 +76,8 @@ pub enum Mutability {
 #[derive(Debug)]
 pub struct Global {
     pub ty: GlobalType,
+    /// A constant expression, see
+    /// https://webassembly.github.io/spec/core/valid/instructions.html#constant-expressions
     pub expr: Expr,
 }
 

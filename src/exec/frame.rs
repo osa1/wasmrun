@@ -1,6 +1,7 @@
+use super::store::{Func, ModuleIdx};
 use super::value::Value;
-use super::{Func, ModuleIdx};
 
+#[derive(Default)]
 pub struct FrameStack(Vec<Frame>);
 
 pub struct Frame {
@@ -25,7 +26,7 @@ impl FrameStack {
 
     pub(super) fn push(&mut self, fun: &Func) {
         self.0.push(Frame {
-            module_idx: fun.module,
+            module_idx: fun.module_idx,
             locals: fun
                 .fun
                 .locals

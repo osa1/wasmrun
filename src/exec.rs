@@ -1,39 +1,32 @@
+#![allow(dead_code)]
+
+mod const_expr;
 mod frame;
 mod stack;
+mod store;
 mod value;
 
+use const_expr::ConstExpr;
 use frame::FrameStack;
 use stack::Stack;
-use value::Value;
+use store::{Global, Store};
 
 use crate::parser;
-use crate::parser::{Export, Fun, FuncType, Instruction, MemArg};
+use crate::parser::{Export, FuncType, Instruction, MemArg};
 
 type Addr = u32;
 
-type ModuleIdx = usize;
-
+#[derive(Default)]
 struct Module {
     types: Vec<FuncType>,
     func_addrs: Vec<Addr>,
     table_addrs: Vec<Addr>,
-    // No need for mem_addrs as there can be at most one memory instance currently in Wasm
+    mem_addrs: Vec<Addr>,
     global_addrs: Vec<Addr>,
     exports: Vec<Export>,
 }
 
-struct Store {
-    funcs: Vec<Func>,
-    tables: Vec<Vec<Option<u32>>>, // indexed by table address (table_addrs), returns function address (index into Store.funcs)
-    mems: Vec<Vec<u8>>,            // indexed by module idx
-    globals: Vec<Global>,
-}
-
-struct Global {
-    value: Value,
-    mutable: bool, // Only needed for validation
-}
-
+#[derive(Default)]
 pub struct Runtime {
     store: Store,
     stack: Stack,
@@ -41,18 +34,64 @@ pub struct Runtime {
     modules: Vec<Module>,
 }
 
-struct Func {
-    module: ModuleIdx,
-    fun: Fun,
-}
+impl Runtime {
+    pub fn allocate_module(&mut self, parsed_module: parser::Module) {
+        // https://webassembly.github.io/spec/core/exec/modules.html
 
-/*
-impl Module {
-    fn new(module: parser::Module) -> Module {
+        let module_idx = self.modules.len();
 
+        let mut inst = Module::default();
+
+        // Allocate functions
+        for fun in parsed_module.funs {
+            let fun_idx = self.store.funcs.len();
+            self.store.funcs.push(store::Func { module_idx, fun });
+            inst.func_addrs.push(fun_idx as u32);
+        }
+
+        // Allocate tables
+        for table in parsed_module.tables {
+            let table_idx = self.store.tables.len();
+            self.store
+                .tables
+                .push(vec![None; table.limits.min as usize]);
+            inst.table_addrs.push(table_idx as u32);
+        }
+
+        // Allocate memories
+        assert_eq!(parsed_module.mem_addrs.len(), 1); // Should be the case currently
+        for mem in parsed_module.mem_addrs {
+            let mem_idx = self.store.mems.len();
+            self.store.mems.push(vec![0; mem.min as usize]);
+            inst.mem_addrs.push(mem_idx as u32);
+        }
+
+        // Allocate globals
+        for global in parsed_module.globals {
+            let global_idx = self.store.globals.len();
+            let value = match ConstExpr::from_expr(&global.expr) {
+                None => panic!(
+                    "Global value is not a constant expression: {:?}",
+                    global.expr
+                ),
+                Some(ConstExpr::Const(value)) => value,
+                Some(ConstExpr::GlobalGet(_idx)) =>
+                // See the comments in `ConstExpr` type. This can only be an import.
+                {
+                    todo!()
+                }
+            };
+            self.store.globals.push(Global {
+                value,
+                mutable: global.ty.mut_ == parser::types::Mutability::Var,
+            });
+            inst.global_addrs.push(global_idx as u32);
+        }
+
+        // Done
+        self.modules.push(inst);
     }
 }
-*/
 
 pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
     loop {

@@ -1,6 +1,6 @@
 use super::value::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Stack(Vec<Value>);
 
 impl Stack {
