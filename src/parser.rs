@@ -42,7 +42,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let exports = parse_exports(&mut parser)?;
+    let exports = optional_section(parse_exports(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
