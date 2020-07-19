@@ -18,7 +18,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let types = parse_type_section(&mut parser)?;
+    let types = optional_section(parse_type_section(&mut parser), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
@@ -54,7 +54,12 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let code = parse_code(&mut parser, &funs)?;
+    // https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md#datacount-section
+    let datacount = optional_section(parse_datacount(&mut parser), None)?;
+
+    skip_customsecs(&mut parser)?;
+
+    let code = optional_section(parse_code(&mut parser, &funs), vec![])?;
 
     skip_customsecs(&mut parser)?;
 
@@ -83,6 +88,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
         start,
         imports,
         exports,
+        datacount,
     })
 }
 
@@ -231,6 +237,15 @@ fn parse_element<'a>(parser: &mut Parser<'a>) -> Result<Vec<Element>> {
 
             Ok(Element { table, expr, init })
         })
+    })
+}
+
+// https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md#datacount-section
+fn parse_datacount<'a>(parser: &mut Parser<'a>) -> Result<Option<u32>> {
+    // Comes before code section but has number 12. See the spec linked above.
+    parse_section(parser, 12, &|parser| {
+        let count = parser.consume_uleb128()? as u32;
+        Ok(Some(count))
     })
 }
 

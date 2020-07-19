@@ -24,6 +24,7 @@ pub struct Module {
     pub start: Option<FuncIdx>,
     pub imports: Vec<Import>,
     pub exports: Vec<Export>,
+    pub datacount: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -565,3 +566,6 @@ pub struct Data {
     pub offset: Expr,
     pub init: Vec<u8>,
 }
+
+#[derive(Debug)]
+pub struct Linking {}
