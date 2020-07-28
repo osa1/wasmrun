@@ -14,10 +14,12 @@ use store::{Global, ModuleIdx, Store};
 use crate::parser;
 use crate::parser::{Export, FuncIdx, FuncType, Instruction, MemArg};
 
+use std::rc::Rc;
+
 type Addr = u32;
 
 #[derive(Default)]
-struct Module {
+pub struct Module {
     types: Vec<FuncType>,
     func_addrs: Vec<Addr>,
     table_addrs: Vec<Addr>,
@@ -36,7 +38,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn allocate_module(&mut self, parsed_module: &mut parser::Module) -> ModuleIdx {
+    pub fn allocate_module(&mut self, mut parsed_module: parser::Module) -> ModuleIdx {
         // https://webassembly.github.io/spec/core/exec/modules.html
 
         let module_idx = self.modules.len();
@@ -101,24 +103,27 @@ impl Runtime {
         module_idx
     }
 
-    pub fn run_module(&mut self, module_idx: ModuleIdx) {
-        let func_idx = 0;
-        let module = &self.modules[module_idx];
-        let func_addr = module.func_addrs[func_idx as usize];
-        let fun = &self.store.funcs[func_addr as usize];
-        self.frames.push(fun);
-        let instrs = fun.fun.expr.instrs.clone();
-        exec(self, &*instrs, 0);
+    pub fn get_module_start(&self, idx: ModuleIdx) -> Option<FuncIdx> {
+        self.modules[idx].start
+    }
+
+    pub fn call(&mut self, module_idx: ModuleIdx, fun_idx: u32) {
+        let fun_addr = self.modules[module_idx].func_addrs[fun_idx as usize];
+        let fun = &self.store.funcs[fun_addr as usize].fun;
+        // TODO: push dummy values for locals
     }
 }
 
-pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
-    loop {
+pub fn exec(runtime: &mut Runtime, block: Rc<[Instruction]>) {
+    let ip_stack: Vec<(Rc<[Instruction]>, u32)> = vec![(block, 0)];
+
+    while let Some((block, ip)) = ip_stack.last().cloned() {
         use Instruction::*;
+        let instr = &block[ip as usize];
 
-        println!("{}: {:?}", ip, &instr[ip]);
+        println!("{}: {:?}", ip, instr);
 
-        match &instr[ip] {
+        match instr {
             I32Store(MemArg { align: _, offset }) => {
                 let value = runtime.stack.pop_i32();
                 let addr = runtime.stack.pop_i32() as u32;
@@ -137,7 +142,7 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 mem[addr + 2] = b3;
                 mem[addr + 4] = b4;
 
-                ip += 1;
+                // ip += 1;
             }
 
             I32Load(MemArg { align: _, offset }) => {
@@ -157,26 +162,26 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 let b4 = mem[addr + 3];
                 runtime.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
 
-                ip += 1;
+                // ip += 1;
             }
 
             LocalGet(idx) => {
                 let val = runtime.frames.current().get_local(*idx);
                 runtime.stack.push(val);
-                ip += 1;
+                // ip += 1;
             }
 
             LocalSet(idx) => {
                 let val = runtime.stack.pop();
                 runtime.frames.current_mut().set_local(*idx, val);
-                ip += 1;
+                // ip += 1;
             }
 
             LocalTee(idx) => {
                 let val = runtime.stack.pop();
                 runtime.frames.current_mut().set_local(*idx, val);
                 runtime.stack.push(val);
-                ip += 1;
+                // ip += 1;
             }
 
             GlobalGet(idx) => {
@@ -184,7 +189,7 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
                 let value = runtime.store.globals[global_idx as usize].value;
                 runtime.stack.push(value);
-                ip += 1;
+                // ip += 1;
             }
 
             GlobalSet(idx) => {
@@ -192,37 +197,39 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
                 let value = runtime.stack.pop();
                 runtime.store.globals[global_idx as usize].value = value;
-                ip += 1;
+                // ip += 1;
             }
 
             I32Const(i) => {
                 runtime.stack.push_i32(*i);
-                ip += 1;
+                // ip += 1;
             }
 
             I64Const(i) => {
                 runtime.stack.push_i64(*i);
-                ip += 1;
+                // ip += 1;
             }
 
             F32Const(f) => {
                 runtime.stack.push_f32(*f);
-                ip += 1;
+                // ip += 1;
             }
 
             F64Const(f) => {
                 runtime.stack.push_f64(*f);
-                ip += 1;
+                // ip += 1;
             }
 
             I32Le_u => {
                 let val2 = runtime.stack.pop_i32();
                 let val1 = runtime.stack.pop_i32();
                 runtime.stack.push_bool(val1 <= val2);
-                ip += 1;
+                // ip += 1;
             }
 
             Call(x) => {
+                todo!()
+                /*
                 let module_idx = runtime.frames.current().module();
                 let module = &runtime.modules[module_idx];
                 let func_addr = module.func_addrs[*x as usize];
@@ -232,9 +239,12 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                 exec(runtime, &*instrs, 0);
                 runtime.frames.pop();
                 ip += 1;
+                */
             }
 
             CallIndirect(type_idx) => {
+                todo!()
+                /*
                 let module_idx = runtime.frames.current().module();
                 let table_idx = runtime.modules[module_idx].table_addrs[0];
                 let table = &runtime.store.tables[table_idx as usize];
@@ -264,6 +274,7 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
                         ip += 1;
                     }
                 }
+                */
             }
 
             Return => {
@@ -271,10 +282,15 @@ pub fn exec(runtime: &mut Runtime, instr: &[Instruction], mut ip: usize) {
             }
 
             Block(parser::types::Block { ty: _, instrs }) => {
+                todo!()
+                /*
                 // TODO: I think type is not useful for execution?
                 let instrs = instrs.clone();
                 exec(runtime, &*instrs, 0);
+                */
             }
+
+            Loop(parser::types::Block { ty: _, instrs }) => todo!(),
 
             _ => todo!("unhandled instruction: {:?}", instr),
         }
