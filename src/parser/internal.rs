@@ -15,7 +15,6 @@ pub enum ErrorKind {
     UnexpectedValType { found: u8 },
     SectionNotEmpty { remains: Vec<u8> },
     Utf8Error { error: ::std::str::Utf8Error },
-    UnexpectedSectionType { expected: u8, found: u8 },
     UnexpectedOpCode { op: u8 },
     UnexpectedNameSubsection { found: u8 },
 }

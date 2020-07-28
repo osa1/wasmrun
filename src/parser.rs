@@ -19,65 +19,64 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     skip_customsecs(&mut parser)?;
 
-    let types = optional_section(parse_type_section(&mut parser), vec![])?;
+    let types = parse_type_section(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let imports = optional_section(parse_imports(&mut parser), vec![])?;
+    let imports = parse_imports(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let funs = parse_fun_section(&mut parser)?;
+    let funs = parse_fun_section(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let tables = optional_section(parse_table_section(&mut parser), vec![])?;
+    let tables = parse_table_section(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let mem_addrs = optional_section(parse_mem_section(&mut parser), vec![])?;
+    let mem_addrs = parse_mem_section(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let globals = optional_section(parse_globals(&mut parser), vec![])?;
+    let globals = parse_globals(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let exports = optional_section(parse_exports(&mut parser), vec![])?;
+    let exports = parse_exports(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let start = parse_start(&mut parser).ok();
+    let start = parse_start(&mut parser)?;
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let elems = optional_section(parse_element(&mut parser), vec![])?;
+    let elems = parse_element(&mut parser)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
     // https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md#datacount-section
-    let datacount = optional_section(parse_datacount(&mut parser), None)?;
+    let datacount = parse_datacount(&mut parser)?;
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let code = optional_section(parse_code(&mut parser, &funs), vec![])?;
+    let code = parse_code(&mut parser, &funs)?.unwrap_or_default();
 
-    skip_customsecs(&mut parser)?;
+    // skip_customsecs(&mut parser)?;
 
-    let data = optional_section(parse_data(&mut parser), vec![])?;
+    let data = parse_data(&mut parser)?.unwrap_or_default();
 
-    // Parses 'name' section, skips other custom sections
-    let names = parse_names(&mut parser)?.unwrap_or(Default::default());
-
-    if !parser.all_consumed() {
-        return Err(ParseError {
-            kind: ErrorKind::SectionNotEmpty {
-                remains: parser.get_bytes().to_owned(),
-            },
-            offset: parser.get_cursor(),
-            backtrace: Backtrace::capture(),
-        });
+    // Parses 'name' section, skip other custom sections
+    // .debug_info, .debug_abbrev, .debug_line, .debug_str
+    let mut names = None;
+    while !parser.all_consumed() {
+        if let Some(names_) = parse_names(&mut parser)? {
+            assert!(names.is_none());
+            names = Some(names_);
+        }
     }
+
+    let names = names.unwrap_or_default();
 
     Ok(Module {
         types,
@@ -95,34 +94,17 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
     })
 }
 
-fn optional_section<A>(result: Result<A>, def: A) -> Result<A> {
-    match result {
-        Ok(res) => Ok(res),
-        Err(ParseError {
-            kind: ErrorKind::UnexpectedSectionType { .. } | ErrorKind::NotEnoughBytes { .. },
-            ..
-        }) => Ok(def),
-        Err(other) => Err(other),
-    }
-}
-
-// NB. The argument parser skips the section even when the section parser fails.
+// NB. The argument parser skips the section even when the section parser fails. The section is not
+// skipped if the type doesn't match the expected one.
 fn parse_section<'a, A>(
     parser: &mut Parser<'a>,
     section_ty: u8,
     parse: &dyn Fn(&mut Parser<'a>) -> Result<A>,
-) -> Result<A> {
+) -> Result<Option<A>> {
     match parser.byte() {
         Ok(ty) if ty == section_ty => {}
-        Ok(other) => {
-            return Err(ParseError {
-                kind: ErrorKind::UnexpectedSectionType {
-                    expected: section_ty,
-                    found: other,
-                },
-                offset: parser.get_cursor(),
-                backtrace: Backtrace::capture(),
-            });
+        Ok(_) => {
+            return Ok(None);
         }
         Err(err) => {
             return Err(err);
@@ -146,7 +128,7 @@ fn parse_section<'a, A>(
         });
     }
 
-    Ok(ret)
+    Ok(Some(ret))
 }
 
 fn parse_vec<'a, A>(
@@ -161,7 +143,7 @@ fn parse_vec<'a, A>(
     Ok(vec)
 }
 
-fn parse_type_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<FuncType>> {
+fn parse_type_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<FuncType>>> {
     parse_section(parser, 1, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             parser.consume_const(&[0x60])?;
@@ -172,7 +154,7 @@ fn parse_type_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<FuncType>> {
     })
 }
 
-fn parse_imports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Import>> {
+fn parse_imports<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Import>>> {
     parse_section(parser, 2, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             let module = parse_name(parser)?;
@@ -183,7 +165,7 @@ fn parse_imports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Import>> {
     })
 }
 
-fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<TypeIdx>> {
+fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<TypeIdx>>> {
     parse_section(parser, 3, &|parser| {
         parse_vec(
             parser,
@@ -192,7 +174,7 @@ fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<TypeIdx>> {
     })
 }
 
-fn parse_table_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<Table>> {
+fn parse_table_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Table>>> {
     parse_section(parser, 4, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             parser.consume_const(&[0x70])?; // funcref
@@ -204,13 +186,13 @@ fn parse_table_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<Table>> {
     })
 }
 
-fn parse_mem_section<'a>(parser: &mut Parser<'a>) -> Result<Vec<Limits>> {
+fn parse_mem_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Limits>>> {
     parse_section(parser, 5, &|parser| {
         parse_vec(parser, &mut |parser, _| Ok(parse_limits(parser)?))
     })
 }
 
-fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Vec<Global>> {
+fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Global>>> {
     parse_section(parser, 6, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             let ty = parse_global_type(parser)?;
@@ -220,7 +202,7 @@ fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Vec<Global>> {
     })
 }
 
-fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Export>> {
+fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Export>>> {
     parse_section(parser, 7, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             let nm = parse_name(parser)?;
@@ -230,11 +212,11 @@ fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Vec<Export>> {
     })
 }
 
-fn parse_start<'a>(parser: &mut Parser<'a>) -> Result<FuncIdx> {
+fn parse_start<'a>(parser: &mut Parser<'a>) -> Result<Option<FuncIdx>> {
     parse_section(parser, 8, &|parser| Ok(parser.consume_uleb128()? as u32))
 }
 
-fn parse_element<'a>(parser: &mut Parser<'a>) -> Result<Vec<Element>> {
+fn parse_element<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Element>>> {
     parse_section(parser, 9, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             let table = parser.consume_uleb128()? as u32;
@@ -255,11 +237,11 @@ fn parse_datacount<'a>(parser: &mut Parser<'a>) -> Result<Option<u32>> {
     // Comes before code section but has number 12. See the spec linked above.
     parse_section(parser, 12, &|parser| {
         let count = parser.consume_uleb128()? as u32;
-        Ok(Some(count))
+        Ok(count)
     })
 }
 
-fn parse_code<'a>(parser: &mut Parser<'a>, fun_tys: &[TypeIdx]) -> Result<Vec<Fun>> {
+fn parse_code<'a>(parser: &mut Parser<'a>, fun_tys: &[TypeIdx]) -> Result<Option<Vec<Fun>>> {
     parse_section(parser, 10, &|parser| {
         parse_vec(parser, &mut |parser, i| {
             let size = parser.consume_uleb128()?;
@@ -281,7 +263,7 @@ fn parse_code<'a>(parser: &mut Parser<'a>, fun_tys: &[TypeIdx]) -> Result<Vec<Fu
     })
 }
 
-fn parse_data<'a>(parser: &mut Parser<'a>) -> Result<Vec<Data>> {
+fn parse_data<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Data>>> {
     parse_section(parser, 11, &|parser| {
         parse_vec(parser, &mut |parser, _| {
             let data = parser.consume_uleb128()?;
@@ -296,38 +278,51 @@ fn parse_data<'a>(parser: &mut Parser<'a>) -> Result<Vec<Data>> {
     })
 }
 
+// NB. Skips the section!
 fn parse_names<'a>(parser: &mut Parser<'a>) -> Result<Option<Names>> {
-    parse_section(parser, 0, &|parser| {
-        let section_name = parse_name(parser)?;
-
-        if section_name == "name" {
-            let mut names = Default::default();
-
-            while parser.byte().is_ok() {
-                parse_name_subsection(parser, &mut names)?;
+    let mut section_parser = match parser.byte() {
+        Ok(0) => {
+            // Skip section idx, we're going to skip the section even if it's not a 'name' section
+            parser.skip(1)?;
+            let section_size = parser.consume_uleb128()?;
+            let mut section_parser = parser.fork(section_size as usize)?;
+            let name = parse_name(&mut section_parser)?;
+            if name != "name" {
+                return Ok(None);
             }
-
-            Ok(Some(names))
-        } else {
-            Ok(None) // skips the section!
+            section_parser
         }
-    })
+        _ => {
+            // Not the section we're looking for or end of the file
+            return Ok(None);
+        }
+    };
+
+    let mut names = Default::default();
+
+    while section_parser.byte().is_ok() {
+        parse_name_subsection(&mut section_parser, &mut names)?;
+    }
+
+    Ok(Some(names))
 }
 
 fn parse_name_subsection<'a>(parser: &mut Parser<'a>, names: &mut Names) -> Result<()> {
     match parser.consume_byte() {
         Ok(0) => {
+            let _subsection_size = parser.consume_uleb128()?;
             names.mod_name = Some(parse_name(parser)?);
             Ok(())
         }
         Ok(1) => {
+            let _subsection_size = parser.consume_uleb128()?;
             let mut fun_names = vec![];
             // TODO: Maybe introduce a variant of parse_vec that doesn't allocate a vector
             let _ = parse_vec(parser, &mut |parser, _| {
                 let idx = parser.consume_uleb128()? as usize;
                 let name = parse_name(parser)?;
 
-                fun_names.resize_with(idx, Default::default);
+                fun_names.resize_with(idx + 1, Default::default);
                 fun_names[idx] = Some(name);
 
                 Ok(())
@@ -337,6 +332,7 @@ fn parse_name_subsection<'a>(parser: &mut Parser<'a>, names: &mut Names) -> Resu
             Ok(())
         }
         Ok(2) => {
+            let _subsection_size = parser.consume_uleb128()?;
             let mut local_names = vec![];
 
             let _ = parse_vec(parser, &mut |parser, _| {
@@ -347,13 +343,13 @@ fn parse_name_subsection<'a>(parser: &mut Parser<'a>, names: &mut Names) -> Resu
                     let local_idx = parser.consume_uleb128()? as usize;
                     let local_name = parse_name(parser)?;
 
-                    fun_local_names.resize_with(local_idx, Default::default);
+                    fun_local_names.resize_with(local_idx + 1, Default::default);
                     fun_local_names[idx] = Some(local_name);
 
                     Ok(())
                 })?;
 
-                local_names.resize_with(idx, Default::default);
+                local_names.resize_with(idx + 1, Default::default);
                 local_names[idx] = Some(fun_local_names);
 
                 Ok(())
