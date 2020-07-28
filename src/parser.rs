@@ -344,7 +344,7 @@ fn parse_name_subsection<'a>(parser: &mut Parser<'a>, names: &mut Names) -> Resu
                     let local_name = parse_name(parser)?;
 
                     fun_local_names.resize_with(local_idx + 1, Default::default);
-                    fun_local_names[idx] = Some(local_name);
+                    fun_local_names[local_idx] = Some(local_name);
 
                     Ok(())
                 })?;
