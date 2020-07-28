@@ -89,6 +89,9 @@ impl Runtime {
             inst.global_addrs.push(global_idx as u32);
         }
 
+        // TODO: Initialize the table with 'elems'
+        // TODO: Initialize the memory with 'data'
+
         // Set start
         inst.start = parsed_module.start;
 

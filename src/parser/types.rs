@@ -21,6 +21,7 @@ pub struct Module {
 
     pub elems: Vec<Element>,
     pub data: Vec<Data>,
+    pub names: Names,
     pub start: Option<FuncIdx>,
     pub imports: Vec<Import>,
     pub exports: Vec<Export>,
@@ -567,5 +568,16 @@ pub struct Data {
     pub init: Vec<u8>,
 }
 
+// TODO
 #[derive(Debug)]
 pub struct Linking {}
+
+#[derive(Debug, Default)]
+pub struct Names {
+    /// Module name
+    pub mod_name: Option<String>,
+    /// Maps function indices to names
+    pub fun_names: Vec<Option<String>>,
+    /// Maps function indices to maps to their locals to names
+    pub local_names: Vec<Option<Vec<Option<String>>>>,
+}

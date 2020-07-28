@@ -1,5 +1,6 @@
 use std::backtrace::Backtrace;
 
+// TODO: Not internal
 #[derive(Debug)]
 pub struct ParseError {
     pub kind: ErrorKind,
@@ -16,6 +17,7 @@ pub enum ErrorKind {
     Utf8Error { error: ::std::str::Utf8Error },
     UnexpectedSectionType { expected: u8, found: u8 },
     UnexpectedOpCode { op: u8 },
+    UnexpectedNameSubsection { found: u8 },
 }
 
 pub type Result<A> = ::std::result::Result<A, ParseError>;
