@@ -23,7 +23,7 @@ pub struct ReturnAddr {
 }
 
 impl Stack {
-    pub fn pop(&mut self) -> Value {
+    pub fn pop_value(&mut self) -> Value {
         match self.0.pop() {
             Some(StackValue::Value(val)) => val,
             Some(StackValue::ReturnAddr(_)) => panic!("Stack::pop: call frame empty"),
@@ -40,7 +40,7 @@ impl Stack {
         }
     }
 
-    pub fn push(&mut self, val: Value) {
+    pub fn push_value(&mut self, val: Value) {
         self.0.push(StackValue::Value(val))
     }
 

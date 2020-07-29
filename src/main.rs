@@ -28,13 +28,35 @@ fn main() {
             ::std::process::exit(1);
         }
     };
-    println!("{:#?}", module);
+    // println!("{:#?}", module);
 
     let mut runtime = Runtime::default();
     let module_idx = runtime.allocate_module(module);
 
     // Run the 'start' function if it exists
     if let Some(start_idx) = runtime.get_module_start(module_idx) {
+        println!("Calling start function {}", start_idx);
         runtime.call(module_idx, start_idx);
+    }
+
+    // Find exported _start function and call it
+    let mut start_fn = None;
+    for export in &runtime.get_module(module_idx).exports {
+        if export.nm == "_start" {
+            match export.desc {
+                parser::ExportDesc::Func(func_idx) => {
+                    start_fn = Some(func_idx);
+                    break;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+    }
+
+    if let Some(start_fn) = start_fn {
+        println!("Calling _start ({})", start_fn);
+        runtime.call(module_idx, start_fn);
     }
 }

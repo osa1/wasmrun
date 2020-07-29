@@ -546,6 +546,7 @@ pub struct Local {
 #[derive(Debug)]
 pub struct Fun {
     pub ty: TypeIdx,
+    /// DOES NOT INCLUDE ARGUMENTS! Use the type for number of args.
     pub locals: Vec<Local>,
     pub expr: Expr,
 }

@@ -10,23 +10,35 @@ use const_expr::ConstExpr;
 use frame::FrameStack;
 use stack::Stack;
 use store::{Global, ModuleIdx, Store};
+use value::Value;
 
 use crate::parser;
-use crate::parser::{Export, FuncIdx, FuncType, Instruction, MemArg};
+use crate::parser::{Export, FuncIdx, FuncType, ImportDesc, Instruction, MemArg};
 
+use std::mem::replace;
 use std::rc::Rc;
 
 type Addr = u32;
 
 #[derive(Default)]
 pub struct Module {
-    types: Vec<FuncType>,
-    func_addrs: Vec<Addr>,
-    table_addrs: Vec<Addr>,
-    mem_addrs: Vec<Addr>,
-    global_addrs: Vec<Addr>,
-    exports: Vec<Export>,
-    start: Option<FuncIdx>,
+    pub types: Vec<FuncType>,
+    pub func_addrs: Vec<Addr>,
+    pub table_addrs: Vec<Addr>,
+    pub mem_addrs: Vec<Addr>,
+    pub global_addrs: Vec<Addr>,
+    pub exports: Vec<Export>,
+    pub start: Option<FuncIdx>,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum BlockType {
+    // A block in a function
+    Block,
+    // A loop in a function
+    Loop,
+    // Main block of a function
+    Function,
 }
 
 #[derive(Default)]
@@ -35,6 +47,12 @@ pub struct Runtime {
     stack: Stack,
     frames: FrameStack,
     modules: Vec<Module>,
+
+    // Instruction pointer. Currently we don't need to make this a part of `Runtime`, but at some
+    // point we'll have debugging commands and we want to be able to stop at any point in execution
+    // and then continue. For that we need to store the current point in program permanently, and I
+    // think this is a good place for that.
+    ip: Vec<(BlockType, Rc<[Instruction]>, u32)>,
 }
 
 impl Runtime {
@@ -44,6 +62,20 @@ impl Runtime {
         let module_idx = self.modules.len();
 
         let mut inst = Module::default();
+        inst.exports = parsed_module.exports;
+
+        // Allocate imported functions
+        // TODO: allocate other imported stuff (tables, memories, globals)
+        // TODO: not sure how to resolve imports yet
+        for import in parsed_module.imports.drain(..) {
+            match import.desc {
+                ImportDesc::Func(_) => {
+                    // FIXME
+                    inst.func_addrs.push(u32::MAX);
+                }
+                ImportDesc::Table(_) | ImportDesc::MemType(_) | ImportDesc::Global(_) => {}
+            }
+        }
 
         // Allocate functions
         for fun in parsed_module.funs.drain(..) {
@@ -103,25 +135,86 @@ impl Runtime {
         module_idx
     }
 
+    pub fn get_module(&self, idx: ModuleIdx) -> &Module {
+        &self.modules[idx]
+    }
+
     pub fn get_module_start(&self, idx: ModuleIdx) -> Option<FuncIdx> {
         self.modules[idx].start
     }
 
     pub fn call(&mut self, module_idx: ModuleIdx, fun_idx: u32) {
         let fun_addr = self.modules[module_idx].func_addrs[fun_idx as usize];
-        let fun = &self.store.funcs[fun_addr as usize].fun;
-        // TODO: push dummy values for locals
+        let func = &self.store.funcs[fun_addr as usize];
+
+        // println!("func: {:#?}", func);
+
+        // Normally we'd pop arguments, push return address, push arguments again, but this is
+        // the entry so we don't have a return address.
+
+        self.frames.push(func);
+
+        // Initialize instruction pointer
+        self.ip.push((BlockType::Function, func.fun.expr.instrs.clone(), 0));
+
+        // Run until the end of the function.
+        exec(self);
+
+        self.frames.pop();
+
+        // Pop blocks of the function
+        while let Some((BlockType::Block | BlockType::Loop, _, _)) = self.ip.last() {
+            let _ = self.ip.pop().unwrap();
+        }
+        // Pop the function
+        let _ = self.ip.pop().unwrap();
+    }
+
+    // Move on to the next instruction in the current function. Depending on the current block type
+    // this may jump forwards or backwards.
+    fn next_instr(&mut self) {
+        let mut ip = replace(&mut self.ip, vec![]);
+
+        if let Some((block_ty, current_block, block_ip)) = ip.pop() {
+            if (block_ip + 1) as usize >= current_block.len() {
+                match block_ty {
+                    BlockType::Function => {
+                        // End of the function, the function frame will be popped by `call`
+                        ip.push((block_ty, current_block, block_ip));
+                        self.ip = ip;
+                    }
+                    BlockType::Block => {
+                        // End of the block, which is already popped. Restore ip.
+                        self.ip = ip;
+                    }
+                    BlockType::Loop => {
+                        // End of loop, jump to beginning.
+                        ip.push((block_ty, current_block, 0));
+                        self.ip = ip;
+                    }
+                }
+            } else {
+                ip.push((block_ty, current_block, block_ip + 1));
+                self.ip = ip;
+            }
+        }
     }
 }
 
-pub fn exec(runtime: &mut Runtime, block: Rc<[Instruction]>) {
-    let ip_stack: Vec<(Rc<[Instruction]>, u32)> = vec![(block, 0)];
-
-    while let Some((block, ip)) = ip_stack.last().cloned() {
+pub fn exec(runtime: &mut Runtime) {
+    while let Some((_, block, ip)) = runtime.ip.last().cloned() {
         use Instruction::*;
+
+        if ip as usize == block.len() {
+            runtime.next_instr(); // pop the block
+            return;
+        }
+
         let instr = &block[ip as usize];
 
         println!("{}: {:?}", ip, instr);
+        // println!("frames: {:?}", runtime.frames);
+        // println!("block: {:?}", runtime.ip);
 
         match instr {
             I32Store(MemArg { align: _, offset }) => {
@@ -142,7 +235,7 @@ pub fn exec(runtime: &mut Runtime, block: Rc<[Instruction]>) {
                 mem[addr + 2] = b3;
                 mem[addr + 4] = b4;
 
-                // ip += 1;
+                runtime.next_instr();
             }
 
             I32Load(MemArg { align: _, offset }) => {
@@ -162,84 +255,75 @@ pub fn exec(runtime: &mut Runtime, block: Rc<[Instruction]>) {
                 let b4 = mem[addr + 3];
                 runtime.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
 
-                // ip += 1;
+                runtime.next_instr();
             }
 
             LocalGet(idx) => {
                 let val = runtime.frames.current().get_local(*idx);
-                runtime.stack.push(val);
-                // ip += 1;
+                runtime.stack.push_value(val);
+                runtime.next_instr();
             }
 
             LocalSet(idx) => {
-                let val = runtime.stack.pop();
+                let val = runtime.stack.pop_value();
                 runtime.frames.current_mut().set_local(*idx, val);
-                // ip += 1;
+                runtime.next_instr();
             }
 
             LocalTee(idx) => {
-                let val = runtime.stack.pop();
+                let val = runtime.stack.pop_value();
                 runtime.frames.current_mut().set_local(*idx, val);
-                runtime.stack.push(val);
-                // ip += 1;
+                runtime.stack.push_value(val);
+                runtime.next_instr();
             }
 
             GlobalGet(idx) => {
                 let current_module = runtime.frames.current().module();
                 let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
                 let value = runtime.store.globals[global_idx as usize].value;
-                runtime.stack.push(value);
-                // ip += 1;
+                runtime.stack.push_value(value);
+                runtime.next_instr();
             }
 
             GlobalSet(idx) => {
                 let current_module = runtime.frames.current().module();
                 let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
-                let value = runtime.stack.pop();
+                let value = runtime.stack.pop_value();
                 runtime.store.globals[global_idx as usize].value = value;
-                // ip += 1;
+                runtime.next_instr();
             }
 
             I32Const(i) => {
                 runtime.stack.push_i32(*i);
-                // ip += 1;
+                runtime.next_instr();
             }
 
             I64Const(i) => {
                 runtime.stack.push_i64(*i);
-                // ip += 1;
+                runtime.next_instr();
             }
 
             F32Const(f) => {
                 runtime.stack.push_f32(*f);
-                // ip += 1;
+                runtime.next_instr();
             }
 
             F64Const(f) => {
                 runtime.stack.push_f64(*f);
-                // ip += 1;
+                runtime.next_instr();
             }
 
             I32Le_u => {
                 let val2 = runtime.stack.pop_i32();
                 let val1 = runtime.stack.pop_i32();
                 runtime.stack.push_bool(val1 <= val2);
-                // ip += 1;
+                runtime.next_instr();
             }
 
-            Call(x) => {
-                todo!()
-                /*
+            Call(func_idx) => {
                 let module_idx = runtime.frames.current().module();
-                let module = &runtime.modules[module_idx];
-                let func_addr = module.func_addrs[*x as usize];
-                let fun = &runtime.store.funcs[func_addr as usize];
-                runtime.frames.push(fun);
-                let instrs = fun.fun.expr.instrs.clone();
-                exec(runtime, &*instrs, 0);
-                runtime.frames.pop();
-                ip += 1;
-                */
+                runtime.call(module_idx, *func_idx);
+                runtime.next_instr();
             }
 
             CallIndirect(type_idx) => {
@@ -278,7 +362,7 @@ pub fn exec(runtime: &mut Runtime, block: Rc<[Instruction]>) {
             }
 
             Return => {
-                return;
+                break;
             }
 
             Block(parser::types::Block { ty: _, instrs }) => {

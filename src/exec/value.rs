@@ -4,5 +4,5 @@ pub enum Value {
     I64(i64),
     F32(f32),
     F64(f64),
-    Uninitialized,
+    Uninitialized, // TODO: I don't remember why this was needed
 }
