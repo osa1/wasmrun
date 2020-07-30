@@ -218,7 +218,7 @@ pub fn exec(rt: &mut Runtime) {
 
         let instr = &block[ip as usize];
 
-        // println!("{}: {:?}", ip, instr);
+        println!("{}: {:?}", ip, instr);
         // println!("frames: {:?}", runtime.frames);
         // println!("block: {:?}", runtime.ip);
 
@@ -329,6 +329,13 @@ pub fn exec(rt: &mut Runtime) {
                 let val2 = rt.stack.pop_i32();
                 let val1 = rt.stack.pop_i32();
                 rt.stack.push_bool(val1 <= val2);
+                rt.next_instr();
+            }
+
+            I32Sub => {
+                let val2 = rt.stack.pop_i32();
+                let val1 = rt.stack.pop_i32();
+                rt.stack.push_i32(val1 - val2);
                 rt.next_instr();
             }
 
