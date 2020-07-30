@@ -20,6 +20,8 @@ use std::rc::Rc;
 
 type Addr = u32;
 
+const PAGE_SIZE: usize = 65536;
+
 #[derive(Default)]
 pub struct Module {
     pub types: Vec<FuncType>,
@@ -130,10 +132,10 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: parser::Module) -> M
     }
 
     // Allocate memories
-    assert!(parsed_module.mem_addrs.len() <= 1); // No more than 1
+    assert!(parsed_module.mem_addrs.len() <= 1); // No more than 1 currently
     for mem in parsed_module.mem_addrs.drain(..) {
         let mem_idx = rt.store.mems.len();
-        rt.store.mems.push(vec![0; mem.min as usize]);
+        rt.store.mems.push(vec![0; mem.min as usize * PAGE_SIZE]);
         inst.mem_addrs.push(mem_idx as u32);
     }
 

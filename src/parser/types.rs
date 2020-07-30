@@ -61,8 +61,8 @@ pub enum ImportDesc {
 
 #[derive(Debug)]
 pub struct Limits {
-    pub min: u32,
-    pub max: Option<u32>,
+    pub min: u32,         // in pages
+    pub max: Option<u32>, // in pages
 }
 
 #[derive(Debug)]
