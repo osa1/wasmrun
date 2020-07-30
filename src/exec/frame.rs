@@ -29,7 +29,6 @@ impl FrameStack {
     }
 
     pub(super) fn push(&mut self, fun: &Func) {
-        println!("Pushing frame for function: {:?}", fun);
         self.0.push(Frame {
             module_idx: fun.module_idx,
             locals: fun
@@ -42,7 +41,6 @@ impl FrameStack {
     }
 
     pub(super) fn pop(&mut self) {
-        println!("Popping frame for function: {:?}", self.0.last());
         self.0.pop().unwrap();
     }
 }

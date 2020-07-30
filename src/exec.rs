@@ -74,7 +74,7 @@ impl Runtime {
                 match block_ty {
                     BlockType::Function => {
                         // End of the function, the function frame will be popped by `call`.
-                        ip.push((block_ty, current_block, block_ip));
+                        ip.push((block_ty, current_block, block_ip + 1));
                     }
                     BlockType::Block => {
                         // End of the block, which is already popped.
@@ -207,30 +207,30 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
     let _ = rt.ip.pop().unwrap();
 }
 
-pub fn exec(runtime: &mut Runtime) {
-    while let Some((_, block, ip)) = runtime.ip.last().cloned() {
+pub fn exec(rt: &mut Runtime) {
+    while let Some((_, block, ip)) = rt.ip.last().cloned() {
         use Instruction::*;
 
         if ip as usize == block.len() {
-            runtime.next_instr(); // pop the block
+            rt.next_instr(); // pop the block
             return;
         }
 
         let instr = &block[ip as usize];
 
-        println!("{}: {:?}", ip, instr);
+        // println!("{}: {:?}", ip, instr);
         // println!("frames: {:?}", runtime.frames);
         // println!("block: {:?}", runtime.ip);
 
         match instr {
             I32Store(MemArg { align: _, offset }) => {
-                let value = runtime.stack.pop_i32();
-                let addr = runtime.stack.pop_i32() as u32;
+                let value = rt.stack.pop_i32();
+                let addr = rt.stack.pop_i32() as u32;
                 let addr = (addr + offset) as usize;
                 let end_addr = addr + 4;
 
-                let current_module = runtime.frames.current().module();
-                let mem = &mut runtime.store.mems[current_module];
+                let current_module = rt.frames.current().module();
+                let mem = &mut rt.store.mems[current_module];
                 if end_addr as usize > mem.len() {
                     panic!("OOB I32Store (mem size={}, addr={})", mem.len(), addr);
                 }
@@ -241,16 +241,16 @@ pub fn exec(runtime: &mut Runtime) {
                 mem[addr + 2] = b3;
                 mem[addr + 4] = b4;
 
-                runtime.next_instr();
+                rt.next_instr();
             }
 
             I32Load(MemArg { align: _, offset }) => {
-                let addr = runtime.stack.pop_i32() as u32;
+                let addr = rt.stack.pop_i32() as u32;
                 let addr = (addr + offset) as usize;
                 let end_addr = addr + 4;
 
-                let current_module = runtime.frames.current().module();
-                let mem = &runtime.store.mems[current_module];
+                let current_module = rt.frames.current().module();
+                let mem = &rt.store.mems[current_module];
                 if end_addr as usize > mem.len() {
                     panic!("OOB I32Load (mem size={}, addr={})", mem.len(), addr);
                 }
@@ -259,77 +259,86 @@ pub fn exec(runtime: &mut Runtime) {
                 let b2 = mem[addr + 1];
                 let b3 = mem[addr + 2];
                 let b4 = mem[addr + 3];
-                runtime.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
+                rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
 
-                runtime.next_instr();
+                rt.next_instr();
             }
 
             LocalGet(idx) => {
-                let val = runtime.frames.current().get_local(*idx);
-                runtime.stack.push_value(val);
-                runtime.next_instr();
+                let val = rt.frames.current().get_local(*idx);
+                rt.stack.push_value(val);
+                rt.next_instr();
             }
 
             LocalSet(idx) => {
-                let val = runtime.stack.pop_value();
-                runtime.frames.current_mut().set_local(*idx, val);
-                runtime.next_instr();
+                let val = rt.stack.pop_value();
+                rt.frames.current_mut().set_local(*idx, val);
+                rt.next_instr();
             }
 
             LocalTee(idx) => {
-                let val = runtime.stack.pop_value();
-                runtime.frames.current_mut().set_local(*idx, val);
-                runtime.stack.push_value(val);
-                runtime.next_instr();
+                let val = rt.stack.pop_value();
+                rt.frames.current_mut().set_local(*idx, val);
+                rt.stack.push_value(val);
+                rt.next_instr();
             }
 
             GlobalGet(idx) => {
-                let current_module = runtime.frames.current().module();
-                let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
-                let value = runtime.store.globals[global_idx as usize].value;
-                runtime.stack.push_value(value);
-                runtime.next_instr();
+                let current_module = rt.frames.current().module();
+                let global_idx = rt.modules[current_module].global_addrs[*idx as usize];
+                let value = rt.store.globals[global_idx as usize].value;
+                rt.stack.push_value(value);
+                rt.next_instr();
             }
 
             GlobalSet(idx) => {
-                let current_module = runtime.frames.current().module();
-                let global_idx = runtime.modules[current_module].global_addrs[*idx as usize];
-                let value = runtime.stack.pop_value();
-                runtime.store.globals[global_idx as usize].value = value;
-                runtime.next_instr();
+                let current_module = rt.frames.current().module();
+                let global_idx = rt.modules[current_module].global_addrs[*idx as usize];
+                let value = rt.stack.pop_value();
+                rt.store.globals[global_idx as usize].value = value;
+                rt.next_instr();
             }
 
             I32Const(i) => {
-                runtime.stack.push_i32(*i);
-                runtime.next_instr();
+                rt.stack.push_i32(*i);
+                rt.next_instr();
             }
 
             I64Const(i) => {
-                runtime.stack.push_i64(*i);
-                runtime.next_instr();
+                rt.stack.push_i64(*i);
+                rt.next_instr();
             }
 
             F32Const(f) => {
-                runtime.stack.push_f32(*f);
-                runtime.next_instr();
+                rt.stack.push_f32(*f);
+                rt.next_instr();
             }
 
             F64Const(f) => {
-                runtime.stack.push_f64(*f);
-                runtime.next_instr();
+                rt.stack.push_f64(*f);
+                rt.next_instr();
+            }
+
+            I32Eqz => {
+                let val = rt.stack.pop_i32();
+                rt.stack.push_bool(val == 0);
+                rt.next_instr();
             }
 
             I32Le_u => {
-                let val2 = runtime.stack.pop_i32();
-                let val1 = runtime.stack.pop_i32();
-                runtime.stack.push_bool(val1 <= val2);
-                runtime.next_instr();
+                let val2 = rt.stack.pop_i32();
+                let val1 = rt.stack.pop_i32();
+                rt.stack.push_bool(val1 <= val2);
+                rt.next_instr();
             }
 
+            //////////////////////////
+            // Control instructions //
+            //////////////////////////
             Call(func_idx) => {
-                let module_idx = runtime.frames.current().module();
-                call(runtime, module_idx, *func_idx);
-                runtime.next_instr();
+                let module_idx = rt.frames.current().module();
+                call(rt, module_idx, *func_idx);
+                rt.next_instr();
             }
 
             CallIndirect(type_idx) => {
@@ -372,15 +381,26 @@ pub fn exec(runtime: &mut Runtime) {
             }
 
             Block(parser::types::Block { ty: _, instrs }) => {
-                todo!()
-                /*
-                // TODO: I think type is not useful for execution?
-                let instrs = instrs.clone();
-                exec(runtime, &*instrs, 0);
-                */
+                // Bump instruction pointer for the current block
+                rt.next_instr();
+                // Execute the new block
+                rt.ip.push((BlockType::Block, instrs.clone(), 0));
             }
 
             Loop(parser::types::Block { ty: _, instrs }) => todo!(),
+
+            BrIf(lbl_idx) => {
+                let val = rt.stack.pop_i32();
+                if val != 0 {
+                    for _ in 0..=*lbl_idx {
+                        rt.ip.pop();
+                    }
+                // Parent block's instruction pointer was already bumped by 'Block' case above,
+                // so no need to update it
+                } else {
+                    rt.next_instr();
+                }
+            }
 
             _ => todo!("unhandled instruction: {:?}", instr),
         }
