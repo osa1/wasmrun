@@ -31,12 +31,12 @@ fn main() {
     // println!("{:#?}", module);
 
     let mut runtime = Runtime::default();
-    let module_idx = runtime.allocate_module(module);
+    let module_idx = exec::allocate_module(&mut runtime, module);
 
     // Run the 'start' function if it exists
     if let Some(start_idx) = runtime.get_module_start(module_idx) {
         println!("Calling start function {}", start_idx);
-        runtime.call(module_idx, start_idx);
+        exec::call(&mut runtime, module_idx, start_idx);
     }
 
     // Find exported _start function and call it
@@ -57,6 +57,6 @@ fn main() {
 
     if let Some(start_fn) = start_fn {
         println!("Calling _start ({})", start_fn);
-        runtime.call(module_idx, start_fn);
+        exec::call(&mut runtime, module_idx, start_fn);
     }
 }

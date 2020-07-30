@@ -56,118 +56,12 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn allocate_module(&mut self, mut parsed_module: parser::Module) -> ModuleIdx {
-        // https://webassembly.github.io/spec/core/exec/modules.html
-
-        let module_idx = self.modules.len();
-
-        let mut inst = Module::default();
-        inst.exports = parsed_module.exports;
-
-        // Allocate imported functions
-        // TODO: allocate other imported stuff (tables, memories, globals)
-        // TODO: not sure how to resolve imports yet
-        for import in parsed_module.imports.drain(..) {
-            match import.desc {
-                ImportDesc::Func(_) => {
-                    // FIXME
-                    inst.func_addrs.push(u32::MAX);
-                }
-                ImportDesc::Table(_) | ImportDesc::MemType(_) | ImportDesc::Global(_) => {}
-            }
-        }
-
-        // Allocate functions
-        for fun in parsed_module.funs.drain(..) {
-            let fun_idx = self.store.funcs.len();
-            self.store.funcs.push(store::Func { module_idx, fun });
-            inst.func_addrs.push(fun_idx as u32);
-        }
-
-        // Allocate tables
-        for table in parsed_module.tables.drain(..) {
-            let table_idx = self.store.tables.len();
-            self.store
-                .tables
-                .push(vec![None; table.limits.min as usize]);
-            inst.table_addrs.push(table_idx as u32);
-        }
-
-        // Allocate memories
-        assert!(parsed_module.mem_addrs.len() <= 1); // No more than 1
-        for mem in parsed_module.mem_addrs.drain(..) {
-            let mem_idx = self.store.mems.len();
-            self.store.mems.push(vec![0; mem.min as usize]);
-            inst.mem_addrs.push(mem_idx as u32);
-        }
-
-        // Allocate globals
-        for global in parsed_module.globals.drain(..) {
-            let global_idx = self.store.globals.len();
-            let value = match ConstExpr::from_expr(&global.expr) {
-                None => panic!(
-                    "Global value is not a constant expression: {:?}",
-                    global.expr
-                ),
-                Some(ConstExpr::Const(value)) => value,
-                Some(ConstExpr::GlobalGet(_idx)) =>
-                // See the comments in `ConstExpr` type. This can only be an import.
-                {
-                    todo!()
-                }
-            };
-            self.store.globals.push(Global {
-                value,
-                mutable: global.ty.mut_ == parser::types::Mutability::Var,
-            });
-            inst.global_addrs.push(global_idx as u32);
-        }
-
-        // TODO: Initialize the table with 'elems'
-        // TODO: Initialize the memory with 'data'
-
-        // Set start
-        inst.start = parsed_module.start;
-
-        // Done
-        self.modules.push(inst);
-
-        module_idx
-    }
-
     pub fn get_module(&self, idx: ModuleIdx) -> &Module {
         &self.modules[idx]
     }
 
     pub fn get_module_start(&self, idx: ModuleIdx) -> Option<FuncIdx> {
         self.modules[idx].start
-    }
-
-    pub fn call(&mut self, module_idx: ModuleIdx, fun_idx: u32) {
-        let fun_addr = self.modules[module_idx].func_addrs[fun_idx as usize];
-        let func = &self.store.funcs[fun_addr as usize];
-
-        // println!("func: {:#?}", func);
-
-        // Normally we'd pop arguments, push return address, push arguments again, but this is
-        // the entry so we don't have a return address.
-
-        self.frames.push(func);
-
-        // Initialize instruction pointer
-        self.ip.push((BlockType::Function, func.fun.expr.instrs.clone(), 0));
-
-        // Run until the end of the function.
-        exec(self);
-
-        self.frames.pop();
-
-        // Pop blocks of the function
-        while let Some((BlockType::Block | BlockType::Loop, _, _)) = self.ip.last() {
-            let _ = self.ip.pop().unwrap();
-        }
-        // Pop the function
-        let _ = self.ip.pop().unwrap();
     }
 
     // Move on to the next instruction in the current function. Depending on the current block type
@@ -199,6 +93,111 @@ impl Runtime {
             }
         }
     }
+}
+
+pub fn allocate_module(rt: &mut Runtime, mut parsed_module: parser::Module) -> ModuleIdx {
+    // https://webassembly.github.io/spec/core/exec/modules.html
+
+    let module_idx = rt.modules.len();
+
+    let mut inst = Module::default();
+    inst.exports = parsed_module.exports;
+
+    // Allocate imported functions
+    // TODO: allocate other imported stuff (tables, memories, globals)
+    // TODO: not sure how to resolve imports yet
+    for import in parsed_module.imports.drain(..) {
+        match import.desc {
+            ImportDesc::Func(_) => {
+                // FIXME
+                inst.func_addrs.push(u32::MAX);
+            }
+            ImportDesc::Table(_) | ImportDesc::MemType(_) | ImportDesc::Global(_) => {}
+        }
+    }
+
+    // Allocate functions
+    for fun in parsed_module.funs.drain(..) {
+        let fun_idx = rt.store.funcs.len();
+        rt.store.funcs.push(store::Func { module_idx, fun });
+        inst.func_addrs.push(fun_idx as u32);
+    }
+
+    // Allocate tables
+    for table in parsed_module.tables.drain(..) {
+        let table_idx = rt.store.tables.len();
+        rt.store.tables.push(vec![None; table.limits.min as usize]);
+        inst.table_addrs.push(table_idx as u32);
+    }
+
+    // Allocate memories
+    assert!(parsed_module.mem_addrs.len() <= 1); // No more than 1
+    for mem in parsed_module.mem_addrs.drain(..) {
+        let mem_idx = rt.store.mems.len();
+        rt.store.mems.push(vec![0; mem.min as usize]);
+        inst.mem_addrs.push(mem_idx as u32);
+    }
+
+    // Allocate globals
+    for global in parsed_module.globals.drain(..) {
+        let global_idx = rt.store.globals.len();
+        let value = match ConstExpr::from_expr(&global.expr) {
+            None => panic!(
+                "Global value is not a constant expression: {:?}",
+                global.expr
+            ),
+            Some(ConstExpr::Const(value)) => value,
+            Some(ConstExpr::GlobalGet(_idx)) =>
+            // See the comments in `ConstExpr` type. This can only be an import.
+            {
+                todo!()
+            }
+        };
+        rt.store.globals.push(Global {
+            value,
+            mutable: global.ty.mut_ == parser::types::Mutability::Var,
+        });
+        inst.global_addrs.push(global_idx as u32);
+    }
+
+    // TODO: Initialize the table with 'elems'
+    // TODO: Initialize the memory with 'data'
+
+    // Set start
+    inst.start = parsed_module.start;
+
+    // Done
+    rt.modules.push(inst);
+
+    module_idx
+}
+
+pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
+    let fun_addr = rt.modules[module_idx].func_addrs[fun_idx as usize];
+    let func = &rt.store.funcs[fun_addr as usize];
+
+    // println!("func: {:#?}", func);
+
+    // Normally we'd pop arguments, push return address, push arguments again, but this is
+    // the entry so we don't have a return address.
+
+    rt.frames.push(func);
+
+    // Initialize instruction pointer
+    rt.ip
+        .push((BlockType::Function, func.fun.expr.instrs.clone(), 0));
+
+    // Run until the end of the function.
+    exec(rt);
+
+    rt.frames.pop();
+
+    // Pop blocks of the function
+    while let Some((BlockType::Block | BlockType::Loop, _, _)) = rt.ip.last() {
+        let _ = rt.ip.pop().unwrap();
+    }
+    // Pop the function
+    let _ = rt.ip.pop().unwrap();
 }
 
 pub fn exec(runtime: &mut Runtime) {
@@ -322,7 +321,7 @@ pub fn exec(runtime: &mut Runtime) {
 
             Call(func_idx) => {
                 let module_idx = runtime.frames.current().module();
-                runtime.call(module_idx, *func_idx);
+                call(runtime, module_idx, *func_idx);
                 runtime.next_instr();
             }
 

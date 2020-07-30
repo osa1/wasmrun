@@ -23,7 +23,7 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     // skip_customsecs(&mut parser)?;
 
-    let imports = parse_imports(&mut parser)?.unwrap_or_default();
+    let imports = parse_import_section(&mut parser)?.unwrap_or_default();
 
     // skip_customsecs(&mut parser)?;
 
@@ -39,38 +39,38 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
 
     // skip_customsecs(&mut parser)?;
 
-    let globals = parse_globals(&mut parser)?.unwrap_or_default();
+    let globals = parse_global_section(&mut parser)?.unwrap_or_default();
 
     // skip_customsecs(&mut parser)?;
 
-    let exports = parse_exports(&mut parser)?.unwrap_or_default();
+    let exports = parse_export_section(&mut parser)?.unwrap_or_default();
 
     // skip_customsecs(&mut parser)?;
 
-    let start = parse_start(&mut parser)?;
+    let start = parse_start_section(&mut parser)?;
 
     // skip_customsecs(&mut parser)?;
 
-    let elems = parse_element(&mut parser)?.unwrap_or_default();
+    let elems = parse_element_section(&mut parser)?.unwrap_or_default();
 
     // skip_customsecs(&mut parser)?;
 
     // https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md#datacount-section
-    let datacount = parse_datacount(&mut parser)?;
+    let datacount = parse_datacount_section(&mut parser)?;
 
     // skip_customsecs(&mut parser)?;
 
-    let code = parse_code(&mut parser, &funs)?.unwrap_or_default();
+    let code = parse_code_section(&mut parser, &funs)?.unwrap_or_default();
 
     // skip_customsecs(&mut parser)?;
 
-    let data = parse_data(&mut parser)?.unwrap_or_default();
+    let data = parse_data_section(&mut parser)?.unwrap_or_default();
 
     // Parses 'name' section, skip other custom sections
     // .debug_info, .debug_abbrev, .debug_line, .debug_str
     let mut names = None;
     while !parser.all_consumed() {
-        if let Some(names_) = parse_names(&mut parser)? {
+        if let Some(names_) = parse_name_section(&mut parser)? {
             assert!(names.is_none());
             names = Some(names_);
         }
@@ -93,6 +93,181 @@ pub fn parse(bytes: &[u8]) -> Result<Module> {
         datacount,
     })
 }
+
+//////////////
+// Sections //
+//////////////
+
+fn parse_type_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<FuncType>>> {
+    parse_section(parser, 1, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            parser.consume_const(&[0x60])?;
+            let args = parse_resulttype(parser)?;
+            let ret = parse_resulttype(parser)?;
+            Ok(FuncType { args, ret })
+        })
+    })
+}
+
+fn parse_import_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Import>>> {
+    parse_section(parser, 2, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            let module = parse_name(parser)?;
+            let name = parse_name(parser)?;
+            let desc = parse_importdesc(parser)?;
+            Ok(Import { module, name, desc })
+        })
+    })
+}
+
+fn parse_export_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Export>>> {
+    parse_section(parser, 7, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            let nm = parse_name(parser)?;
+            let desc = parse_export_desc(parser)?;
+            Ok(Export { nm, desc })
+        })
+    })
+}
+
+fn parse_start_section<'a>(parser: &mut Parser<'a>) -> Result<Option<FuncIdx>> {
+    parse_section(parser, 8, &|parser| Ok(parser.consume_uleb128()? as u32))
+}
+
+fn parse_element_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Element>>> {
+    parse_section(parser, 9, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            let table = parser.consume_uleb128()? as u32;
+            let expr = parse_expr(parser)?;
+
+            let init = parse_vec(
+                parser,
+                &mut |parser, _| Ok(parser.consume_uleb128()? as u32),
+            )?;
+
+            Ok(Element { table, expr, init })
+        })
+    })
+}
+
+// https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md#datacount-section
+fn parse_datacount_section<'a>(parser: &mut Parser<'a>) -> Result<Option<u32>> {
+    // Comes before code section but has number 12. See the spec linked above.
+    parse_section(parser, 12, &|parser| {
+        let count = parser.consume_uleb128()? as u32;
+        Ok(count)
+    })
+}
+
+fn parse_global_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Global>>> {
+    parse_section(parser, 6, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            let ty = parse_global_type(parser)?;
+            let expr = parse_expr(parser)?;
+            Ok(Global { ty, expr })
+        })
+    })
+}
+
+fn parse_mem_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Limits>>> {
+    parse_section(parser, 5, &|parser| {
+        parse_vec(parser, &mut |parser, _| Ok(parse_limits(parser)?))
+    })
+}
+
+fn parse_table_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Table>>> {
+    parse_section(parser, 4, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            parser.consume_const(&[0x70])?; // funcref
+            Ok(Table {
+                limits: parse_limits(parser)?,
+                elem_type: ElemType::FuncRef,
+            })
+        })
+    })
+}
+
+fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<TypeIdx>>> {
+    parse_section(parser, 3, &|parser| {
+        parse_vec(
+            parser,
+            &mut |parser, _| Ok(parser.consume_uleb128()? as u32),
+        )
+    })
+}
+
+fn parse_code_section<'a>(
+    parser: &mut Parser<'a>,
+    fun_tys: &[TypeIdx],
+) -> Result<Option<Vec<Fun>>> {
+    parse_section(parser, 10, &|parser| {
+        parse_vec(parser, &mut |parser, i| {
+            let size = parser.consume_uleb128()?;
+            let mut function_data_parser = parser.fork(size as usize)?;
+
+            let locals = parse_vec(&mut function_data_parser, &mut |parser, _| {
+                let n = parser.consume_uleb128()?;
+                let ty = parse_valtype(parser)?;
+                Ok(Local { n: n as u32, ty })
+            })?;
+
+            let expr = parse_expr(&mut function_data_parser)?;
+            Ok(Fun {
+                ty: fun_tys[i],
+                locals,
+                expr,
+            })
+        })
+    })
+}
+
+fn parse_data_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Data>>> {
+    parse_section(parser, 11, &|parser| {
+        parse_vec(parser, &mut |parser, _| {
+            let data = parser.consume_uleb128()?;
+            let offset = parse_expr(parser)?;
+            let init: Vec<u8> = parse_vec(parser, &mut |parser, _| parser.consume_byte())?;
+            Ok(Data {
+                data: data as u32,
+                offset,
+                init,
+            })
+        })
+    })
+}
+
+// NB. Skips the section!
+fn parse_name_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Names>> {
+    let mut section_parser = match parser.byte() {
+        Ok(0) => {
+            // Skip section idx, we're going to skip the section even if it's not a 'name' section
+            parser.skip(1)?;
+            let section_size = parser.consume_uleb128()?;
+            let mut section_parser = parser.fork(section_size as usize)?;
+            let name = parse_name(&mut section_parser)?;
+            if name != "name" {
+                return Ok(None);
+            }
+            section_parser
+        }
+        _ => {
+            // Not the section we're looking for or end of the file
+            return Ok(None);
+        }
+    };
+
+    let mut names = Default::default();
+
+    while section_parser.byte().is_ok() {
+        parse_name_subsection(&mut section_parser, &mut names)?;
+    }
+
+    Ok(Some(names))
+}
+
+/////////////
+// Helpers //
+/////////////
 
 // NB. The argument parser skips the section even when the section parser fails. The section is not
 // skipped if the type doesn't match the expected one.
@@ -141,170 +316,6 @@ fn parse_vec<'a, A>(
         vec.push(parse(parser, i)?);
     }
     Ok(vec)
-}
-
-fn parse_type_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<FuncType>>> {
-    parse_section(parser, 1, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            parser.consume_const(&[0x60])?;
-            let args = parse_resulttype(parser)?;
-            let ret = parse_resulttype(parser)?;
-            Ok(FuncType { args, ret })
-        })
-    })
-}
-
-fn parse_imports<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Import>>> {
-    parse_section(parser, 2, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            let module = parse_name(parser)?;
-            let name = parse_name(parser)?;
-            let desc = parse_importdesc(parser)?;
-            Ok(Import { module, name, desc })
-        })
-    })
-}
-
-fn parse_fun_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<TypeIdx>>> {
-    parse_section(parser, 3, &|parser| {
-        parse_vec(
-            parser,
-            &mut |parser, _| Ok(parser.consume_uleb128()? as u32),
-        )
-    })
-}
-
-fn parse_table_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Table>>> {
-    parse_section(parser, 4, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            parser.consume_const(&[0x70])?; // funcref
-            Ok(Table {
-                limits: parse_limits(parser)?,
-                elem_type: ElemType::FuncRef,
-            })
-        })
-    })
-}
-
-fn parse_mem_section<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Limits>>> {
-    parse_section(parser, 5, &|parser| {
-        parse_vec(parser, &mut |parser, _| Ok(parse_limits(parser)?))
-    })
-}
-
-fn parse_globals<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Global>>> {
-    parse_section(parser, 6, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            let ty = parse_global_type(parser)?;
-            let expr = parse_expr(parser)?;
-            Ok(Global { ty, expr })
-        })
-    })
-}
-
-fn parse_exports<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Export>>> {
-    parse_section(parser, 7, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            let nm = parse_name(parser)?;
-            let desc = parse_export_desc(parser)?;
-            Ok(Export { nm, desc })
-        })
-    })
-}
-
-fn parse_start<'a>(parser: &mut Parser<'a>) -> Result<Option<FuncIdx>> {
-    parse_section(parser, 8, &|parser| Ok(parser.consume_uleb128()? as u32))
-}
-
-fn parse_element<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Element>>> {
-    parse_section(parser, 9, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            let table = parser.consume_uleb128()? as u32;
-            let expr = parse_expr(parser)?;
-
-            let init = parse_vec(
-                parser,
-                &mut |parser, _| Ok(parser.consume_uleb128()? as u32),
-            )?;
-
-            Ok(Element { table, expr, init })
-        })
-    })
-}
-
-// https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md#datacount-section
-fn parse_datacount<'a>(parser: &mut Parser<'a>) -> Result<Option<u32>> {
-    // Comes before code section but has number 12. See the spec linked above.
-    parse_section(parser, 12, &|parser| {
-        let count = parser.consume_uleb128()? as u32;
-        Ok(count)
-    })
-}
-
-fn parse_code<'a>(parser: &mut Parser<'a>, fun_tys: &[TypeIdx]) -> Result<Option<Vec<Fun>>> {
-    parse_section(parser, 10, &|parser| {
-        parse_vec(parser, &mut |parser, i| {
-            let size = parser.consume_uleb128()?;
-            let mut function_data_parser = parser.fork(size as usize)?;
-
-            let locals = parse_vec(&mut function_data_parser, &mut |parser, _| {
-                let n = parser.consume_uleb128()?;
-                let ty = parse_valtype(parser)?;
-                Ok(Local { n: n as u32, ty })
-            })?;
-
-            let expr = parse_expr(&mut function_data_parser)?;
-            Ok(Fun {
-                ty: fun_tys[i],
-                locals,
-                expr,
-            })
-        })
-    })
-}
-
-fn parse_data<'a>(parser: &mut Parser<'a>) -> Result<Option<Vec<Data>>> {
-    parse_section(parser, 11, &|parser| {
-        parse_vec(parser, &mut |parser, _| {
-            let data = parser.consume_uleb128()?;
-            let offset = parse_expr(parser)?;
-            let init: Vec<u8> = parse_vec(parser, &mut |parser, _| parser.consume_byte())?;
-            Ok(Data {
-                data: data as u32,
-                offset,
-                init,
-            })
-        })
-    })
-}
-
-// NB. Skips the section!
-fn parse_names<'a>(parser: &mut Parser<'a>) -> Result<Option<Names>> {
-    let mut section_parser = match parser.byte() {
-        Ok(0) => {
-            // Skip section idx, we're going to skip the section even if it's not a 'name' section
-            parser.skip(1)?;
-            let section_size = parser.consume_uleb128()?;
-            let mut section_parser = parser.fork(section_size as usize)?;
-            let name = parse_name(&mut section_parser)?;
-            if name != "name" {
-                return Ok(None);
-            }
-            section_parser
-        }
-        _ => {
-            // Not the section we're looking for or end of the file
-            return Ok(None);
-        }
-    };
-
-    let mut names = Default::default();
-
-    while section_parser.byte().is_ok() {
-        parse_name_subsection(&mut section_parser, &mut names)?;
-    }
-
-    Ok(Some(names))
 }
 
 fn parse_name_subsection<'a>(parser: &mut Parser<'a>, names: &mut Names) -> Result<()> {
