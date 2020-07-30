@@ -73,25 +73,23 @@ impl Runtime {
             if (block_ip + 1) as usize >= current_block.len() {
                 match block_ty {
                     BlockType::Function => {
-                        // End of the function, the function frame will be popped by `call`
+                        // End of the function, the function frame will be popped by `call`.
                         ip.push((block_ty, current_block, block_ip));
-                        self.ip = ip;
                     }
                     BlockType::Block => {
-                        // End of the block, which is already popped. Restore ip.
-                        self.ip = ip;
+                        // End of the block, which is already popped.
                     }
                     BlockType::Loop => {
                         // End of loop, jump to beginning.
                         ip.push((block_ty, current_block, 0));
-                        self.ip = ip;
                     }
                 }
             } else {
                 ip.push((block_ty, current_block, block_ip + 1));
-                self.ip = ip;
             }
         }
+
+        self.ip = ip;
     }
 }
 
@@ -101,6 +99,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: parser::Module) -> M
     let module_idx = rt.modules.len();
 
     let mut inst = Module::default();
+    inst.types = parsed_module.types;
     inst.exports = parsed_module.exports;
 
     // Allocate imported functions
@@ -178,10 +177,17 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
 
     // println!("func: {:#?}", func);
 
-    // Normally we'd pop arguments, push return address, push arguments again, but this is
-    // the entry so we don't have a return address.
-
     rt.frames.push(func);
+
+    // Set locals for arguments
+    let fun_arity = rt.get_module(module_idx).types[func.fun.ty as usize]
+        .args
+        .len();
+
+    for local_idx in (0..fun_arity).rev() {
+        let arg_val = rt.stack.pop_value();
+        rt.frames.current_mut().set_local(local_idx as u32, arg_val);
+    }
 
     // Initialize instruction pointer
     rt.ip
@@ -190,13 +196,14 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
     // Run until the end of the function.
     exec(rt);
 
+    // Pop function frame
     rt.frames.pop();
 
     // Pop blocks of the function
     while let Some((BlockType::Block | BlockType::Loop, _, _)) = rt.ip.last() {
         let _ = rt.ip.pop().unwrap();
     }
-    // Pop the function
+    // Pop the function block
     let _ = rt.ip.pop().unwrap();
 }
 
