@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod const_expr;
 mod frame;
 mod stack;
@@ -10,7 +8,6 @@ use const_expr::ConstExpr;
 use frame::FrameStack;
 use stack::Stack;
 use store::{Global, ModuleIdx, Store};
-use value::Value;
 
 use crate::parser;
 use crate::parser::{Export, FuncIdx, FuncType, ImportDesc, Instruction, MemArg};
@@ -95,19 +92,34 @@ impl Runtime {
     }
 }
 
-pub fn allocate_module(rt: &mut Runtime, mut parsed_module: parser::Module) -> ModuleIdx {
+pub fn allocate_module(rt: &mut Runtime, parsed_module: parser::Module) -> ModuleIdx {
     // https://webassembly.github.io/spec/core/exec/modules.html
+
+    let parser::Module {
+        types,
+        funs,
+        tables,
+        mem_addrs,
+        globals,
+        elems,    // TODO
+        data,     // TODO
+        names: _, // used for debugging
+        start,
+        imports,
+        exports,
+        datacount: _, // used for efficient validation when bulk memory ops are used
+    } = parsed_module;
 
     let module_idx = rt.modules.len();
 
     let mut inst = Module::default();
-    inst.types = parsed_module.types;
-    inst.exports = parsed_module.exports;
+    inst.types = types;
+    inst.exports = exports;
 
     // Allocate imported functions
     // TODO: allocate other imported stuff (tables, memories, globals)
     // TODO: not sure how to resolve imports yet
-    for import in parsed_module.imports.drain(..) {
+    for import in imports {
         match import.desc {
             ImportDesc::Func(_) => {
                 // FIXME
@@ -118,29 +130,29 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: parser::Module) -> M
     }
 
     // Allocate functions
-    for fun in parsed_module.funs.drain(..) {
+    for fun in funs {
         let fun_idx = rt.store.funcs.len();
         rt.store.funcs.push(store::Func { module_idx, fun });
         inst.func_addrs.push(fun_idx as u32);
     }
 
     // Allocate tables
-    for table in parsed_module.tables.drain(..) {
+    for table in tables {
         let table_idx = rt.store.tables.len();
         rt.store.tables.push(vec![None; table.limits.min as usize]);
         inst.table_addrs.push(table_idx as u32);
     }
 
     // Allocate memories
-    assert!(parsed_module.mem_addrs.len() <= 1); // No more than 1 currently
-    for mem in parsed_module.mem_addrs.drain(..) {
+    assert!(mem_addrs.len() <= 1); // No more than 1 currently
+    for mem in mem_addrs {
         let mem_idx = rt.store.mems.len();
         rt.store.mems.push(vec![0; mem.min as usize * PAGE_SIZE]);
         inst.mem_addrs.push(mem_idx as u32);
     }
 
     // Allocate globals
-    for global in parsed_module.globals.drain(..) {
+    for global in globals {
         let global_idx = rt.store.globals.len();
         let value = match ConstExpr::from_expr(&global.expr) {
             None => panic!(
@@ -165,7 +177,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: parser::Module) -> M
     // TODO: Initialize the memory with 'data'
 
     // Set start
-    inst.start = parsed_module.start;
+    inst.start = start;
 
     // Done
     rt.modules.push(inst);
@@ -350,7 +362,7 @@ pub fn exec(rt: &mut Runtime) {
                 rt.next_instr();
             }
 
-            CallIndirect(type_idx) => {
+            CallIndirect(_type_idx) => {
                 todo!()
                 /*
                 let module_idx = runtime.frames.current().module();
@@ -396,7 +408,7 @@ pub fn exec(rt: &mut Runtime) {
                 rt.ip.push((BlockType::Block, instrs.clone(), 0));
             }
 
-            Loop(parser::types::Block { ty: _, instrs }) => todo!(),
+            Loop(parser::types::Block { ty: _, instrs: _ }) => todo!(),
 
             BrIf(lbl_idx) => {
                 let val = rt.stack.pop_i32();

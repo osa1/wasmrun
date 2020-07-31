@@ -783,7 +783,7 @@ fn parse_importdesc<'a>(parser: &mut Parser<'a>) -> Result<ImportDesc> {
         }
         0x02 => Ok(ImportDesc::MemType(parse_limits(parser)?)),
         0x03 => Ok(ImportDesc::Global(parse_global_type(parser)?)),
-        other => todo!(),
+        _other => todo!(), // parse error
     }
 }
 
@@ -807,7 +807,7 @@ fn parse_limits<'a>(parser: &mut Parser<'a>) -> Result<Limits> {
                 max: Some(max),
             })
         }
-        other => todo!(),
+        _other => todo!(), // parse error
     }
 }
 
@@ -815,7 +815,7 @@ fn parse_mutability<'a>(parser: &mut Parser<'a>) -> Result<Mutability> {
     match parser.consume_byte()? {
         0x00 => Ok(Mutability::Const),
         0x01 => Ok(Mutability::Var),
-        other => todo!(),
+        _other => todo!(), // parse error
     }
 }
 
