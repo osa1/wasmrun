@@ -1,5 +1,6 @@
 mod internal;
 pub mod types;
+pub mod wast;
 
 use internal::*;
 pub use internal::{ErrorKind, ParseError, Result};
