@@ -5,6 +5,12 @@ use std::convert::TryFrom;
 #[derive(Debug)]
 pub enum Token {
     Id(String),
+    String(String),
+    LParen,
+    RParen,
+    Keyword(String),
+    Reserved(String),
+    // TODO: Integers and floats
 }
 
 pub struct Lexer<'a> {
@@ -19,6 +25,7 @@ pub enum LexerError {
     /// Identifier is empty (i.e. a single '$' character)
     EmptyId,
     NonTerminatedString,
+    NonTerminatedComment,
     InvalidEscapeSequence,
     InvalidUnicodeValue,
     InvalidStringChar,
@@ -27,6 +34,112 @@ pub enum LexerError {
 impl<'a> Lexer<'a> {
     pub fn new(buf: &'a [u8]) -> Lexer<'a> {
         Lexer { buf, cursor: 0 }
+    }
+
+    pub fn next(&mut self) -> Option<Result<Token, LexerError>> {
+        if self.cursor >= self.buf.len() {
+            return None;
+        }
+
+        let tok = loop {
+            match self.buf[self.cursor] {
+                b' ' | b'\t' | b'\n' => {
+                    self.cursor += 1;
+                }
+                b';' => {
+                    self.cursor += 1;
+                    if self.cursor >= self.buf.len() || self.buf[self.cursor] != b';' {
+                        return Some(Err(LexerError::NonTerminatedComment));
+                    }
+                    self.cursor += 1;
+                    if let Err(err) = self.skip_line_comment() {
+                        return Some(Err(err));
+                    }
+                }
+                b'(' => {
+                    self.cursor += 1;
+                    if self.cursor >= self.buf.len() {
+                        break Ok(Token::LParen);
+                    }
+                    if self.buf[self.cursor] == b';' {
+                        self.cursor += 1;
+                        if let Err(err) = self.skip_block_comment() {
+                            return Some(Err(err));
+                        }
+                    } else {
+                        break Ok(Token::LParen);
+                    }
+                }
+                b')' => {
+                    break Ok(Token::RParen);
+                }
+                b'"' => {
+                    break self.string().map(Token::String);
+                }
+                b'$' => {
+                    break self.id().map(Token::Id);
+                }
+                b if b >= b'a' && b <= b'z' => {
+                    break self.keyword_or_reserved();
+                }
+                _ => todo!(),
+            }
+        };
+
+        Some(tok)
+    }
+
+    fn keyword_or_reserved(&mut self) -> Result<Token, LexerError> {
+        let mut str = String::with_capacity(10);
+
+        str.push(char::from(self.buf[self.cursor]));
+        self.cursor += 1;
+
+        while self.cursor < self.buf.len() && is_id_char(self.buf[self.cursor]) {
+            str.push(char::from(self.buf[self.cursor]));
+            self.cursor += 1;
+        }
+
+        Ok(Token::Reserved(str)) // TODO
+    }
+
+    fn skip_block_comment(&mut self) -> Result<(), LexerError> {
+        loop {
+            if self.cursor >= self.buf.len() {
+                return Err(LexerError::NonTerminatedComment);
+            }
+
+            match self.buf[self.cursor] {
+                b'(' => {
+                    self.cursor += 1; // '('
+                    if self.cursor < self.buf.len() && self.buf[self.cursor] == b';' {
+                        self.cursor += 1; // ';'
+                        self.skip_block_comment()?;
+                    }
+                }
+                b';' => {
+                    self.cursor += 1; // ';'
+                    if self.cursor < self.buf.len() && self.buf[self.cursor] == b')' {
+                        self.cursor += 1; // ')'
+                        return Ok(());
+                    }
+                }
+                _ => {
+                    self.cursor += 1;
+                }
+            }
+        }
+    }
+
+    fn skip_line_comment(&mut self) -> Result<(), LexerError> {
+        while self.cursor < self.buf.len() {
+            let b = self.buf[self.cursor];
+            self.cursor += 1;
+            if b == b'\n' {
+                break;
+            }
+        }
+        Ok(())
     }
 
     fn id(&mut self) -> Result<String, LexerError> {
