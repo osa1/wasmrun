@@ -19,44 +19,60 @@ use exec::Runtime;
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let file = &args[1];
+    let file_contents = ::std::fs::read_to_string(file).unwrap();
 
-    let bytes = std::fs::read(file).unwrap();
-    let module = match parser::parse(&bytes) {
-        Ok(module) => module,
-        Err(err) => {
-            eprintln!("{:#?}", err);
-            ::std::process::exit(1);
-        }
-    };
-    // println!("{:#?}", module);
+    let lexer = parser::wast::Lexer::new(file_contents.as_bytes());
 
-    let mut runtime = Runtime::default();
-    let module_idx = exec::allocate_module(&mut runtime, module);
-
-    // Run the 'start' function if it exists
-    if let Some(start_idx) = runtime.get_module_start(module_idx) {
-        println!("Calling start function {}", start_idx);
-        exec::call(&mut runtime, module_idx, start_idx);
-    }
-
-    // Find exported _start function and call it
-    let mut start_fn = None;
-    for export in &runtime.get_module(module_idx).exports {
-        if export.nm == "_start" {
-            match export.desc {
-                parser::ExportDesc::Func(func_idx) => {
-                    start_fn = Some(func_idx);
-                    break;
-                }
-                _ => {
-                    break;
-                }
+    for token in lexer {
+        match token {
+            Ok(token) => {
+                println!("{:?}", token);
+            }
+            Err(err) => {
+                println!("ERROR: {:?}", err);
             }
         }
     }
 
-    if let Some(start_fn) = start_fn {
-        println!("Calling _start ({})", start_fn);
-        exec::call(&mut runtime, module_idx, start_fn);
-    }
+    /*
+        let bytes = std::fs::read(file).unwrap();
+        let module = match parser::parse(&bytes) {
+            Ok(module) => module,
+            Err(err) => {
+                eprintln!("{:#?}", err);
+                ::std::process::exit(1);
+            }
+        };
+        // println!("{:#?}", module);
+
+        let mut runtime = Runtime::default();
+        let module_idx = exec::allocate_module(&mut runtime, module);
+
+        // Run the 'start' function if it exists
+        if let Some(start_idx) = runtime.get_module_start(module_idx) {
+            println!("Calling start function {}", start_idx);
+            exec::call(&mut runtime, module_idx, start_idx);
+        }
+
+        // Find exported _start function and call it
+        let mut start_fn = None;
+        for export in &runtime.get_module(module_idx).exports {
+            if export.nm == "_start" {
+                match export.desc {
+                    parser::ExportDesc::Func(func_idx) => {
+                        start_fn = Some(func_idx);
+                        break;
+                    }
+                    _ => {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if let Some(start_fn) = start_fn {
+            println!("Calling _start ({})", start_fn);
+            exec::call(&mut runtime, module_idx, start_fn);
+        }
+    */
 }

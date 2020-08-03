@@ -11,6 +11,13 @@ pub enum Token {
     Keyword(String),
     Reserved(String),
     // TODO: Integers and floats
+    Integer(Sign, u64),
+}
+
+#[derive(Debug)]
+pub enum Sign {
+    Pos,
+    Neg,
 }
 
 pub struct Lexer<'a> {
@@ -26,9 +33,18 @@ pub enum LexerError {
     EmptyId,
     NonTerminatedString,
     NonTerminatedComment,
+    NonTerminatedNumber,
     InvalidEscapeSequence,
     InvalidUnicodeValue,
     InvalidStringChar,
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result<Token, LexerError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next()
+    }
 }
 
 impl<'a> Lexer<'a> {
@@ -42,6 +58,10 @@ impl<'a> Lexer<'a> {
         }
 
         let tok = loop {
+            if self.cursor >= self.buf.len() {
+                return None;
+            }
+
             match self.buf[self.cursor] {
                 b' ' | b'\t' | b'\n' => {
                     self.cursor += 1;
@@ -71,6 +91,7 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 b')' => {
+                    self.cursor += 1;
                     break Ok(Token::RParen);
                 }
                 b'"' => {
@@ -79,10 +100,21 @@ impl<'a> Lexer<'a> {
                 b'$' => {
                     break self.id().map(Token::Id);
                 }
+                b'+' => {
+                    self.cursor += 1;
+                    break self.int_or_float(Sign::Pos);
+                }
+                b'-' => {
+                    self.cursor += 1;
+                    break self.int_or_float(Sign::Neg);
+                }
+                b if b.is_ascii_digit() => {
+                    break self.int_or_float(Sign::Pos);
+                }
                 b if b >= b'a' && b <= b'z' => {
                     break self.keyword_or_reserved();
                 }
-                _ => todo!(),
+                other => todo!("{}", char::from(other)),
             }
         };
 
@@ -255,6 +287,32 @@ impl<'a> Lexer<'a> {
         Ok(str)
     }
 
+    // Parse a sign + float or integer. Sign is consumed. Hex or not is now known.
+    fn int_or_float(&mut self, sign: Sign) -> Result<Token, LexerError> {
+        if self.cursor >= self.buf.len() {
+            return Err(LexerError::NonTerminatedNumber);
+        }
+
+        if self.buf[self.cursor] == b'0'
+            && (self.cursor + 1 < self.buf.len())
+            && self.buf[self.cursor + 1] == b'x'
+        {
+            self.cursor += 2; // '0x'
+            return self.int_or_float_hex(sign);
+        }
+
+        // TODO: only integers for now
+        let num = self.num()?;
+        Ok(Token::Integer(sign, num))
+    }
+
+    // Parse a float or integer in hex. Sign and '0x' part are consumed.
+    fn int_or_float_hex(&mut self, sign: Sign) -> Result<Token, LexerError> {
+        // TODO: only parsing integers for now
+        let num = self.hexnum()?;
+        Ok(Token::Integer(sign, num))
+    }
+
     fn hexnum(&mut self) -> Result<u64, LexerError> {
         let mut ret = 0;
 
@@ -263,6 +321,25 @@ impl<'a> Lexer<'a> {
             if b.is_ascii_hexdigit() {
                 ret *= 16;
                 ret += u64::from(hex_value(b));
+                self.cursor += 1;
+            } else if b == b'_' {
+                self.cursor += 1;
+            } else {
+                break;
+            }
+        }
+
+        Ok(ret)
+    }
+
+    fn num(&mut self) -> Result<u64, LexerError> {
+        let mut ret = 0;
+
+        while self.cursor < self.buf.len() {
+            let b = self.buf[self.cursor];
+            if b.is_ascii_digit() {
+                ret *= 10;
+                ret += u64::from(b - b'0');
                 self.cursor += 1;
             } else if b == b'_' {
                 self.cursor += 1;
