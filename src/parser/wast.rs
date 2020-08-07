@@ -10,8 +10,18 @@ pub enum Token {
     RParen,
     Keyword(String),
     Reserved(String),
-    // TODO: Integers and floats
     Integer(Sign, u64),
+    // Uninterpreted floats
+    Float {
+        hex: bool,
+        // Float part before the `.`
+        integral: u64,
+        // Float part after the `.`
+        decimal: f64,
+        // The part after 'E' or 'e'. Exponent of `integral.decimal`. Either 2^exponent or
+        // 10^exponent.
+        exponent: i64,
+    },
 }
 
 #[derive(Debug)]
@@ -37,6 +47,7 @@ pub enum LexerError {
     InvalidEscapeSequence,
     InvalidUnicodeValue,
     InvalidStringChar,
+    InvalidHexNumber,
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -287,30 +298,153 @@ impl<'a> Lexer<'a> {
         Ok(str)
     }
 
-    // Parse a sign + float or integer. Sign is consumed. Hex or not is now known.
+    // Parse a sign + float or integer. Sign is consumed. Hex or not is not known.
     fn int_or_float(&mut self, sign: Sign) -> Result<Token, LexerError> {
         if self.cursor >= self.buf.len() {
             return Err(LexerError::NonTerminatedNumber);
         }
+
+        let mut hex = false;
 
         if self.buf[self.cursor] == b'0'
             && (self.cursor + 1 < self.buf.len())
             && self.buf[self.cursor + 1] == b'x'
         {
             self.cursor += 2; // '0x'
-            return self.int_or_float_hex(sign);
+            hex = true;
         }
 
-        // TODO: only integers for now
-        let num = self.num()?;
+        let num = self.num(hex)?;
+
+        let mut float = false;
+        if self.cursor < self.buf.len() && self.buf[self.cursor] == b'.' {
+            self.cursor += 1;
+            float = true;
+        }
+
+        // 1. 'num' '.'? ^
+        // 2. 'num' '.'  ^ 'frac'
+        // 3. 'num' '.'? ^ ('E'|'e') 'sign' 'num'
+        // 4. 'num' '.'  ^ 'frac' ('E'|'e') 'sign' 'num'
+        //               ^
+        //             cursor
+        //
+        // Also handle the hex variant where 'E' is 'P'
+        //
+        // NB. Not sure how to distinguish (1) without a '.' from an integer
+
+        if self.cursor < self.buf.len() {
+            // We may see 'e' or 'E' even without a dot before in (3)
+            match self.exp_opt(hex)? {
+                Some(exponent) => {
+                    // (3)
+                    return Ok(Token::Float {
+                        hex,
+                        integral: num,
+                        decimal: 0f64,
+                        exponent,
+                    });
+                }
+                None => {
+                    // Not (3), but should be (2) or (4) or we've seen a '.'
+                    if float {
+                        // (2) or (4)
+                        let decimal = self.frac(hex)?;
+                        match self.exp_opt(hex)? {
+                            Some(exponent) => {
+                                return Ok(Token::Float {
+                                    hex,
+                                    integral: num,
+                                    decimal,
+                                    exponent,
+                                });
+                            }
+                            None => {
+                                // (2)
+                                return Ok(Token::Float {
+                                    hex,
+                                    integral: num,
+                                    decimal,
+                                    exponent: 0,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(Token::Integer(sign, num))
     }
 
-    // Parse a float or integer in hex. Sign and '0x' part are consumed.
-    fn int_or_float_hex(&mut self, sign: Sign) -> Result<Token, LexerError> {
-        // TODO: only parsing integers for now
-        let num = self.hexnum()?;
-        Ok(Token::Integer(sign, num))
+    fn exp_opt(&mut self, hex: bool) -> Result<Option<i64>, LexerError> {
+        if self.cursor >= self.buf.len() {
+            return Ok(None);
+        }
+
+        let c = self.buf[self.cursor];
+        if c == b'E' || c == b'e' || c == b'P' || c == b'p' {
+            if (hex && (c != b'P' && c != b'p')) || (!hex && (c != b'E' || c != b'e')) {
+                return Err(LexerError::InvalidHexNumber);
+            }
+
+            self.cursor += 1;
+            let exp_sign = self.sign();
+            let exp_sign = match exp_sign {
+                Sign::Pos => 1,
+                Sign::Neg => -1,
+            };
+            let exp_num = self.num(hex)?;
+
+            Ok(Some(exp_sign * exp_num as i64))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn sign(&mut self) -> Sign {
+        let c = self.buf[self.cursor];
+        if c == b'+' {
+            self.cursor += 1;
+            Sign::Pos
+        } else if c == b'-' {
+            self.cursor += 1;
+            Sign::Neg
+        } else {
+            Sign::Pos
+        }
+    }
+
+    fn frac(&mut self, hex: bool) -> Result<f64, LexerError> {
+        let range_begin = self.cursor;
+        let mut range_end = self.cursor;
+
+        while range_end < self.buf.len() {
+            let b = self.buf[range_end];
+            if (hex && b.is_ascii_hexdigit()) || b.is_ascii_digit() || b == b'_' {
+                range_end += 1;
+            } else {
+                break;
+            }
+        }
+
+        self.cursor = range_end;
+
+        let mut ret = 0f64;
+        let m = if hex { 16f64 } else { 10f64 };
+        for i in (range_begin..range_end - 1).rev() {
+            let b = self.buf[i];
+            if (hex && b.is_ascii_hexdigit()) || b.is_ascii_digit() {
+                let f = f64::from(b - b'0');
+                ret = (f + (ret / m)) / m;
+            } else if b == b'_' {
+                continue;
+            } else {
+                panic!("Unexpected character in reverse scan: {}", char::from(b));
+            }
+        }
+
+        Ok(ret)
     }
 
     fn hexnum(&mut self) -> Result<u64, LexerError> {
@@ -332,14 +466,15 @@ impl<'a> Lexer<'a> {
         Ok(ret)
     }
 
-    fn num(&mut self) -> Result<u64, LexerError> {
+    fn num(&mut self, hex: bool) -> Result<u64, LexerError> {
         let mut ret = 0;
+        let m = if hex { 16 } else { 10 };
 
         while self.cursor < self.buf.len() {
             let b = self.buf[self.cursor];
-            if b.is_ascii_digit() {
-                ret *= 10;
-                ret += u64::from(b - b'0');
+            if (hex && b.is_ascii_hexdigit()) || b.is_ascii_digit() {
+                ret *= m;
+                ret += u64::from(if hex { hex_value(b) } else { b - b'0' });
                 self.cursor += 1;
             } else if b == b'_' {
                 self.cursor += 1;
@@ -392,4 +527,19 @@ fn parse_string() {
 fn parse_hexnum() {
     let mut lexer = Lexer::new("12_AB".as_bytes());
     assert_eq!(lexer.hexnum().unwrap(), 4779);
+}
+
+#[test]
+fn parse_float_1() {
+    let mut lexer = Lexer::new("0x1.fffffep+127".as_bytes());
+
+    match lexer.next() {
+        Some(Ok(Token::Float { .. })) => {}
+        other => panic!("{:?}", other),
+    }
+
+    match lexer.next() {
+        None => {}
+        other => panic!("{:?}", other),
+    }
 }
