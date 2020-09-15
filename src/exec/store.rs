@@ -35,9 +35,6 @@ pub fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
     let mut blocks: Vec<(BlockKind, u32)> = vec![];
 
     for (instr_idx, instr) in instrs.iter().enumerate() {
-
-        println!("{:?}", instr);
-
         match instr {
             Instruction::Block(_) | Instruction::If(_) => {
                 blocks.push((BlockKind::BlockOrIf, instr_idx as u32));
@@ -48,14 +45,19 @@ pub fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
             }
 
             Instruction::End => {
-                let (block_kind, start_idx) = blocks.pop().unwrap();
-                match block_kind {
-                    BlockKind::BlockOrIf => {
-                        ret.insert(start_idx, instr_idx as u32 + 1);
+                match blocks.pop() {
+                    None => {
+                        // Must be the end of the function
+                        assert_eq!(instr_idx + 1, instrs.len());
                     }
-                    BlockKind::Loop => {
-                        ret.insert(start_idx, start_idx + 1);
-                    }
+                    Some((block_kind, start_idx)) => match block_kind {
+                        BlockKind::BlockOrIf => {
+                            ret.insert(start_idx, instr_idx as u32 + 1);
+                        }
+                        BlockKind::Loop => {
+                            ret.insert(start_idx, start_idx + 1);
+                        }
+                    },
                 }
             }
 

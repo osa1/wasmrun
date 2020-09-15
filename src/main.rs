@@ -25,7 +25,7 @@ fn main() {
     let module = wasm::deserialize_file(file).unwrap();
     // println!("{:#?}", module);
 
-    let mut runtime = Runtime::default();
+    let mut runtime = Runtime::new();
     let module_idx = exec::allocate_module(&mut runtime, module);
 
     // Run the 'start' function if it exists
@@ -35,26 +35,25 @@ fn main() {
         exec::finish(&mut runtime);
     }
 
-    /*
-        // Find exported _start function and call it
-        let mut start_fn = None;
-        for export in &runtime.get_module(module_idx).exports {
-            if export.nm == "_start" {
-                match export.desc {
-                    parser::ExportDesc::Func(func_idx) => {
-                        start_fn = Some(func_idx);
-                        break;
-                    }
-                    _ => {
-                        break;
-                    }
+    // Find exported _start function and call it
+    let mut start_fn = None;
+    for export in &runtime.get_module(module_idx).exports {
+        if export.field() == "_start" {
+            match export.internal() {
+                wasm::Internal::Function(func_idx) => {
+                    start_fn = Some(*func_idx);
+                    break;
                 }
+                wasm::Internal::Table(_)
+                | wasm::Internal::Memory(_)
+                | wasm::Internal::Global(_) => {}
             }
         }
+    }
 
-        if let Some(start_fn) = start_fn {
-            println!("Calling _start ({})", start_fn);
-            exec::call(&mut runtime, module_idx, start_fn);
-        }
-    */
+    if let Some(start_fn) = start_fn {
+        println!("Calling _start ({})", start_fn);
+        exec::invoke(&mut runtime, module_idx, start_fn);
+        exec::finish(&mut runtime);
+    }
 }

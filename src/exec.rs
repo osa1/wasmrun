@@ -30,7 +30,6 @@ pub struct Module {
     pub start: Option<FuncIdx>,
 }
 
-#[derive(Default)]
 pub struct Runtime {
     /// The heap
     store: Store,
@@ -49,6 +48,17 @@ pub struct Runtime {
 }
 
 impl Runtime {
+    pub fn new() -> Self {
+        Runtime {
+            store: Default::default(),
+            stack: Default::default(),
+            frames: Default::default(),
+            modules: Default::default(),
+            conts: vec![vec![]],
+            ip: 0,
+        }
+    }
+
     pub fn get_module(&self, idx: ModuleIdx) -> &Module {
         &self.modules[idx]
     }
@@ -143,16 +153,17 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
         for global in global_section.entries_mut().drain(..) {
             let global_idx = rt.store.globals.len();
 
+            use Instruction::*;
             let value = match global.init_expr().code() {
-                [wasm::Instruction::I32Const(value)] => Value::I32(*value),
-                [wasm::Instruction::I64Const(value)] => Value::I64(*value),
-                [wasm::Instruction::F32Const(value)] => Value::F32(unsafe { transmute(*value) }),
-                [wasm::Instruction::F64Const(value)] => Value::F64(unsafe { transmute(*value) }),
-                [wasm::Instruction::GetGlobal(_idx)] => {
+                [I32Const(value), End] => Value::I32(*value),
+                [I64Const(value), End] => Value::I64(*value),
+                [F32Const(value), End] => Value::F32(unsafe { transmute(*value) }),
+                [F64Const(value), End] => Value::F64(unsafe { transmute(*value) }),
+                [GetGlobal(_idx), End] => {
                     // See the comments in `ConstExpr` type. This can only be an import.
                     todo!()
                 }
-                _ => todo!(),
+                other => todo!("Global initializer: {:?}", other),
             };
 
             rt.store.globals.push(Global {
@@ -192,12 +203,13 @@ pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
         rt.frames.current_mut().set_local(local_idx as u32, arg_val);
     }
 
-    rt.conts.last_mut().unwrap().push(rt.ip + 1); // NB. This is OOB if last instr is a call
+    rt.conts.last_mut().unwrap().push(rt.ip + 1);
     rt.conts.push(vec![]);
+    rt.ip = 0;
 }
 
 pub fn finish(rt: &mut Runtime) {
-    while !rt.conts.is_empty() {
+    while !rt.frames.is_empty() {
         single_step(rt);
     }
 }
@@ -224,6 +236,11 @@ pub fn single_step(rt: &mut Runtime) {
     let instr = &current_fun.fun.code().elements()[rt.ip as usize];
     let module_idx = current_fun.module_idx;
 
+    println!(
+        "instruction={:?}, stack={:?}, call stack={:?}",
+        instr, rt.stack, rt.frames
+    );
+
     match instr {
         Instruction::I32Store(_, offset) => {
             let value = rt.stack.pop_i32();
@@ -241,6 +258,7 @@ pub fn single_step(rt: &mut Runtime) {
             mem[addr + 1] = b2;
             mem[addr + 2] = b3;
             mem[addr + 4] = b4;
+            rt.ip += 1;
         }
 
         Instruction::I32Load(_, offset) => {
@@ -258,169 +276,131 @@ pub fn single_step(rt: &mut Runtime) {
             let b3 = mem[addr + 2];
             let b4 = mem[addr + 3];
             rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
+            rt.ip += 1;
         }
 
         Instruction::GetLocal(idx) => {
             let val = rt.frames.current().get_local(*idx);
             rt.stack.push_value(val);
+            rt.ip += 1;
         }
 
         Instruction::SetLocal(idx) => {
             let val = rt.stack.pop_value();
             rt.frames.current_mut().set_local(*idx, val);
+            rt.ip += 1;
         }
 
         Instruction::TeeLocal(idx) => {
             let val = rt.stack.pop_value();
             rt.frames.current_mut().set_local(*idx, val);
             rt.stack.push_value(val);
+            rt.ip += 1;
         }
 
         Instruction::GetGlobal(idx) => {
             let global_idx = rt.modules[module_idx].global_addrs[*idx as usize];
             let value = rt.store.globals[global_idx as usize].value;
             rt.stack.push_value(value);
+            rt.ip += 1;
         }
 
         Instruction::SetGlobal(idx) => {
             let global_idx = rt.modules[module_idx].global_addrs[*idx as usize];
             let value = rt.stack.pop_value();
             rt.store.globals[global_idx as usize].value = value;
+            rt.ip += 1;
         }
 
         Instruction::I32Const(i) => {
             rt.stack.push_i32(*i);
+            rt.ip += 1;
         }
 
         Instruction::I64Const(i) => {
             rt.stack.push_i64(*i);
+            rt.ip += 1;
         }
 
         Instruction::F32Const(f) => {
             rt.stack.push_f32(unsafe { transmute(*f) });
+            rt.ip += 1;
         }
 
         Instruction::F64Const(f) => {
             rt.stack.push_f64(unsafe { transmute(*f) });
+            rt.ip += 1;
         }
 
         Instruction::I32Eqz => {
             let val = rt.stack.pop_i32();
             rt.stack.push_bool(val == 0);
+            rt.ip += 1;
         }
 
         Instruction::I32LeU => {
             let val2 = rt.stack.pop_i32();
             let val1 = rt.stack.pop_i32();
             rt.stack.push_bool(val1 <= val2);
+            rt.ip += 1;
         }
 
         Instruction::I32Sub => {
             let val2 = rt.stack.pop_i32();
             let val1 = rt.stack.pop_i32();
             rt.stack.push_i32(val1 - val2);
+            rt.ip += 1;
         }
 
-        _ => todo!(),
-    }
+        Instruction::Call(func_idx) => {
+            let func_idx = *func_idx;
+            // NB. invoke updates the ip
+            invoke(rt, module_idx, func_idx);
+        }
 
-    rt.ip += 1;
-}
-
-/*
-pub fn exec(rt: &mut Runtime) {
-    while let Some(Frame {
-        fun_idx,
-        locals: _,
-    }) = rt.frames.current_opt()
-    {
-        let store::Func {
-            module_idx,
-            fun_idx: _,
-            fun,
-            block_bounds,
-            fun_ty_idx: _,
-        } = &rt.store.funcs[*fun_idx as usize];
-
-        let instr = &fun.code().elements()[*ip as usize];
-
-        println!("{}: {:?}", ip, instr);
-        // println!("frames: {:?}", runtime.frames);
-        // println!("block: {:?}", runtime.ip);
-
-        use wasm::Instruction::*;
-        match instr {
-            Call(func_idx) => {
-                let module_idx = *module_idx;
-                let func_idx = *func_idx;
-                call(rt, module_idx, func_idx);
-                rt.next_instr();
-            }
-
-            CallIndirect(_type_idx, _table_idx) => {
-                todo!()
-                /*
-                let module_idx = runtime.frames.current().module();
-                let table_idx = runtime.modules[module_idx].table_addrs[0];
-                let table = &runtime.store.tables[table_idx as usize];
-                let fun_idx = runtime.stack.pop_i32();
-                match table.get(fun_idx as usize) {
-                    None => {
-                        panic!("call_indirect: OOB function index (function idx={}, table idx={}, table size={})",
-                               fun_idx, table_idx, table.len());
-                    }
-                    Some(None) => {
-                        panic!("call_indirect: function index not initialized (function idx={}, table idx={})",
-                               fun_idx, table_idx);
-                    }
-                    Some(Some(fun_addr)) => {
-                        let fun = &runtime.store.funcs[*fun_addr as usize];
-
-                        let fun_ty = fun.fun.ty;
-                        if fun_ty != *type_idx {
-                            panic!("call_indirect: function type doesn't match expected type (fun ty={}, expected={})",
-                                   fun_ty, type_idx);
-                        }
-
-                        runtime.frames.push(fun);
-                        let instrs = fun.fun.expr.instrs.clone();
-                        exec(runtime, &*instrs, 0);
-                        runtime.frames.pop();
-                        ip += 1;
-                    }
+        Instruction::End => {
+            match rt.conts.last_mut().unwrap().pop() {
+                Some(_) => {
+                    // End of the block
+                    rt.ip += 1;
                 }
-                */
+                None => {
+                    // End of the function. Code is the same as `return` case.
+                    rt.frames.pop();
+                    rt.conts.pop();
+                    rt.ip = rt.conts.last_mut().unwrap().pop().unwrap();
+                }
             }
-
-            Return => {
-                break;
-            }
-
-            /*
-                        Block(parser::types::Block { ty: _, instrs }) => {
-                            // Bump instruction pointer for the current block
-                            rt.next_instr();
-                            // Execute the new block
-                            rt.ip.push((BlockType::Block, instrs.clone(), 0));
-                        }
-
-                        Loop(parser::types::Block { ty: _, instrs: _ }) => todo!(),
-
-                        BrIf(lbl_idx) => {
-                            let val = rt.stack.pop_i32();
-                            if val != 0 {
-                                for _ in 0..=*lbl_idx {
-                                    rt.ip.pop();
-                                }
-                            // Parent block's instruction pointer was already bumped by 'Block' case above,
-                            // so no need to update it
-                            } else {
-                                rt.next_instr();
-                            }
-                        }
-            */
-            _ => todo!("unhandled instruction: {:?}", instr),
         }
+
+        Instruction::Return => {
+            rt.frames.pop();
+            rt.conts.pop();
+            rt.ip = rt.conts.last_mut().unwrap().pop().unwrap();
+        }
+
+        Instruction::Block(_) => {
+            let cont = match current_fun.block_bounds.get(&rt.ip) {
+                None => {
+                    panic!("Couldn't find continuation of block");
+                }
+                Some(cont) => *cont,
+            };
+            rt.conts.last_mut().unwrap().push(cont);
+            rt.ip += 1;
+        }
+
+        Instruction::BrIf(n_blocks) => {
+            if rt.stack.pop_i32() == 0 {
+                rt.ip += 1;
+            } else {
+                for _ in 0..*n_blocks {
+                    rt.conts.last_mut().unwrap().pop().unwrap();
+                }
+                rt.ip = *rt.conts.last_mut().unwrap().last().unwrap();
+            }
+        }
+
+        other => todo!("Instruction not implemented: {:?}", other),
     }
 }
-*/

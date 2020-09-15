@@ -6,6 +6,12 @@ use std::iter::repeat;
 #[derive(Default, Debug)]
 pub struct FrameStack(Vec<Frame>);
 
+impl FrameStack {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 #[derive(Debug)]
 pub struct Frame {
     pub fun_idx: u32,
