@@ -2,6 +2,7 @@ use super::value::Value;
 
 use fxhash::FxHashMap;
 use parity_wasm::elements as wasm;
+use wasm::Instruction;
 
 pub type ModuleIdx = usize;
 
@@ -24,8 +25,45 @@ pub struct Func {
     pub block_bounds: FxHashMap<u32, u32>,
 }
 
+enum BlockKind {
+    BlockOrIf,
+    Loop,
+}
+
 pub fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
-    todo!()
+    let mut ret: FxHashMap<u32, u32> = Default::default();
+    let mut blocks: Vec<(BlockKind, u32)> = vec![];
+
+    for (instr_idx, instr) in instrs.iter().enumerate() {
+
+        println!("{:?}", instr);
+
+        match instr {
+            Instruction::Block(_) | Instruction::If(_) => {
+                blocks.push((BlockKind::BlockOrIf, instr_idx as u32));
+            }
+
+            Instruction::Loop(_) => {
+                blocks.push((BlockKind::Loop, instr_idx as u32));
+            }
+
+            Instruction::End => {
+                let (block_kind, start_idx) = blocks.pop().unwrap();
+                match block_kind {
+                    BlockKind::BlockOrIf => {
+                        ret.insert(start_idx, instr_idx as u32 + 1);
+                    }
+                    BlockKind::Loop => {
+                        ret.insert(start_idx, start_idx + 1);
+                    }
+                }
+            }
+
+            _ => {}
+        }
+    }
+
+    ret
 }
 
 #[derive(Debug)]

@@ -3,12 +3,13 @@ mod stack;
 mod store;
 mod value;
 
-use frame::{Frame, FrameStack};
+use frame::FrameStack;
 use stack::Stack;
 use store::{Global, ModuleIdx, Store};
 use value::Value;
 
 use parity_wasm::elements as wasm;
+use wasm::Instruction;
 
 use std::mem::{replace, transmute};
 
@@ -31,12 +32,20 @@ pub struct Module {
 
 #[derive(Default)]
 pub struct Runtime {
+    /// The heap
     store: Store,
+    /// Value stack
     stack: Stack,
+    /// Call stack
     frames: FrameStack,
+    ///
     modules: Vec<Module>,
-    // Stack of block continuations. TODO: should this be a part of Frame?
-    blocks: Vec<Vec<u32>>,
+    /// Continuation stack. `conts.last_mut().pop()` gives the continuation for the current block.
+    /// On return we pop the outer vector to drop the blocks of the current function.
+    conts: Vec<Vec<u32>>,
+    /// Instruction pointer. Instruction index in the function at the top of the call stack
+    /// (`frames`).
+    ip: u32,
 }
 
 impl Runtime {
@@ -46,36 +55,6 @@ impl Runtime {
 
     pub fn get_module_start(&self, idx: ModuleIdx) -> Option<FuncIdx> {
         self.modules[idx].start
-    }
-
-    // Move on to the next instruction in the current function. Depending on the current block type
-    // this may jump forwards or backwards.
-    fn next_instr(&mut self) {
-        /*
-                let mut ip = replace(&mut self.ip, vec![]);
-
-                if let Some((block_ty, current_block, block_ip)) = ip.pop() {
-                    if (block_ip + 1) as usize >= current_block.len() {
-                        match block_ty {
-                            BlockType::Function => {
-                                // End of the function, the function frame will be popped by `call`.
-                                ip.push((block_ty, current_block, block_ip + 1));
-                            }
-                            BlockType::Block => {
-                                // End of the block, which is already popped.
-                            }
-                            BlockType::Loop => {
-                                // End of loop, jump to beginning.
-                                ip.push((block_ty, current_block, 0));
-                            }
-                        }
-                    } else {
-                        ip.push((block_ty, current_block, block_ip + 1));
-                    }
-                }
-
-                self.ip = ip;
-        */
     }
 }
 
@@ -197,11 +176,9 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
     module_idx
 }
 
-pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
+pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
     let fun_addr = rt.modules[module_idx].func_addrs[fun_idx as usize];
     let func = &rt.store.funcs[fun_addr as usize];
-
-    // println!("func: {:#?}", func);
 
     rt.frames.push(func);
 
@@ -215,23 +192,146 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
         rt.frames.current_mut().set_local(local_idx as u32, arg_val);
     }
 
-    rt.blocks.push(vec![]);
-
-    // Run until the end of the function.
-    exec(rt);
-
-    // Pop function frame
-    rt.frames.pop();
-
-    // Pop blocks of the function
-    rt.blocks.pop();
+    rt.conts.last_mut().unwrap().push(rt.ip + 1); // NB. This is OOB if last instr is a call
+    rt.conts.push(vec![]);
 }
 
+pub fn finish(rt: &mut Runtime) {
+    while !rt.conts.is_empty() {
+        single_step(rt);
+    }
+}
+
+pub fn single_step(rt: &mut Runtime) {
+    let current_fun_idx = rt.frames.current().fun_idx;
+    let current_fun = &rt.store.funcs[current_fun_idx as usize];
+
+    if rt.ip as usize >= current_fun.fun.code().elements().len() {
+        // End of the function, pop the frame, update ip.
+        // TODO: Should this really take one step?
+
+        rt.frames.pop(); // Pop call frame
+        rt.conts.pop(); // Pop blocks of current frame
+        rt.ip = rt
+            .conts
+            .last_mut()
+            .and_then(|conts| conts.pop())
+            .unwrap_or(0); // TODO: Setting ip 0 here going to be a problem?
+
+        return;
+    }
+
+    let instr = &current_fun.fun.code().elements()[rt.ip as usize];
+    let module_idx = current_fun.module_idx;
+
+    match instr {
+        Instruction::I32Store(_, offset) => {
+            let value = rt.stack.pop_i32();
+            let addr = rt.stack.pop_i32() as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 4;
+
+            let mem = &mut rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                panic!("OOB I32Store (mem size={}, addr={})", mem.len(), addr);
+            }
+
+            let [b1, b2, b3, b4] = value.to_le_bytes();
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
+            mem[addr + 2] = b3;
+            mem[addr + 4] = b4;
+        }
+
+        Instruction::I32Load(_, offset) => {
+            let addr = rt.stack.pop_i32() as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 4;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                panic!("OOB I32Load (mem size={}, addr={})", mem.len(), addr);
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let b3 = mem[addr + 2];
+            let b4 = mem[addr + 3];
+            rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
+        }
+
+        Instruction::GetLocal(idx) => {
+            let val = rt.frames.current().get_local(*idx);
+            rt.stack.push_value(val);
+        }
+
+        Instruction::SetLocal(idx) => {
+            let val = rt.stack.pop_value();
+            rt.frames.current_mut().set_local(*idx, val);
+        }
+
+        Instruction::TeeLocal(idx) => {
+            let val = rt.stack.pop_value();
+            rt.frames.current_mut().set_local(*idx, val);
+            rt.stack.push_value(val);
+        }
+
+        Instruction::GetGlobal(idx) => {
+            let global_idx = rt.modules[module_idx].global_addrs[*idx as usize];
+            let value = rt.store.globals[global_idx as usize].value;
+            rt.stack.push_value(value);
+        }
+
+        Instruction::SetGlobal(idx) => {
+            let global_idx = rt.modules[module_idx].global_addrs[*idx as usize];
+            let value = rt.stack.pop_value();
+            rt.store.globals[global_idx as usize].value = value;
+        }
+
+        Instruction::I32Const(i) => {
+            rt.stack.push_i32(*i);
+        }
+
+        Instruction::I64Const(i) => {
+            rt.stack.push_i64(*i);
+        }
+
+        Instruction::F32Const(f) => {
+            rt.stack.push_f32(unsafe { transmute(*f) });
+        }
+
+        Instruction::F64Const(f) => {
+            rt.stack.push_f64(unsafe { transmute(*f) });
+        }
+
+        Instruction::I32Eqz => {
+            let val = rt.stack.pop_i32();
+            rt.stack.push_bool(val == 0);
+        }
+
+        Instruction::I32LeU => {
+            let val2 = rt.stack.pop_i32();
+            let val1 = rt.stack.pop_i32();
+            rt.stack.push_bool(val1 <= val2);
+        }
+
+        Instruction::I32Sub => {
+            let val2 = rt.stack.pop_i32();
+            let val1 = rt.stack.pop_i32();
+            rt.stack.push_i32(val1 - val2);
+        }
+
+        _ => todo!(),
+    }
+
+    rt.ip += 1;
+}
+
+/*
 pub fn exec(rt: &mut Runtime) {
     while let Some(Frame {
         fun_idx,
         locals: _,
-        ip,
     }) = rt.frames.current_opt()
     {
         let store::Func {
@@ -250,121 +350,6 @@ pub fn exec(rt: &mut Runtime) {
 
         use wasm::Instruction::*;
         match instr {
-            I32Store(_, offset) => {
-                let value = rt.stack.pop_i32();
-                let addr = rt.stack.pop_i32() as u32;
-                let addr = (addr + offset) as usize;
-                let end_addr = addr + 4;
-
-                let mem = &mut rt.store.mems[*module_idx];
-                if end_addr as usize > mem.len() {
-                    panic!("OOB I32Store (mem size={}, addr={})", mem.len(), addr);
-                }
-
-                let [b1, b2, b3, b4] = value.to_le_bytes();
-                mem[addr] = b1;
-                mem[addr + 1] = b2;
-                mem[addr + 2] = b3;
-                mem[addr + 4] = b4;
-
-                rt.next_instr();
-            }
-
-            I32Load(_, offset) => {
-                let addr = rt.stack.pop_i32() as u32;
-                let addr = (addr + offset) as usize;
-                let end_addr = addr + 4;
-
-                let mem = &rt.store.mems[*module_idx];
-                if end_addr as usize > mem.len() {
-                    panic!("OOB I32Load (mem size={}, addr={})", mem.len(), addr);
-                }
-
-                let b1 = mem[addr];
-                let b2 = mem[addr + 1];
-                let b3 = mem[addr + 2];
-                let b4 = mem[addr + 3];
-                rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
-
-                rt.next_instr();
-            }
-
-            GetLocal(idx) => {
-                let val = rt.frames.current().get_local(*idx);
-                rt.stack.push_value(val);
-                rt.next_instr();
-            }
-
-            SetLocal(idx) => {
-                let val = rt.stack.pop_value();
-                rt.frames.current_mut().set_local(*idx, val);
-                rt.next_instr();
-            }
-
-            TeeLocal(idx) => {
-                let val = rt.stack.pop_value();
-                rt.frames.current_mut().set_local(*idx, val);
-                rt.stack.push_value(val);
-                rt.next_instr();
-            }
-
-            GetGlobal(idx) => {
-                let global_idx = rt.modules[*module_idx].global_addrs[*idx as usize];
-                let value = rt.store.globals[global_idx as usize].value;
-                rt.stack.push_value(value);
-                rt.next_instr();
-            }
-
-            SetGlobal(idx) => {
-                let global_idx = rt.modules[*module_idx].global_addrs[*idx as usize];
-                let value = rt.stack.pop_value();
-                rt.store.globals[global_idx as usize].value = value;
-                rt.next_instr();
-            }
-
-            I32Const(i) => {
-                rt.stack.push_i32(*i);
-                rt.next_instr();
-            }
-
-            I64Const(i) => {
-                rt.stack.push_i64(*i);
-                rt.next_instr();
-            }
-
-            F32Const(f) => {
-                rt.stack.push_f32(unsafe { transmute(*f) });
-                rt.next_instr();
-            }
-
-            F64Const(f) => {
-                rt.stack.push_f64(unsafe { transmute(*f) });
-                rt.next_instr();
-            }
-
-            I32Eqz => {
-                let val = rt.stack.pop_i32();
-                rt.stack.push_bool(val == 0);
-                rt.next_instr();
-            }
-
-            I32LeU => {
-                let val2 = rt.stack.pop_i32();
-                let val1 = rt.stack.pop_i32();
-                rt.stack.push_bool(val1 <= val2);
-                rt.next_instr();
-            }
-
-            I32Sub => {
-                let val2 = rt.stack.pop_i32();
-                let val1 = rt.stack.pop_i32();
-                rt.stack.push_i32(val1 - val2);
-                rt.next_instr();
-            }
-
-            //////////////////////////
-            // Control instructions //
-            //////////////////////////
             Call(func_idx) => {
                 let module_idx = *module_idx;
                 let func_idx = *func_idx;
@@ -438,3 +423,4 @@ pub fn exec(rt: &mut Runtime) {
         }
     }
 }
+*/

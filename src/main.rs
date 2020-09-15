@@ -31,7 +31,8 @@ fn main() {
     // Run the 'start' function if it exists
     if let Some(start_idx) = runtime.get_module_start(module_idx) {
         println!("Calling start function {}", start_idx);
-        exec::call(&mut runtime, module_idx, start_idx);
+        exec::invoke(&mut runtime, module_idx, start_idx);
+        exec::finish(&mut runtime);
     }
 
     /*

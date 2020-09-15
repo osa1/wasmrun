@@ -10,8 +10,6 @@ pub struct FrameStack(Vec<Frame>);
 pub struct Frame {
     pub fun_idx: u32,
     pub locals: Vec<Value>,
-    // Instruction pointer
-    pub ip: u32,
 }
 
 impl FrameStack {
@@ -29,10 +27,6 @@ impl FrameStack {
         }
     }
 
-    pub fn current_opt(&self) -> Option<&Frame> {
-        self.0.last()
-    }
-
     pub(super) fn push(&mut self, fun: &Func) {
         self.0.push(Frame {
             fun_idx: fun.fun_idx as u32,
@@ -42,7 +36,6 @@ impl FrameStack {
                 .iter()
                 .flat_map(|local| repeat(Value::Uninitialized).take(local.count() as usize))
                 .collect(),
-            ip: 0,
         });
     }
 
