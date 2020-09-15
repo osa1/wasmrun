@@ -5,3 +5,9 @@ authors = ["Ömer Sinan Ağacan <omeragacan@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+fxhash = "0.2"
+parity-wasm = "0.42"
+
+[profile.release]
+lto = true
+codegen-units = 1

@@ -1,6 +1,5 @@
-use super::store::{Func, ModuleIdx};
+use super::store::Func;
 use super::value::Value;
-use crate::parser::Local;
 
 use std::iter::repeat;
 
@@ -9,8 +8,10 @@ pub struct FrameStack(Vec<Frame>);
 
 #[derive(Debug)]
 pub struct Frame {
-    module_idx: ModuleIdx,
-    locals: Vec<Value>,
+    pub fun_idx: u32,
+    pub locals: Vec<Value>,
+    // Instruction pointer
+    pub ip: u32,
 }
 
 impl FrameStack {
@@ -28,15 +29,20 @@ impl FrameStack {
         }
     }
 
+    pub fn current_opt(&self) -> Option<&Frame> {
+        self.0.last()
+    }
+
     pub(super) fn push(&mut self, fun: &Func) {
         self.0.push(Frame {
-            module_idx: fun.module_idx,
+            fun_idx: fun.fun_idx as u32,
             locals: fun
                 .fun
-                .locals
+                .locals()
                 .iter()
-                .flat_map(|Local { n, ty: _ }| repeat(Value::Uninitialized).take(*n as usize))
+                .flat_map(|local| repeat(Value::Uninitialized).take(local.count() as usize))
                 .collect(),
+            ip: 0,
         });
     }
 
@@ -46,10 +52,6 @@ impl FrameStack {
 }
 
 impl Frame {
-    pub fn module(&self) -> ModuleIdx {
-        self.module_idx
-    }
-
     pub fn get_local(&self, idx: u32) -> Value {
         match self.locals.get(idx as usize) {
             Some(value) => *value,

@@ -12,48 +12,29 @@
 #![feature(backtrace, or_patterns)]
 
 mod exec;
-mod parser;
+// mod parser;
 
 use exec::Runtime;
+
+use parity_wasm::elements as wasm;
 
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let file = &args[1];
-    let file_contents = ::std::fs::read_to_string(file).unwrap();
 
-    let lexer = parser::wast::Lexer::new(file_contents.as_bytes());
+    let module = wasm::deserialize_file(file).unwrap();
+    // println!("{:#?}", module);
 
-    for token in lexer {
-        match token {
-            Ok(token) => {
-                println!("{:?}", token);
-            }
-            Err(err) => {
-                println!("ERROR: {:?}", err);
-            }
-        }
+    let mut runtime = Runtime::default();
+    let module_idx = exec::allocate_module(&mut runtime, module);
+
+    // Run the 'start' function if it exists
+    if let Some(start_idx) = runtime.get_module_start(module_idx) {
+        println!("Calling start function {}", start_idx);
+        exec::call(&mut runtime, module_idx, start_idx);
     }
 
     /*
-        let bytes = std::fs::read(file).unwrap();
-        let module = match parser::parse(&bytes) {
-            Ok(module) => module,
-            Err(err) => {
-                eprintln!("{:#?}", err);
-                ::std::process::exit(1);
-            }
-        };
-        // println!("{:#?}", module);
-
-        let mut runtime = Runtime::default();
-        let module_idx = exec::allocate_module(&mut runtime, module);
-
-        // Run the 'start' function if it exists
-        if let Some(start_idx) = runtime.get_module_start(module_idx) {
-            println!("Calling start function {}", start_idx);
-            exec::call(&mut runtime, module_idx, start_idx);
-        }
-
         // Find exported _start function and call it
         let mut start_fn = None;
         for export in &runtime.get_module(module_idx).exports {

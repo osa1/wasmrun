@@ -1,43 +1,32 @@
-mod const_expr;
 mod frame;
 mod stack;
 mod store;
 mod value;
 
-use const_expr::ConstExpr;
-use frame::FrameStack;
+use frame::{Frame, FrameStack};
 use stack::Stack;
 use store::{Global, ModuleIdx, Store};
+use value::Value;
 
-use crate::parser;
-use crate::parser::{Export, FuncIdx, FuncType, ImportDesc, Instruction, MemArg};
+use parity_wasm::elements as wasm;
 
-use std::mem::replace;
-use std::rc::Rc;
+use std::mem::{replace, transmute};
 
 type Addr = u32;
+
+type FuncIdx = u32;
 
 const PAGE_SIZE: usize = 65536;
 
 #[derive(Default)]
 pub struct Module {
-    pub types: Vec<FuncType>,
+    pub types: Vec<wasm::FunctionType>,
     pub func_addrs: Vec<Addr>,
     pub table_addrs: Vec<Addr>,
     pub mem_addrs: Vec<Addr>,
     pub global_addrs: Vec<Addr>,
-    pub exports: Vec<Export>,
+    pub exports: Vec<wasm::ExportEntry>,
     pub start: Option<FuncIdx>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum BlockType {
-    // A block in a function
-    Block,
-    // A loop in a function
-    Loop,
-    // Main block of a function
-    Function,
 }
 
 #[derive(Default)]
@@ -46,12 +35,8 @@ pub struct Runtime {
     stack: Stack,
     frames: FrameStack,
     modules: Vec<Module>,
-
-    // Instruction pointer. Currently we don't need to make this a part of `Runtime`, but at some
-    // point we'll have debugging commands and we want to be able to stop at any point in execution
-    // and then continue. For that we need to store the current point in program permanently, and I
-    // think this is a good place for that.
-    ip: Vec<(BlockType, Rc<[Instruction]>, u32)>,
+    // Stack of block continuations. TODO: should this be a part of Frame?
+    blocks: Vec<Vec<u32>>,
 }
 
 impl Runtime {
@@ -66,118 +51,145 @@ impl Runtime {
     // Move on to the next instruction in the current function. Depending on the current block type
     // this may jump forwards or backwards.
     fn next_instr(&mut self) {
-        let mut ip = replace(&mut self.ip, vec![]);
+        /*
+                let mut ip = replace(&mut self.ip, vec![]);
 
-        if let Some((block_ty, current_block, block_ip)) = ip.pop() {
-            if (block_ip + 1) as usize >= current_block.len() {
-                match block_ty {
-                    BlockType::Function => {
-                        // End of the function, the function frame will be popped by `call`.
+                if let Some((block_ty, current_block, block_ip)) = ip.pop() {
+                    if (block_ip + 1) as usize >= current_block.len() {
+                        match block_ty {
+                            BlockType::Function => {
+                                // End of the function, the function frame will be popped by `call`.
+                                ip.push((block_ty, current_block, block_ip + 1));
+                            }
+                            BlockType::Block => {
+                                // End of the block, which is already popped.
+                            }
+                            BlockType::Loop => {
+                                // End of loop, jump to beginning.
+                                ip.push((block_ty, current_block, 0));
+                            }
+                        }
+                    } else {
                         ip.push((block_ty, current_block, block_ip + 1));
                     }
-                    BlockType::Block => {
-                        // End of the block, which is already popped.
-                    }
-                    BlockType::Loop => {
-                        // End of loop, jump to beginning.
-                        ip.push((block_ty, current_block, 0));
-                    }
                 }
-            } else {
-                ip.push((block_ty, current_block, block_ip + 1));
-            }
-        }
 
-        self.ip = ip;
+                self.ip = ip;
+        */
     }
 }
 
-pub fn allocate_module(rt: &mut Runtime, parsed_module: parser::Module) -> ModuleIdx {
+pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> ModuleIdx {
     // https://webassembly.github.io/spec/core/exec/modules.html
-
-    let parser::Module {
-        types,
-        funs,
-        tables,
-        mem_addrs,
-        globals,
-        elems,    // TODO
-        data,     // TODO
-        names: _, // used for debugging
-        start,
-        imports,
-        exports,
-        datacount: _, // used for efficient validation when bulk memory ops are used
-    } = parsed_module;
 
     let module_idx = rt.modules.len();
 
     let mut inst = Module::default();
-    inst.types = types;
-    inst.exports = exports;
+    inst.types = parsed_module
+        .type_section_mut()
+        .map(|section| {
+            section
+                .types_mut()
+                .drain(..)
+                .map(|ty| match ty {
+                    wasm::Type::Function(fun_ty) => fun_ty,
+                })
+                .collect()
+        })
+        .unwrap_or(vec![]);
+
+    inst.exports = parsed_module
+        .export_section_mut()
+        .map(|section| replace(section.entries_mut(), vec![]))
+        .unwrap_or(vec![]);
 
     // Allocate imported functions
     // TODO: allocate other imported stuff (tables, memories, globals)
     // TODO: not sure how to resolve imports yet
-    for import in imports {
-        match import.desc {
-            ImportDesc::Func(_) => {
-                // FIXME
-                inst.func_addrs.push(u32::MAX);
+    if let Some(import_section) = parsed_module.import_section_mut() {
+        for import in import_section.entries_mut().drain(..) {
+            match import.external() {
+                wasm::External::Function(_) => {
+                    // FIXME
+                    inst.func_addrs.push(u32::MAX);
+                }
+                wasm::External::Table(_)
+                | wasm::External::Memory(_)
+                | wasm::External::Global(_) => todo!(),
             }
-            ImportDesc::Table(_) | ImportDesc::MemType(_) | ImportDesc::Global(_) => {}
         }
     }
 
     // Allocate functions
-    for fun in funs {
-        let fun_idx = rt.store.funcs.len();
-        rt.store.funcs.push(store::Func { module_idx, fun });
-        inst.func_addrs.push(fun_idx as u32);
+    if let Some(code_section) = parsed_module.code_section_mut() {
+        for fun in replace(code_section.bodies_mut(), vec![]).into_iter() {
+            let fun_idx = rt.store.funcs.len();
+            let block_bounds = store::gen_block_bounds(fun.code().elements());
+            rt.store.funcs.push(store::Func {
+                module_idx,
+                fun_idx,
+                fun,
+                fun_ty_idx: parsed_module.function_section().unwrap().entries()[fun_idx].type_ref(),
+                block_bounds,
+            });
+            inst.func_addrs.push(fun_idx as u32);
+        }
     }
 
     // Allocate tables
-    for table in tables {
-        let table_idx = rt.store.tables.len();
-        rt.store.tables.push(vec![None; table.limits.min as usize]);
-        inst.table_addrs.push(table_idx as u32);
+    if let Some(table_section) = parsed_module.table_section_mut() {
+        for table in table_section.entries_mut().drain(..) {
+            let table_idx = rt.store.tables.len();
+            rt.store
+                .tables
+                .push(vec![None; table.limits().initial() as usize]);
+            inst.table_addrs.push(table_idx as u32);
+        }
     }
 
     // Allocate memories
-    assert!(mem_addrs.len() <= 1); // No more than 1 currently
-    for mem in mem_addrs {
-        let mem_idx = rt.store.mems.len();
-        rt.store.mems.push(vec![0; mem.min as usize * PAGE_SIZE]);
-        inst.mem_addrs.push(mem_idx as u32);
+    if let Some(memory_section) = parsed_module.memory_section_mut() {
+        assert!(memory_section.entries().len() <= 1); // No more than 1 currently
+        for mem in memory_section.entries_mut().drain(..) {
+            let mem_idx = rt.store.mems.len();
+            rt.store
+                .mems
+                .push(vec![0; mem.limits().initial() as usize * PAGE_SIZE]);
+            inst.mem_addrs.push(mem_idx as u32);
+        }
     }
 
-    // Allocate globals
-    for global in globals {
-        let global_idx = rt.store.globals.len();
-        let value = match ConstExpr::from_expr(&global.expr) {
-            None => panic!(
-                "Global value is not a constant expression: {:?}",
-                global.expr
-            ),
-            Some(ConstExpr::Const(value)) => value,
-            Some(ConstExpr::GlobalGet(_idx)) =>
-            // See the comments in `ConstExpr` type. This can only be an import.
-            {
-                todo!()
-            }
-        };
-        rt.store.globals.push(Global {
-            value,
-            mutable: global.ty.mut_ == parser::types::Mutability::Var,
-        });
-        inst.global_addrs.push(global_idx as u32);
+    // Allcoate globals
+    if let Some(global_section) = parsed_module.global_section_mut() {
+        for global in global_section.entries_mut().drain(..) {
+            let global_idx = rt.store.globals.len();
+
+            let value = match global.init_expr().code() {
+                [wasm::Instruction::I32Const(value)] => Value::I32(*value),
+                [wasm::Instruction::I64Const(value)] => Value::I64(*value),
+                [wasm::Instruction::F32Const(value)] => Value::F32(unsafe { transmute(*value) }),
+                [wasm::Instruction::F64Const(value)] => Value::F64(unsafe { transmute(*value) }),
+                [wasm::Instruction::GetGlobal(_idx)] => {
+                    // See the comments in `ConstExpr` type. This can only be an import.
+                    todo!()
+                }
+                _ => todo!(),
+            };
+
+            rt.store.globals.push(Global {
+                value,
+                mutable: global.global_type().is_mutable(),
+            });
+
+            inst.global_addrs.push(global_idx as u32);
+        }
     }
 
     // TODO: Initialize the table with 'elems'
     // TODO: Initialize the memory with 'data'
 
     // Set start
-    inst.start = start;
+    inst.start = parsed_module.start_section();
 
     // Done
     rt.modules.push(inst);
@@ -194,8 +206,8 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
     rt.frames.push(func);
 
     // Set locals for arguments
-    let fun_arity = rt.get_module(module_idx).types[func.fun.ty as usize]
-        .args
+    let fun_arity = rt.get_module(module_idx).types[func.fun_ty_idx as usize]
+        .params()
         .len();
 
     for local_idx in (0..fun_arity).rev() {
@@ -203,9 +215,7 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
         rt.frames.current_mut().set_local(local_idx as u32, arg_val);
     }
 
-    // Initialize instruction pointer
-    rt.ip
-        .push((BlockType::Function, func.fun.expr.instrs.clone(), 0));
+    rt.blocks.push(vec![]);
 
     // Run until the end of the function.
     exec(rt);
@@ -214,37 +224,39 @@ pub fn call(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
     rt.frames.pop();
 
     // Pop blocks of the function
-    while let Some((BlockType::Block | BlockType::Loop, _, _)) = rt.ip.last() {
-        let _ = rt.ip.pop().unwrap();
-    }
-    // Pop the function block
-    let _ = rt.ip.pop().unwrap();
+    rt.blocks.pop();
 }
 
 pub fn exec(rt: &mut Runtime) {
-    while let Some((_, block, ip)) = rt.ip.last().cloned() {
-        use Instruction::*;
+    while let Some(Frame {
+        fun_idx,
+        locals: _,
+        ip,
+    }) = rt.frames.current_opt()
+    {
+        let store::Func {
+            module_idx,
+            fun_idx: _,
+            fun,
+            block_bounds,
+            fun_ty_idx: _,
+        } = &rt.store.funcs[*fun_idx as usize];
 
-        if ip as usize == block.len() {
-            rt.next_instr(); // pop the block
-            return;
-        }
-
-        let instr = &block[ip as usize];
+        let instr = &fun.code().elements()[*ip as usize];
 
         println!("{}: {:?}", ip, instr);
         // println!("frames: {:?}", runtime.frames);
         // println!("block: {:?}", runtime.ip);
 
+        use wasm::Instruction::*;
         match instr {
-            I32Store(MemArg { align: _, offset }) => {
+            I32Store(_, offset) => {
                 let value = rt.stack.pop_i32();
                 let addr = rt.stack.pop_i32() as u32;
                 let addr = (addr + offset) as usize;
                 let end_addr = addr + 4;
 
-                let current_module = rt.frames.current().module();
-                let mem = &mut rt.store.mems[current_module];
+                let mem = &mut rt.store.mems[*module_idx];
                 if end_addr as usize > mem.len() {
                     panic!("OOB I32Store (mem size={}, addr={})", mem.len(), addr);
                 }
@@ -258,13 +270,12 @@ pub fn exec(rt: &mut Runtime) {
                 rt.next_instr();
             }
 
-            I32Load(MemArg { align: _, offset }) => {
+            I32Load(_, offset) => {
                 let addr = rt.stack.pop_i32() as u32;
                 let addr = (addr + offset) as usize;
                 let end_addr = addr + 4;
 
-                let current_module = rt.frames.current().module();
-                let mem = &rt.store.mems[current_module];
+                let mem = &rt.store.mems[*module_idx];
                 if end_addr as usize > mem.len() {
                     panic!("OOB I32Load (mem size={}, addr={})", mem.len(), addr);
                 }
@@ -278,36 +289,34 @@ pub fn exec(rt: &mut Runtime) {
                 rt.next_instr();
             }
 
-            LocalGet(idx) => {
+            GetLocal(idx) => {
                 let val = rt.frames.current().get_local(*idx);
                 rt.stack.push_value(val);
                 rt.next_instr();
             }
 
-            LocalSet(idx) => {
+            SetLocal(idx) => {
                 let val = rt.stack.pop_value();
                 rt.frames.current_mut().set_local(*idx, val);
                 rt.next_instr();
             }
 
-            LocalTee(idx) => {
+            TeeLocal(idx) => {
                 let val = rt.stack.pop_value();
                 rt.frames.current_mut().set_local(*idx, val);
                 rt.stack.push_value(val);
                 rt.next_instr();
             }
 
-            GlobalGet(idx) => {
-                let current_module = rt.frames.current().module();
-                let global_idx = rt.modules[current_module].global_addrs[*idx as usize];
+            GetGlobal(idx) => {
+                let global_idx = rt.modules[*module_idx].global_addrs[*idx as usize];
                 let value = rt.store.globals[global_idx as usize].value;
                 rt.stack.push_value(value);
                 rt.next_instr();
             }
 
-            GlobalSet(idx) => {
-                let current_module = rt.frames.current().module();
-                let global_idx = rt.modules[current_module].global_addrs[*idx as usize];
+            SetGlobal(idx) => {
+                let global_idx = rt.modules[*module_idx].global_addrs[*idx as usize];
                 let value = rt.stack.pop_value();
                 rt.store.globals[global_idx as usize].value = value;
                 rt.next_instr();
@@ -324,12 +333,12 @@ pub fn exec(rt: &mut Runtime) {
             }
 
             F32Const(f) => {
-                rt.stack.push_f32(*f);
+                rt.stack.push_f32(unsafe { transmute(*f) });
                 rt.next_instr();
             }
 
             F64Const(f) => {
-                rt.stack.push_f64(*f);
+                rt.stack.push_f64(unsafe { transmute(*f) });
                 rt.next_instr();
             }
 
@@ -339,7 +348,7 @@ pub fn exec(rt: &mut Runtime) {
                 rt.next_instr();
             }
 
-            I32Le_u => {
+            I32LeU => {
                 let val2 = rt.stack.pop_i32();
                 let val1 = rt.stack.pop_i32();
                 rt.stack.push_bool(val1 <= val2);
@@ -357,12 +366,13 @@ pub fn exec(rt: &mut Runtime) {
             // Control instructions //
             //////////////////////////
             Call(func_idx) => {
-                let module_idx = rt.frames.current().module();
-                call(rt, module_idx, *func_idx);
+                let module_idx = *module_idx;
+                let func_idx = *func_idx;
+                call(rt, module_idx, func_idx);
                 rt.next_instr();
             }
 
-            CallIndirect(_type_idx) => {
+            CallIndirect(_type_idx, _table_idx) => {
                 todo!()
                 /*
                 let module_idx = runtime.frames.current().module();
@@ -401,28 +411,29 @@ pub fn exec(rt: &mut Runtime) {
                 break;
             }
 
-            Block(parser::types::Block { ty: _, instrs }) => {
-                // Bump instruction pointer for the current block
-                rt.next_instr();
-                // Execute the new block
-                rt.ip.push((BlockType::Block, instrs.clone(), 0));
-            }
+            /*
+                        Block(parser::types::Block { ty: _, instrs }) => {
+                            // Bump instruction pointer for the current block
+                            rt.next_instr();
+                            // Execute the new block
+                            rt.ip.push((BlockType::Block, instrs.clone(), 0));
+                        }
 
-            Loop(parser::types::Block { ty: _, instrs: _ }) => todo!(),
+                        Loop(parser::types::Block { ty: _, instrs: _ }) => todo!(),
 
-            BrIf(lbl_idx) => {
-                let val = rt.stack.pop_i32();
-                if val != 0 {
-                    for _ in 0..=*lbl_idx {
-                        rt.ip.pop();
-                    }
-                // Parent block's instruction pointer was already bumped by 'Block' case above,
-                // so no need to update it
-                } else {
-                    rt.next_instr();
-                }
-            }
-
+                        BrIf(lbl_idx) => {
+                            let val = rt.stack.pop_i32();
+                            if val != 0 {
+                                for _ in 0..=*lbl_idx {
+                                    rt.ip.pop();
+                                }
+                            // Parent block's instruction pointer was already bumped by 'Block' case above,
+                            // so no need to update it
+                            } else {
+                                rt.next_instr();
+                            }
+                        }
+            */
             _ => todo!("unhandled instruction: {:?}", instr),
         }
     }
