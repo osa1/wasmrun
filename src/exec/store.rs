@@ -25,12 +25,30 @@ pub struct Func {
     pub block_bounds: FxHashMap<u32, u32>,
 }
 
+impl Func {
+    pub fn new(
+        module_idx: ModuleIdx,
+        fun_idx: usize,
+        fun: wasm::FuncBody,
+        fun_ty_idx: u32,
+    ) -> Func {
+        let block_bounds = gen_block_bounds(fun.code().elements());
+        Func {
+            module_idx,
+            fun_idx,
+            fun,
+            fun_ty_idx,
+            block_bounds,
+        }
+    }
+}
+
 enum BlockKind {
     BlockOrIf,
     Loop,
 }
 
-pub fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
+fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
     let mut ret: FxHashMap<u32, u32> = Default::default();
     let mut blocks: Vec<(BlockKind, u32)> = vec![];
 

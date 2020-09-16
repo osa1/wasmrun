@@ -113,14 +113,12 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
     if let Some(code_section) = parsed_module.code_section_mut() {
         for fun in replace(code_section.bodies_mut(), vec![]).into_iter() {
             let fun_idx = rt.store.funcs.len();
-            let block_bounds = store::gen_block_bounds(fun.code().elements());
-            rt.store.funcs.push(store::Func {
+            rt.store.funcs.push(store::Func::new(
                 module_idx,
                 fun_idx,
                 fun,
-                fun_ty_idx: parsed_module.function_section().unwrap().entries()[fun_idx].type_ref(),
-                block_bounds,
-            });
+                parsed_module.function_section().unwrap().entries()[fun_idx].type_ref(),
+            ));
             inst.func_addrs.push(fun_idx as u32);
         }
     }
