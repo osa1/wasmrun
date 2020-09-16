@@ -72,6 +72,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2f96b10ec2560088a8e76961b00d47107b3a625fecb76dedb29ee7ccbf98235"
 
 [[package]]
+name = "libwasmrun"
+version = "0.1.0"
+dependencies = [
+ "fxhash",
+ "parity-wasm",
+]
+
+[[package]]
 name = "parity-wasm"
 version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -82,6 +90,15 @@ name = "rustc_tools_util"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b725dadae9fabc488df69a287f5a99c5eaf5d10853842a8a3dfac52476f544ee"
+
+[[package]]
+name = "spec-test"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "libwasmrun",
+ "rustc_tools_util",
+]
 
 [[package]]
 name = "strsim"
@@ -115,8 +132,7 @@ name = "wasmrun"
 version = "0.1.0"
 dependencies = [
  "clap",
- "fxhash",
- "parity-wasm",
+ "libwasmrun",
  "rustc_tools_util",
 ]
 
