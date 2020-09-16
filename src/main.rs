@@ -11,17 +11,29 @@
 
 #![feature(backtrace, or_patterns)]
 
+mod cli;
 mod exec;
-// mod parser;
 
+use cli::Args;
 use exec::Runtime;
 
 use parity_wasm::elements as wasm;
 
 fn main() {
-    let args = std::env::args().collect::<Vec<_>>();
-    let file = &args[1];
+    let Args { file, spec_test } = cli::parse();
 
+    if spec_test {
+        run_spec_test(file);
+    } else {
+        run_wasm(file);
+    }
+}
+
+fn run_spec_test(file: String) {
+    todo!()
+}
+
+fn run_wasm(file: String) {
     let module = wasm::deserialize_file(file).unwrap();
     // println!("{:#?}", module);
 
