@@ -9,31 +9,72 @@
 //
 // TODO: We should introduce newtypes for these.
 
-#![feature(backtrace, or_patterns)]
-
 mod cli;
 mod exec;
 
 use cli::Args;
 use exec::Runtime;
 
+use std::fs;
+use std::path::PathBuf;
+use std::process::{exit, Command};
+
 use parity_wasm::elements as wasm;
 
 fn main() {
     let Args { file, spec_test } = cli::parse();
 
-    if spec_test {
-        run_spec_test(file);
+    let ret = if spec_test {
+        run_spec_test(file)
     } else {
-        run_wasm(file);
+        run_wasm(file)
+    };
+
+    match ret {
+        Ok(()) => {}
+        Err(err) => {
+            println!("{}", err);
+            exit(1);
+        }
     }
 }
 
-fn run_spec_test(file: String) {
-    todo!()
+fn run_spec_test(file: String) -> Result<(), String> {
+    let path: PathBuf = file.into();
+
+    match path.extension() {
+        Some(ext) => {
+            if ext != "wast" {
+                return Err(format!(
+                    "Spec test extension should be .wast, found: {:?}",
+                    ext
+                ));
+            }
+        }
+        None => {
+            return Err("Spec file should have .wast extension".to_string());
+        }
+    }
+
+    let stem = path.file_stem().unwrap().to_str().unwrap();
+    let dir_path = format!("{}-spec", stem);
+    let _ = fs::create_dir(&dir_path);
+
+    let cmd_ret = Command::new("wast2json")
+        .arg(path)
+        .arg("-o")
+        .arg(format!("{}/test.json", dir_path))
+        .output()
+        .map_err(|err| err.to_string())?;
+
+    if !cmd_ret.status.success() {
+        return Err("wast2json failed".to_string());
+    }
+
+    Ok(())
 }
 
-fn run_wasm(file: String) {
+fn run_wasm(file: String) -> Result<(), String> {
     let module = wasm::deserialize_file(file).unwrap();
     // println!("{:#?}", module);
 
@@ -68,4 +109,6 @@ fn run_wasm(file: String) {
         exec::invoke(&mut runtime, module_idx, start_fn);
         exec::finish(&mut runtime);
     }
+
+    Ok(())
 }
