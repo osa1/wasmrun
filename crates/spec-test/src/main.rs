@@ -1,4 +1,5 @@
 mod cli;
+mod spec;
 
 use cli::Args;
 
@@ -38,16 +39,22 @@ fn run_spec_test(file: String) -> Result<(), String> {
     let dir_path = format!("{}-spec", stem);
     let _ = fs::create_dir(&dir_path);
 
+    let spec_json_path = format!("{}/test.json", dir_path);
+
     let cmd_ret = Command::new("wast2json")
         .arg(path)
         .arg("-o")
-        .arg(format!("{}/test.json", dir_path))
+        .arg(&spec_json_path)
         .output()
         .map_err(|err| err.to_string())?;
 
     if !cmd_ret.status.success() {
         return Err("wast2json failed".to_string());
     }
+
+    let spec = spec::parse_test_spec(&spec_json_path);
+
+    println!("{:#?}", spec);
 
     Ok(())
 }
