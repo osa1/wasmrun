@@ -4,11 +4,15 @@ use super::value::Value;
 pub struct Stack(Vec<Value>);
 
 impl Stack {
-    pub fn pop_value(&mut self) -> Value {
+    pub fn pop_value_opt(&mut self) -> Option<Value> {
         match self.0.pop() {
-            Some(val) => val,
-            None => panic!("Stack::pop: empty stack"),
+            Some(val) => Some(val),
+            None => None,
         }
+    }
+
+    pub fn pop_value(&mut self) -> Value {
+        self.pop_value_opt().expect("Stack::pop: empty stack")
     }
 
     pub fn pop_i32(&mut self) -> i32 {

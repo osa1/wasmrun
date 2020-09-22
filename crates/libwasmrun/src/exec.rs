@@ -6,8 +6,9 @@ pub mod value;
 use frame::FrameStack;
 use stack::Stack;
 use store::{Global, ModuleIdx, Store};
-use value::Value;
+pub use value::Value;
 
+use fxhash::FxHashMap;
 use parity_wasm::elements as wasm;
 use wasm::Instruction;
 
@@ -28,6 +29,8 @@ pub struct Module {
     pub global_addrs: Vec<Addr>,
     pub exports: Vec<wasm::ExportEntry>,
     pub start: Option<FuncIdx>,
+    /// Maps function names to their indices in `func_addrs`
+    pub name_to_func: FxHashMap<String, u32>,
 }
 
 pub struct Runtime {
@@ -66,6 +69,14 @@ impl Runtime {
     pub fn get_module_start(&self, idx: ModuleIdx) -> Option<FuncIdx> {
         self.modules[idx].start
     }
+
+    pub fn pop_value(&mut self) -> Option<Value> {
+        self.stack.pop_value_opt()
+    }
+
+    pub fn push_value(&mut self, value: Value) {
+        self.stack.push_value(value)
+    }
 }
 
 pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> ModuleIdx {
@@ -74,6 +85,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
     let module_idx = rt.modules.len();
 
     let mut inst = Module::default();
+
     inst.types = parsed_module
         .type_section_mut()
         .map(|section| {
@@ -91,6 +103,17 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
         .export_section_mut()
         .map(|section| replace(section.entries_mut(), vec![]))
         .unwrap_or(vec![]);
+
+    // Add exported function names to name_to_func
+    for export in &inst.exports {
+        match export.internal() {
+            wasm::Internal::Function(fun_idx) => {
+                inst.name_to_func
+                    .insert(export.field().to_owned(), *fun_idx);
+            }
+            wasm::Internal::Table(_) | wasm::Internal::Memory(_) | wasm::Internal::Global(_) => {}
+        }
+    }
 
     // Allocate imported functions
     // TODO: allocate other imported stuff (tables, memories, globals)
@@ -173,6 +196,17 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
         }
     }
 
+    // Get names of functions, for now just to be able to call functions by name
+    if let Some(names_section) = parsed_module.names_section_mut() {
+        if let Some(function_names) = names_section.functions_mut() {
+            for (fun_idx, fun_name) in
+                replace(function_names.names_mut(), Default::default()).into_iter()
+            {
+                inst.name_to_func.insert(fun_name, fun_idx);
+            }
+        }
+    }
+
     // TODO: Initialize the table with 'elems'
     // TODO: Initialize the memory with 'data'
 
@@ -183,6 +217,18 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
     rt.modules.push(inst);
 
     module_idx
+}
+
+pub fn invoke_by_name(rt: &mut Runtime, module_idx: ModuleIdx, fun_name: &str) {
+    match rt.modules[module_idx].name_to_func.get(fun_name) {
+        None => {
+            panic!("Unknown function: {}", fun_name);
+        }
+        Some(fun_idx) => {
+            let fun_idx = *fun_idx;
+            invoke(rt, module_idx, fun_idx);
+        }
+    }
 }
 
 pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {

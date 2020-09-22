@@ -3,7 +3,7 @@ mod spec;
 
 use cli::Args;
 use libwasmrun::exec::store::ModuleIdx;
-use libwasmrun::exec::{self, Runtime};
+use libwasmrun::exec::{self, Runtime, Value};
 
 use std::fs;
 use std::path::PathBuf;
@@ -46,6 +46,7 @@ fn run_spec_test(file: String) -> Result<(), String> {
     let spec_json_path = format!("{}/test.json", dir_path);
 
     let cmd_ret = Command::new("wast2json")
+        .arg("--debug-names")
         .arg(path)
         .arg("-o")
         .arg(&spec_json_path)
@@ -59,13 +60,14 @@ fn run_spec_test(file: String) -> Result<(), String> {
     let spec = spec::parse_test_spec(&spec_json_path);
     println!("{:#?}", spec);
 
-    let mut runtime = Runtime::new();
+    let mut rt = Runtime::new();
     let mut module_idx: Option<ModuleIdx> = None;
 
     for command in spec.commands {
         match command {
             spec::Command::Module { line, filename } => {
                 let file_path = format!("{}/{}", dir_path, filename);
+                println!("Parsing file {}", file_path);
                 match wasm::deserialize_file(file_path) {
                     Err(err) => {
                         println!("Error while parsing module at line {}: {}", line, err);
@@ -73,7 +75,14 @@ fn run_spec_test(file: String) -> Result<(), String> {
                         continue;
                     }
                     Ok(module) => {
-                        module_idx = Some(exec::allocate_module(&mut runtime, module));
+                        let module = match module.parse_names() {
+                            Err((_, module)) => {
+                                println!("Unable parse names");
+                                module
+                            }
+                            Ok(module) => module,
+                        };
+                        module_idx = Some(exec::allocate_module(&mut rt, module));
                     }
                 }
             }
@@ -91,6 +100,43 @@ fn run_spec_test(file: String) -> Result<(), String> {
                     }
                     Some(module_idx) => module_idx,
                 };
+
+                for arg in args {
+                    let val = match arg {
+                        spec::Value::I32(i) => Value::I32(i),
+                        spec::Value::I64(i) => Value::I64(i),
+                        spec::Value::F32(_) | spec::Value::F64(_) => {
+                            todo!("Float values are not supported yet");
+                        }
+                    };
+                    rt.push_value(val);
+                }
+
+                exec::invoke_by_name(&mut rt, module_idx, &func);
+
+                let expected = expected
+                    .into_iter()
+                    .map(|val| match val {
+                        spec::Value::I32(i) => Value::I32(i),
+                        spec::Value::I64(i) => Value::I64(i),
+                        spec::Value::F32(_) | spec::Value::F64(_) => {
+                            todo!("Float values are not supported yet");
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                let n_expected = expected.len();
+                let mut found = Vec::with_capacity(n_expected);
+                for _ in 0..n_expected {
+                    found.push(rt.pop_value().unwrap());
+                }
+
+                if expected != found {
+                    println!(
+                        "Expected != found\nExpected: {:?}\nFound: {:?}",
+                        expected, found
+                    );
+                }
             }
         }
     }
