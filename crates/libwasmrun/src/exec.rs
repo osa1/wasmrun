@@ -392,6 +392,13 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I32Add => {
+            let val2 = rt.stack.pop_i32();
+            let val1 = rt.stack.pop_i32();
+            rt.stack.push_i32(val1 + val2);
+            rt.ip += 1;
+        }
+
         Instruction::I32Sub => {
             let val2 = rt.stack.pop_i32();
             let val1 = rt.stack.pop_i32();
@@ -438,43 +445,24 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::Br(n_blocks) => {
-            for _ in 0..*n_blocks + 1 {
-                let cont_frame = rt.conts.last_mut().unwrap();
-                match cont_frame.pop() {
-                    None => {
-                        // Function return
-                        let current_fun_idx = rt.frames.current().fun_idx;
-                        let current_fun = &rt.store.funcs[current_fun_idx as usize];
-                        rt.ip = current_fun.fun.code().elements().len() as u32;
-                    }
-                    Some(ip) => {
-                        rt.ip = ip;
-                    }
-                }
-            }
+            rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, *n_blocks);
         }
 
         Instruction::BrIf(n_blocks) => {
             if rt.stack.pop_i32() == 0 {
                 rt.ip += 1;
             } else {
-                // TODO: copy-pasta from Br. Refactoring this code into a function causes borrowchk
-                // issues.
-                for _ in 0..*n_blocks + 1 {
-                    let cont_frame = rt.conts.last_mut().unwrap();
-                    match cont_frame.pop() {
-                        None => {
-                            // Function return
-                            let current_fun_idx = rt.frames.current().fun_idx;
-                            let current_fun = &rt.store.funcs[current_fun_idx as usize];
-                            rt.ip = current_fun.fun.code().elements().len() as u32;
-                        }
-                        Some(ip) => {
-                            rt.ip = ip;
-                        }
-                    }
-                }
+                rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, *n_blocks);
             }
+        }
+
+        Instruction::BrTable(table) => {
+            let idx = rt.stack.pop_i32();
+            let n_blocks = match table.table.get(idx as usize) {
+                None => table.default,
+                Some(n_blocks) => *n_blocks,
+            };
+            rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, n_blocks);
         }
 
         Instruction::Drop => {
@@ -484,4 +472,27 @@ pub fn single_step(rt: &mut Runtime) {
 
         other => todo!("Instruction not implemented: {:?}", other),
     }
+}
+
+// Sigh.. We can't pass Runtime here as that causes borrowchk issues at call sites
+fn br(
+    mut ip: u32,
+    conts: &mut Vec<Vec<u32>>,
+    frames: &mut FrameStack,
+    store: &Store,
+    n_blocks: u32,
+) -> u32 {
+    for _ in 0..n_blocks + 1 {
+        let cont_frame = conts.last_mut().unwrap();
+        match cont_frame.pop() {
+            None => {
+                // Function return
+                let current_fun_idx = frames.current().fun_idx;
+                let current_fun = &store.funcs[current_fun_idx as usize];
+                ip = current_fun.fun.code().elements().len() as u32;
+            }
+            Some(ip_) => ip = ip_,
+        }
+    }
+    ip
 }
