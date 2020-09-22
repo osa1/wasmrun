@@ -235,7 +235,8 @@ pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) {
     let fun_addr = rt.modules[module_idx].func_addrs[fun_idx as usize];
     let func = &rt.store.funcs[fun_addr as usize];
 
-    rt.frames.push(func);
+    let arg_tys = rt.modules[module_idx].types[func.fun_ty_idx as usize].params();
+    rt.frames.push(func, arg_tys);
 
     // Set locals for arguments
     let fun_arity = rt.get_module(module_idx).types[func.fun_ty_idx as usize]
@@ -280,10 +281,12 @@ pub fn single_step(rt: &mut Runtime) {
     let instr = &current_fun.fun.code().elements()[rt.ip as usize];
     let module_idx = current_fun.module_idx;
 
-    println!(
-        "instruction={:?}, stack={:?}, call stack={:?}",
-        instr, rt.stack, rt.frames
-    );
+    /*
+        println!(
+            "instruction={:?}, stack={:?}, call stack={:?}",
+            instr, rt.stack, rt.frames
+        );
+    */
 
     match instr {
         Instruction::I32Store(_, offset) => {

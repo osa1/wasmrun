@@ -1,6 +1,8 @@
 use super::store::Func;
 use super::value::Value;
 
+use parity_wasm::elements as wasm;
+
 use std::iter::repeat;
 
 #[derive(Default, Debug)]
@@ -15,7 +17,7 @@ impl FrameStack {
 #[derive(Debug)]
 pub struct Frame {
     pub fun_idx: u32,
-    pub locals: Vec<Value>,
+    pub locals: Vec<Value>, // includes args
 }
 
 impl FrameStack {
@@ -33,14 +35,15 @@ impl FrameStack {
         }
     }
 
-    pub(super) fn push(&mut self, fun: &Func) {
+    pub(super) fn push(&mut self, fun: &Func, arg_tys: &[wasm::ValueType]) {
         self.0.push(Frame {
             fun_idx: fun.fun_idx as u32,
-            locals: fun
-                .fun
-                .locals()
+            locals: arg_tys
                 .iter()
-                .flat_map(|local| repeat(Value::Uninitialized).take(local.count() as usize))
+                .map(|ty| Value::default(*ty))
+                .chain(fun.fun.locals().iter().flat_map(|local| {
+                    repeat(Value::default(local.value_type())).take(local.count() as usize)
+                }))
                 .collect(),
         });
     }

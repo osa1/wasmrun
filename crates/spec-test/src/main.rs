@@ -66,15 +66,17 @@ fn run_spec_test(file: String) -> Result<(), String> {
     for command in spec.commands {
         match command {
             spec::Command::Module { line, filename } => {
+                print!("line {}: ", line);
+
                 let file_path = format!("{}/{}", dir_path, filename);
-                println!("Parsing file {}", file_path);
                 match wasm::deserialize_file(file_path) {
                     Err(err) => {
-                        println!("Error while parsing module at line {}: {}", line, err);
+                        println!("Error while parsing module: {}", err);
                         module_idx = None;
                         continue;
                     }
                     Ok(module) => {
+                        println!("OK");
                         let module = match module.parse_names() {
                             Err((_, module)) => {
                                 println!("Unable parse names");
@@ -93,9 +95,11 @@ fn run_spec_test(file: String) -> Result<(), String> {
                 args,
                 expected,
             } => {
+                print!("line {}: ", line);
+
                 let module_idx = match module_idx {
                     None => {
-                        println!("Module not available; skipping test at line {}", line);
+                        println!("module not available; skipping");
                         continue;
                     }
                     Some(module_idx) => module_idx,
@@ -113,6 +117,7 @@ fn run_spec_test(file: String) -> Result<(), String> {
                 }
 
                 exec::invoke_by_name(&mut rt, module_idx, &func);
+                exec::finish(&mut rt);
 
                 let expected = expected
                     .into_iter()
@@ -127,13 +132,16 @@ fn run_spec_test(file: String) -> Result<(), String> {
 
                 let n_expected = expected.len();
                 let mut found = Vec::with_capacity(n_expected);
+
                 for _ in 0..n_expected {
                     found.push(rt.pop_value().unwrap());
                 }
 
-                if expected != found {
+                if expected == found {
+                    println!("OK");
+                } else {
                     println!(
-                        "Expected != found\nExpected: {:?}\nFound: {:?}",
+                        "expected != found. Expected: {:?}, Found: {:?}",
                         expected, found
                     );
                 }
