@@ -157,6 +157,37 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
         }
     }
 
+    // Allocate table elements
+    if let Some(element_section) = parsed_module.elements_section() {
+        for elements in element_section.entries() {
+            let table_idx = elements.index();
+            let offset = elements
+                .offset()
+                .as_ref()
+                .map(|init_expr| get_const_expr_val(init_expr.code()));
+
+            let offset = match offset {
+                Some(val) => match val {
+                    Value::I32(offset) => offset as usize,
+                    Value::I64(offset) => offset as usize,
+                    Value::F32(_) | Value::F64(_) => {
+                        panic!("Weird table offset: {:?}", val);
+                    }
+                },
+                None => 0,
+            };
+
+            let table = &mut rt.store.tables[inst.table_addrs[table_idx as usize] as usize];
+            for (elem_idx, elem) in elements.members().iter().copied().enumerate() {
+                let elem_idx = offset + elem_idx;
+                if elem_idx <= table.len() {
+                    table.resize(elem_idx + 1, None);
+                }
+                table[elem_idx] = Some(elem);
+            }
+        }
+    }
+
     // Allocate memories
     if let Some(memory_section) = parsed_module.memory_section_mut() {
         assert!(memory_section.entries().len() <= 1); // No more than 1 currently
@@ -173,25 +204,11 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
     if let Some(global_section) = parsed_module.global_section_mut() {
         for global in global_section.entries_mut().drain(..) {
             let global_idx = rt.store.globals.len();
-
-            use Instruction::*;
-            let value = match global.init_expr().code() {
-                [I32Const(value), End] => Value::I32(*value),
-                [I64Const(value), End] => Value::I64(*value),
-                [F32Const(value), End] => Value::F32(unsafe { transmute(*value) }),
-                [F64Const(value), End] => Value::F64(unsafe { transmute(*value) }),
-                [GetGlobal(_idx), End] => {
-                    // See the comments in `ConstExpr` type. This can only be an import.
-                    todo!()
-                }
-                other => todo!("Global initializer: {:?}", other),
-            };
-
+            let value = get_const_expr_val(global.init_expr().code());
             rt.store.globals.push(Global {
                 value,
                 mutable: global.global_type().is_mutable(),
             });
-
             inst.global_addrs.push(global_idx as u32);
         }
     }
@@ -217,6 +234,21 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Mod
     rt.modules.push(inst);
 
     module_idx
+}
+
+fn get_const_expr_val(instrs: &[Instruction]) -> Value {
+    use Instruction::*;
+    match instrs {
+        [I32Const(value), End] => Value::I32(*value),
+        [I64Const(value), End] => Value::I64(*value),
+        [F32Const(value), End] => Value::F32(unsafe { transmute(*value) }),
+        [F64Const(value), End] => Value::F64(unsafe { transmute(*value) }),
+        [GetGlobal(_idx), End] => {
+            // See the comments in `ConstExpr` type. This can only be an import.
+            todo!("get.global constant expression")
+        }
+        other => todo!("Global initializer: {:?}", other),
+    }
 }
 
 pub fn invoke_by_name(rt: &mut Runtime, module_idx: ModuleIdx, fun_name: &str) {
@@ -410,6 +442,25 @@ pub fn single_step(rt: &mut Runtime) {
             let func_idx = *func_idx;
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx);
+        }
+
+        Instruction::CallIndirect(_sig, table_ref) => {
+            let elem_idx = rt.stack.pop_i32();
+
+            let table_addr = rt.modules[module_idx].table_addrs[*table_ref as usize];
+            let fun = rt.store.tables[table_addr as usize][elem_idx as usize];
+
+            let fun_idx = match fun {
+                Some(fun_idx) => fun_idx,
+                None => {
+                    panic!(
+                        "Table index not initialized. module={}, table={}, elem_idx={}",
+                        module_idx, table_ref, elem_idx
+                    );
+                }
+            };
+
+            invoke(rt, module_idx, fun_idx);
         }
 
         Instruction::End => {
