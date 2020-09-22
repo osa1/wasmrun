@@ -68,6 +68,7 @@ fn run_spec_test(file: String) -> Result<(), String> {
             spec::Command::Module { line, filename } => {
                 print!("line {}: ", line);
 
+                rt = Runtime::new();
                 let file_path = format!("{}/{}", dir_path, filename);
                 match wasm::deserialize_file(file_path) {
                     Err(err) => {
