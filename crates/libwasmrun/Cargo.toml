@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 fxhash = "0.2"
-parity-wasm = { version = "0.42", features = ["multi_value"] }
+parity-wasm = { version = "0.42", features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"] }
