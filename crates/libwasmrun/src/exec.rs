@@ -437,15 +437,49 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::Br(n_blocks) => {
+            for _ in 0..*n_blocks + 1 {
+                let cont_frame = rt.conts.last_mut().unwrap();
+                match cont_frame.pop() {
+                    None => {
+                        // Function return
+                        let current_fun_idx = rt.frames.current().fun_idx;
+                        let current_fun = &rt.store.funcs[current_fun_idx as usize];
+                        rt.ip = current_fun.fun.code().elements().len() as u32;
+                    }
+                    Some(ip) => {
+                        rt.ip = ip;
+                    }
+                }
+            }
+        }
+
         Instruction::BrIf(n_blocks) => {
             if rt.stack.pop_i32() == 0 {
                 rt.ip += 1;
             } else {
-                for _ in 0..*n_blocks {
-                    rt.conts.last_mut().unwrap().pop().unwrap();
+                // TODO: copy-pasta from Br. Refactoring this code into a function causes borrowchk
+                // issues.
+                for _ in 0..*n_blocks + 1 {
+                    let cont_frame = rt.conts.last_mut().unwrap();
+                    match cont_frame.pop() {
+                        None => {
+                            // Function return
+                            let current_fun_idx = rt.frames.current().fun_idx;
+                            let current_fun = &rt.store.funcs[current_fun_idx as usize];
+                            rt.ip = current_fun.fun.code().elements().len() as u32;
+                        }
+                        Some(ip) => {
+                            rt.ip = ip;
+                        }
+                    }
                 }
-                rt.ip = *rt.conts.last_mut().unwrap().last().unwrap();
             }
+        }
+
+        Instruction::Drop => {
+            let _ = rt.stack.pop_value();
+            rt.ip += 1;
         }
 
         other => todo!("Instruction not implemented: {:?}", other),
