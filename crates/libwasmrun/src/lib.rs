@@ -9,9 +9,9 @@
 //
 // TODO: We should introduce newtypes for these.
 
-mod exec;
+pub mod exec;
 
-use exec::Runtime;
+pub use exec::Runtime;
 
 use parity_wasm::elements as wasm;
 

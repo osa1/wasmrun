@@ -7,8 +7,8 @@ use serde::Deserialize;
 
 #[derive(Debug)]
 pub struct TestSpec {
-    source_filename: String,
-    commands: Vec<Command>,
+    pub source_filename: String,
+    pub commands: Vec<Command>,
 }
 
 #[derive(Debug)]

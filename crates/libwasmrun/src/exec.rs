@@ -1,7 +1,7 @@
-mod frame;
-mod stack;
-mod store;
-mod value;
+pub mod frame;
+pub mod stack;
+pub mod store;
+pub mod value;
 
 use frame::FrameStack;
 use stack::Stack;

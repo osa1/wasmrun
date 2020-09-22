@@ -158,6 +158,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "libwasmrun",
+ "parity-wasm",
  "rustc_tools_util",
  "serde",
  "serde_json",
