@@ -75,10 +75,13 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     expected: vec![],
                 });
             }
-            "assert_trap" => {
-                // TODO We probably want to test this
+            "assert_trap" | "assert_exhaustion" | "register" => {
+                // TODO We probably want to test these
             }
-            "assert_invalid" | "assert_malformed" | "assert_unlinkable" => {
+            "assert_invalid"
+            | "assert_malformed"
+            | "assert_unlinkable"
+            | "assert_uninstantiable" => {
                 // We don't want to test this stuff, skip
             }
             other => todo!("Unknown command type: {}", other),
@@ -129,6 +132,7 @@ struct ActionDe {
     #[serde(rename = "type")]
     typ: String,
     field: String,
+    #[serde(default)]
     args: Vec<ValueDe>,
 }
 

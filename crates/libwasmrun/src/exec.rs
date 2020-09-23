@@ -133,7 +133,12 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 }
                 wasm::External::Table(_)
                 | wasm::External::Memory(_)
-                | wasm::External::Global(_) => todo!(),
+                | wasm::External::Global(_) => {
+                    return Err(ExecError::Panic(format!(
+                        "Importing tables, memories, and globals are not implemented yet: {:?}",
+                        import.external()
+                    )));
+                }
             }
         }
     }
@@ -194,7 +199,9 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 if elem_idx <= table.len() {
                     table.resize(elem_idx + 1, None);
                 }
-                table[elem_idx] = Some(elem);
+                *table.get_mut(elem_idx).ok_or_else(|| {
+                    ExecError::Panic(format!("Elem index out of bounds: {}", elem_idx))
+                })? = Some(elem);
             }
         }
     }
@@ -274,7 +281,10 @@ pub fn invoke_by_name(rt: &mut Runtime, module_idx: ModuleIdx, fun_name: &str) -
 
 pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) -> Result<()> {
     let fun_addr = rt.modules[module_idx].func_addrs[fun_idx as usize];
-    let func = &rt.store.funcs[fun_addr as usize];
+    let func =
+        rt.store.funcs.get(fun_addr as usize).ok_or_else(|| {
+            ExecError::Panic(format!("Function address out of bounds: {}", fun_addr))
+        })?;
 
     let arg_tys = rt.modules[module_idx].types[func.fun_ty_idx as usize].params();
     rt.frames.push(func, arg_tys);
@@ -514,32 +524,32 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Add => {
-            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::Add::add)?;
+            op2::<i32, i32, _>(&mut rt.stack, i32::wrapping_add)?;
             rt.ip += 1;
         }
 
         Instruction::I64Add => {
-            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::Add::add)?;
+            op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_add)?;
             rt.ip += 1;
         }
 
         Instruction::I32Sub => {
-            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::Sub::sub)?;
+            op2::<i32, i32, _>(&mut rt.stack, i32::wrapping_sub)?;
             rt.ip += 1;
         }
 
         Instruction::I64Sub => {
-            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::Sub::sub)?;
+            op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_sub)?;
             rt.ip += 1;
         }
 
         Instruction::I32Mul => {
-            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::Mul::mul)?;
+            op2::<i32, i32, _>(&mut rt.stack, i32::wrapping_mul)?;
             rt.ip += 1;
         }
 
         Instruction::I64Mul => {
-            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::Mul::mul)?;
+            op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_mul)?;
             rt.ip += 1;
         }
 

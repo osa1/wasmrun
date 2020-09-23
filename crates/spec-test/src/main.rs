@@ -72,6 +72,7 @@ fn run_spec_dir(dir: fs::ReadDir, accept: bool) -> Result<i32, String> {
     let mut exit_code = 0;
 
     for file in dir {
+        println!("############ {:?}", file);
         let file = file.unwrap();
         let file_path = file.path();
         if let Some(ext) = file_path.extension() {
@@ -118,12 +119,30 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
         .arg(path)
         .arg("-o")
         .arg(&spec_json_path)
-        .output()
-        .map_err(|err| err.to_string())?;
+        .output();
 
-    if !cmd_ret.status.success() {
-        return Err("wast2json failed".to_string());
+    match cmd_ret {
+        Ok(output) => {
+            if !output.status.success() {
+                let stderr = output.stderr;
+                writeln!(
+                    out,
+                    "wast2json failed: {}",
+                    String::from_utf8_lossy(&stderr)
+                )
+                .unwrap();
+                return Ok(1);
+            }
+        }
+        Err(err) => {
+            writeln!(out, "wast2json failed: {}", err).unwrap();
+            return Ok(1);
+        }
     }
+
+    // if !cmd_ret.status.success() {
+    //     writeln!(out, "wast2json failed".to_string());
+    // }
 
     let spec = spec::parse_test_spec(&spec_json_path);
 
