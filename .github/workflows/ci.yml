@@ -19,15 +19,16 @@ jobs:
       - name: Build
         run: cargo build
 
+      - name: Download wast2json
+        run: |
+            wget https://github.com/WebAssembly/wabt/releases/download/1.0.19/wabt-1.0.19-ubuntu.tar.gz
+            tar -vxf wabt-1.0.19-ubuntu.tar.gz
+            cp wabt-1.0.19/bin/wast2json .
+
       - name: Run tests
         run: |
-            pwd
-            ls -lha .
-            ls -lha target
-            ls -lha target/debug
-            ls -lha tests
-            file target/debug/spec-test
-            ./target/debug/spec-test tests/spec.wast # cargo run doesn't work here???
+            export PATH=`pwd`:$PATH
+            cargo run --bin spec-test -- tests/spec.wast
 
       - name: Check formatting
         run: cargo fmt --all -- --check
