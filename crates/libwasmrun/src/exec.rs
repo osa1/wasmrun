@@ -20,6 +20,7 @@ type Addr = u32;
 type FuncIdx = u32;
 
 const PAGE_SIZE: usize = 65536;
+const MAX_PAGES: usize = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
 #[derive(Default)]
 pub struct Module {
@@ -348,11 +349,15 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             debug_assert!(sz % PAGE_SIZE == 0);
             let sz_pages = sz / PAGE_SIZE;
 
-            // NB. This operation currently does not fail
             let n_pages = rt.stack.pop_i32()? as usize;
-            mem.resize(mem.len() + PAGE_SIZE * n_pages, 0);
+            let new_pages = (sz / PAGE_SIZE) + n_pages;
 
-            rt.stack.push_i32(sz_pages as i32);
+            if new_pages > MAX_PAGES {
+                rt.stack.push_i32(-1);
+            } else {
+                mem.resize(sz + PAGE_SIZE * n_pages, 0);
+                rt.stack.push_i32(sz_pages as i32);
+            }
 
             rt.ip += 1;
         }
