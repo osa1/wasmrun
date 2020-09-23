@@ -538,10 +538,24 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I32GtU => {
+            let val2 = rt.stack.pop_i32() as u32;
+            let val1 = rt.stack.pop_i32() as u32;
+            rt.stack.push_bool(val1 > val2);
+            rt.ip += 1;
+        }
+
         Instruction::I64GtU => {
             let val2 = rt.stack.pop_i64() as u64;
             let val1 = rt.stack.pop_i64() as u64;
             rt.stack.push_bool(val1 > val2);
+            rt.ip += 1;
+        }
+
+        Instruction::I32Or => {
+            let val2 = rt.stack.pop_i32();
+            let val1 = rt.stack.pop_i32();
+            rt.stack.push_i32(val1 | val2);
             rt.ip += 1;
         }
 
