@@ -411,6 +411,13 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I32Eq => {
+            let v1 = rt.stack.pop_i32();
+            let v2 = rt.stack.pop_i32();
+            rt.stack.push_bool(v1 == v2);
+            rt.ip += 1;
+        }
+
         Instruction::I32Eqz => {
             let val = rt.stack.pop_i32();
             rt.stack.push_bool(val == 0);
