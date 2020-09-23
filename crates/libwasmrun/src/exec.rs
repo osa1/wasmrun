@@ -421,6 +421,33 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I64Store(_, offset) => {
+            let value = rt.stack.pop_i64()?;
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 8;
+
+            let mem = &mut rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I64Store (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
+            mem[addr + 2] = b3;
+            mem[addr + 3] = b4;
+            mem[addr + 4] = b5;
+            mem[addr + 5] = b6;
+            mem[addr + 6] = b7;
+            mem[addr + 7] = b8;
+            rt.ip += 1;
+        }
+
         Instruction::I32Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = (addr + offset) as usize;
@@ -643,6 +670,12 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64And => {
             op2::<i64, i64, _>(&mut rt.stack, ::std::ops::BitAnd::bitand)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I32WrapI64 => {
+            let i = rt.stack.pop_i64()?;
+            rt.stack.push_i32((i % 2i64.pow(32)) as i32);
             rt.ip += 1;
         }
 
