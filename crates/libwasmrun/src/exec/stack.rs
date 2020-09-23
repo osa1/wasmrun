@@ -23,6 +23,14 @@ impl Stack {
         }
     }
 
+    pub fn pop_i64(&mut self) -> i64 {
+        match self.0.pop() {
+            Some(Value::I64(val)) => val,
+            Some(other) => panic!("Stack::pop_i64: {:#?}", other),
+            None => panic!("Stack::pop_i64: empty stack"),
+        }
+    }
+
     pub fn push_value(&mut self, val: Value) {
         self.0.push(val)
     }

@@ -99,7 +99,15 @@ fn gen_block_bounds(instrs: &[wasm::Instruction]) -> (FxHashMap<u32, u32>, FxHas
                             }
                         }
                         BlockKind::Loop => {
-                            block_bounds.insert(start_idx, start_idx + 1);
+                            // NB. Continuation is the "loop" instruction itself, rather than the
+                            // first instruction in the loop. When we see a "br" (or "br_ir" etc.)
+                            // we pop the continuation of "loop" so we need to push it back again
+                            // after "br". We don't do that if we skip the "loop" instruction and
+                            // jump back to the first instruction of the block.
+                            //
+                            // There could be other ways of implementing this but I think this will
+                            // do for now.
+                            block_bounds.insert(start_idx, start_idx);
                         }
                     },
                 }

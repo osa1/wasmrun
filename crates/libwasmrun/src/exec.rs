@@ -315,8 +315,8 @@ pub fn single_step(rt: &mut Runtime) {
 
     /*
         println!(
-            "instruction={:?}, stack={:?}, call stack={:?}",
-            instr, rt.stack, rt.frames
+            "instruction={:?}, stack={:?}, call stack={:?}, conts={:?}",
+            instr, rt.stack, rt.frames, rt.conts
         );
     */
 
@@ -463,6 +463,12 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I64Eqz => {
+            let val = rt.stack.pop_i64();
+            rt.stack.push_bool(val == 0);
+            rt.ip += 1;
+        }
+
         Instruction::I32LeU => {
             let val2 = rt.stack.pop_i32() as u32;
             let val1 = rt.stack.pop_i32() as u32;
@@ -491,6 +497,13 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I64Add => {
+            let val2 = rt.stack.pop_i64();
+            let val1 = rt.stack.pop_i64();
+            rt.stack.push_i64(val1 + val2);
+            rt.ip += 1;
+        }
+
         Instruction::I32Sub => {
             let val2 = rt.stack.pop_i32();
             let val1 = rt.stack.pop_i32();
@@ -498,9 +511,37 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I64Sub => {
+            let val2 = rt.stack.pop_i64();
+            let val1 = rt.stack.pop_i64();
+            rt.stack.push_i64(val1 - val2);
+            rt.ip += 1;
+        }
+
+        Instruction::I32Mul => {
+            let val2 = rt.stack.pop_i32();
+            let val1 = rt.stack.pop_i32();
+            rt.stack.push_i32(val1 * val2);
+            rt.ip += 1;
+        }
+
+        Instruction::I64Mul => {
+            let val2 = rt.stack.pop_i64();
+            let val1 = rt.stack.pop_i64();
+            rt.stack.push_i64(val1 * val2);
+            rt.ip += 1;
+        }
+
         Instruction::I32Ctz => {
             let val = rt.stack.pop_i32();
             rt.stack.push_i32(val.trailing_zeros() as i32);
+            rt.ip += 1;
+        }
+
+        Instruction::I64GtU => {
+            let val2 = rt.stack.pop_i64() as u64;
+            let val1 = rt.stack.pop_i64() as u64;
+            rt.stack.push_bool(val1 > val2);
             rt.ip += 1;
         }
 
