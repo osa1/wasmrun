@@ -16,7 +16,10 @@ jobs:
             components: rustfmt
             override: true
 
-      - name: Build and run tests
+      - name: Build
+        run: cargo build
+
+      - name: Run tests
         run: |
             pwd
             ls -lha .
