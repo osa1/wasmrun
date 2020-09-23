@@ -78,7 +78,7 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
             "assert_trap" => {
                 // TODO We probably want to test this
             }
-            "assert_invalid" | "assert_malformed" => {
+            "assert_invalid" | "assert_malformed" | "assert_unlinkable" => {
                 // We don't want to test this stuff, skip
             }
             other => todo!("Unknown command type: {}", other),
