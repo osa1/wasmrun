@@ -502,6 +502,40 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::If(_) => {
+            let cont = match current_fun.block_bounds.get(&rt.ip) {
+                None => {
+                    panic!("Couldn't find continuation of if");
+                }
+                Some(cont) => *cont,
+            };
+            rt.conts.last_mut().unwrap().push(cont);
+
+            let cond = rt.stack.pop_i32();
+            if cond == 0 {
+                match current_fun.else_instrs.get(&rt.ip) {
+                    None => {
+                        panic!("Couldn't find else block of if");
+                    }
+                    Some(else_) => {
+                        rt.ip = else_ + 1;
+                    }
+                }
+            } else {
+                rt.ip += 1;
+            }
+        }
+
+        Instruction::Else => {
+            let cont = match current_fun.block_bounds.get(&rt.ip) {
+                None => {
+                    panic!("Couldn't find continuation of else");
+                }
+                Some(cont) => *cont,
+            };
+            rt.ip = cont;
+        }
+
         Instruction::Br(n_blocks) => {
             rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, *n_blocks);
         }

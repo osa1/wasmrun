@@ -23,6 +23,8 @@ pub struct Func {
     /// Maps block instruction indices to their `break` targets. For a `block` or `if` the target
     /// is the instruction after the block. For `loop` it's the first instruction of the block.
     pub block_bounds: FxHashMap<u32, u32>,
+    /// Maps if instructions to their else instructions
+    pub else_instrs: FxHashMap<u32, u32>,
 }
 
 impl Func {
@@ -32,35 +34,53 @@ impl Func {
         fun: wasm::FuncBody,
         fun_ty_idx: u32,
     ) -> Func {
-        let block_bounds = gen_block_bounds(fun.code().elements());
+        let (block_bounds, else_instrs) = gen_block_bounds(fun.code().elements());
         Func {
             module_idx,
             fun_idx,
             fun,
             fun_ty_idx,
             block_bounds,
+            else_instrs,
         }
     }
 }
 
 enum BlockKind {
-    BlockOrIf,
+    Block,
+    If { else_loc: Option<u32> },
     Loop,
 }
 
-fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
-    let mut ret: FxHashMap<u32, u32> = Default::default();
+fn gen_block_bounds(instrs: &[wasm::Instruction]) -> (FxHashMap<u32, u32>, FxHashMap<u32, u32>) {
+    let mut block_bounds: FxHashMap<u32, u32> = Default::default();
+    let mut else_instrs: FxHashMap<u32, u32> = Default::default();
     let mut blocks: Vec<(BlockKind, u32)> = vec![];
 
     for (instr_idx, instr) in instrs.iter().enumerate() {
         match instr {
-            Instruction::Block(_) | Instruction::If(_) => {
-                blocks.push((BlockKind::BlockOrIf, instr_idx as u32));
+            Instruction::Block(_) => {
+                blocks.push((BlockKind::Block, instr_idx as u32));
+            }
+
+            Instruction::If(_) => {
+                blocks.push((BlockKind::If { else_loc: None }, instr_idx as u32));
             }
 
             Instruction::Loop(_) => {
                 blocks.push((BlockKind::Loop, instr_idx as u32));
             }
+
+            Instruction::Else => match blocks.last_mut() {
+                Some((BlockKind::If { else_loc }, if_loc)) => {
+                    assert!(else_loc.is_none());
+                    *else_loc = Some(instr_idx as u32);
+                    else_instrs.insert(*if_loc, instr_idx as u32);
+                }
+                None | Some((_, _)) => {
+                    panic!("Found else block without if");
+                }
+            },
 
             Instruction::End => {
                 match blocks.pop() {
@@ -69,11 +89,17 @@ fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
                         assert_eq!(instr_idx + 1, instrs.len());
                     }
                     Some((block_kind, start_idx)) => match block_kind {
-                        BlockKind::BlockOrIf => {
-                            ret.insert(start_idx, instr_idx as u32 + 1);
+                        BlockKind::Block => {
+                            block_bounds.insert(start_idx, instr_idx as u32 + 1);
+                        }
+                        BlockKind::If { else_loc } => {
+                            block_bounds.insert(start_idx, instr_idx as u32 + 1);
+                            if let Some(else_loc) = else_loc {
+                                block_bounds.insert(else_loc, instr_idx as u32 + 1);
+                            }
                         }
                         BlockKind::Loop => {
-                            ret.insert(start_idx, start_idx + 1);
+                            block_bounds.insert(start_idx, start_idx + 1);
                         }
                     },
                 }
@@ -83,7 +109,7 @@ fn gen_block_bounds(instrs: &[wasm::Instruction]) -> FxHashMap<u32, u32> {
         }
     }
 
-    ret
+    (block_bounds, else_instrs)
 }
 
 #[derive(Debug)]
