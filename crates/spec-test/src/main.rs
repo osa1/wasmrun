@@ -72,7 +72,6 @@ fn run_spec_dir(dir: fs::ReadDir) -> Result<i32, String> {
     let mut exit_code = 0;
 
     for file in dir {
-        println!("############ {:?}", file);
         let file = file.unwrap();
         let file_path = file.path();
         if let Some(ext) = file_path.extension() {
