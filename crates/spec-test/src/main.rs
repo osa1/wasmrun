@@ -6,26 +6,93 @@ use libwasmrun::exec::store::ModuleIdx;
 use libwasmrun::exec::{self, Runtime, Value};
 
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::{exit, Command};
 
 use parity_wasm::elements as wasm;
 
 fn main() {
-    let Args { file } = cli::parse();
-    let exit_code = match run_spec_test(file) {
-        Ok(exit_code) => exit_code,
+    let Args { file, accept } = cli::parse();
+
+    let ret = match fs::read_dir(&file) {
+        Ok(dir_contents) => run_spec_dir(dir_contents, accept),
+        Err(_) => {
+            let mut out = Output { file: None };
+            run_spec_test(file.into(), &mut out)
+        }
+    };
+
+    let exit_code = match ret {
         Err(err) => {
             println!("{}", err);
             1
         }
+        Ok(exit_code) => exit_code,
     };
+
     exit(exit_code)
 }
 
-fn run_spec_test(file: String) -> Result<i32, String> {
-    let path: PathBuf = file.into();
+struct Output {
+    file: Option<fs::File>,
+}
 
+impl Write for Output {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match &mut self.file {
+            None => io::stdout().lock().write(buf),
+            Some(file) => match file.write(buf) {
+                Ok(n_written) => {
+                    io::stdout().lock().write(&buf[..n_written]).unwrap();
+                    Ok(n_written)
+                }
+                Err(err) => {
+                    panic!("Unable to write to file: {}", err);
+                }
+            },
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        io::stdout().lock().flush().unwrap();
+        match &mut self.file {
+            Some(file) => file.flush(),
+            None => Ok(()),
+        }
+    }
+}
+
+fn run_spec_dir(dir: fs::ReadDir, accept: bool) -> Result<i32, String> {
+    let out_file = fs::File::create("test_output").unwrap();
+    let mut out = Output {
+        file: Some(out_file),
+    };
+
+    let mut exit_code = 0;
+
+    for file in dir {
+        let file = file.unwrap();
+        let file_path = file.path();
+        if let Some(ext) = file_path.extension() {
+            if ext == "wast" {
+                writeln!(
+                    &mut out,
+                    "{}",
+                    file_path.file_name().unwrap().to_str().unwrap()
+                )
+                .unwrap();
+                if run_spec_test(file_path, &mut out)? != 0 {
+                    exit_code = 1;
+                }
+            }
+        }
+    }
+
+    Ok(exit_code)
+}
+
+fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
     match path.extension() {
         Some(ext) => {
             if ext != "wast" {
@@ -59,7 +126,6 @@ fn run_spec_test(file: String) -> Result<i32, String> {
     }
 
     let spec = spec::parse_test_spec(&spec_json_path);
-    // println!("{:#?}", spec);
 
     let mut exit_code = 0;
     let mut failing_lines = vec![];
@@ -70,23 +136,23 @@ fn run_spec_test(file: String) -> Result<i32, String> {
     for command in spec.commands {
         match command {
             spec::Command::Module { line, filename } => {
-                print!("line {}: ", line);
+                write!(out, "\tline {}: ", line).unwrap();
 
                 rt = Runtime::new();
                 let file_path = format!("{}/{}", dir_path, filename);
                 match wasm::deserialize_file(file_path) {
                     Err(err) => {
-                        println!("Error while parsing module: {}", err);
+                        writeln!(out, "Error while parsing module: {}", err).unwrap();
                         module_idx = None;
                         exit_code = 1;
                         failing_lines.push(line);
                         continue;
                     }
                     Ok(module) => {
-                        println!("OK");
+                        writeln!(out, "OK").unwrap();
                         let module = match module.parse_names() {
                             Err((_, module)) => {
-                                println!("Unable parse names");
+                                writeln!(out, "Unable parse names").unwrap();
                                 module
                             }
                             Ok(module) => module,
@@ -102,11 +168,11 @@ fn run_spec_test(file: String) -> Result<i32, String> {
                 args,
                 expected,
             } => {
-                print!("line {}: ", line);
+                write!(out, "\tline {}: ", line).unwrap();
 
                 let module_idx = match module_idx {
                     None => {
-                        println!("module not available; skipping");
+                        writeln!(out, "module not available; skipping").unwrap();
                         continue;
                     }
                     Some(module_idx) => module_idx,
@@ -145,12 +211,14 @@ fn run_spec_test(file: String) -> Result<i32, String> {
                 }
 
                 if expected == found {
-                    println!("OK");
+                    writeln!(out, "OK").unwrap();
                 } else {
-                    println!(
+                    writeln!(
+                        out,
                         "expected != found. Expected: {:?}, Found: {:?}",
                         expected, found
-                    );
+                    )
+                    .unwrap();
                     exit_code = 1;
                     failing_lines.push(line);
                 }
@@ -159,7 +227,7 @@ fn run_spec_test(file: String) -> Result<i32, String> {
     }
 
     if !failing_lines.is_empty() {
-        println!("Failing lines: {:?}", failing_lines);
+        writeln!(out, "Failing lines: {:?}", failing_lines).unwrap();
     }
 
     Ok(exit_code)
