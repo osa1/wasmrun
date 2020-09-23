@@ -20,6 +20,7 @@ jobs:
         run: |
             pwd
             ls -lha .
+            ls -lha tests
             cargo run --bin spec-test -- tests/spec.wast
 
       - name: Check formatting
