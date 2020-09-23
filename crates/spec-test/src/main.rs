@@ -127,108 +127,158 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
 
     let spec = spec::parse_test_spec(&spec_json_path);
 
-    let mut exit_code = 0;
     let mut failing_lines = vec![];
 
     let mut rt = Runtime::new();
     let mut module_idx: Option<ModuleIdx> = None;
 
-    for command in spec.commands {
-        match command {
-            spec::Command::Module { line, filename } => {
-                write!(out, "\tline {}: ", line).unwrap();
-
-                rt = Runtime::new();
-                let file_path = format!("{}/{}", dir_path, filename);
-                match wasm::deserialize_file(file_path) {
-                    Err(err) => {
-                        writeln!(out, "Error while parsing module: {}", err).unwrap();
-                        module_idx = None;
-                        exit_code = 1;
-                        failing_lines.push(line);
-                        continue;
-                    }
-                    Ok(module) => {
-                        writeln!(out, "OK").unwrap();
-                        let module = match module.parse_names() {
-                            Err((_, module)) => {
-                                writeln!(out, "Unable parse names").unwrap();
-                                module
-                            }
-                            Ok(module) => module,
-                        };
-                        module_idx = Some(exec::allocate_module(&mut rt, module));
-                    }
-                }
-            }
-
-            spec::Command::AssertReturn {
-                line,
-                func,
-                args,
-                expected,
-            } => {
-                write!(out, "\tline {}: ", line).unwrap();
-
-                let module_idx = match module_idx {
-                    None => {
-                        writeln!(out, "module not available; skipping").unwrap();
-                        continue;
-                    }
-                    Some(module_idx) => module_idx,
-                };
-
-                for arg in args {
-                    let val = match arg {
-                        spec::Value::I32(i) => Value::I32(i),
-                        spec::Value::I64(i) => Value::I64(i),
-                        spec::Value::F32(_) | spec::Value::F64(_) => {
-                            todo!("Float values are not supported yet");
-                        }
-                    };
-                    rt.push_value(val);
-                }
-
-                exec::invoke_by_name(&mut rt, module_idx, &func);
-                exec::finish(&mut rt);
-
-                let expected = expected
-                    .into_iter()
-                    .map(|val| match val {
-                        spec::Value::I32(i) => Value::I32(i),
-                        spec::Value::I64(i) => Value::I64(i),
-                        spec::Value::F32(_) | spec::Value::F64(_) => {
-                            todo!("Float values are not supported yet");
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                let n_expected = expected.len();
-                let mut found = Vec::with_capacity(n_expected);
-
-                for _ in 0..n_expected {
-                    found.push(rt.pop_value().unwrap());
-                }
-
-                if expected == found {
-                    writeln!(out, "OK").unwrap();
-                } else {
-                    writeln!(
-                        out,
-                        "expected != found. Expected: {:?}, Found: {:?}",
-                        expected, found
-                    )
-                    .unwrap();
-                    exit_code = 1;
-                    failing_lines.push(line);
-                }
-            }
-        }
+    for cmd in spec.commands {
+        run_spec_cmd(
+            cmd,
+            &dir_path,
+            out,
+            &mut rt,
+            &mut module_idx,
+            &mut failing_lines,
+        );
     }
 
     if !failing_lines.is_empty() {
         writeln!(out, "Failing lines: {:?}", failing_lines).unwrap();
     }
 
-    Ok(exit_code)
+    Ok(if failing_lines.is_empty() { 0 } else { 1 })
+}
+
+fn run_spec_cmd(
+    cmd: spec::Command,
+    dir_path: &str,
+    out: &mut Output,
+    rt: &mut Runtime,
+    module_idx: &mut Option<ModuleIdx>,
+    failing_lines: &mut Vec<usize>,
+) {
+    match cmd {
+        spec::Command::Module { line, filename } => {
+            write!(out, "\tline {}: ", line).unwrap();
+            // Flush the line number now so that we'll see it in case of a loop or hang
+            out.flush().unwrap();
+
+            *rt = Runtime::new();
+            let file_path = format!("{}/{}", dir_path, filename);
+            match wasm::deserialize_file(file_path) {
+                Err(err) => {
+                    writeln!(out, "Error while parsing module: {}", err).unwrap();
+                    *module_idx = None;
+                    failing_lines.push(line);
+                    return;
+                }
+                Ok(module) => {
+                    writeln!(out, "OK").unwrap();
+                    let module = match module.parse_names() {
+                        Err((_, module)) => {
+                            writeln!(out, "Unable parse names").unwrap();
+                            module
+                        }
+                        Ok(module) => module,
+                    };
+                    match exec::allocate_module(rt, module) {
+                        Ok(module_idx_) => {
+                            *module_idx = Some(module_idx_);
+                        }
+                        Err(err) => {
+                            writeln!(out, "Unable to allocate module: {}", err).unwrap();
+                            *module_idx = None;
+                        }
+                    }
+                }
+            }
+        }
+
+        spec::Command::AssertReturn {
+            line,
+            func,
+            args,
+            expected,
+        } => {
+            write!(out, "\tline {}: ", line).unwrap();
+
+            let module_idx = match module_idx {
+                None => {
+                    writeln!(out, "module not available; skipping").unwrap();
+                    return;
+                }
+                Some(module_idx) => module_idx,
+            };
+
+            rt.clear_stack();
+            for arg in args {
+                let val = match arg {
+                    spec::Value::I32(i) => Value::I32(i),
+                    spec::Value::I64(i) => Value::I64(i),
+                    spec::Value::F32(_) | spec::Value::F64(_) => {
+                        writeln!(out, "Float values are not supported yet").unwrap();
+                        return;
+                    }
+                };
+                rt.push_value(val);
+            }
+
+            if let Err(err) = exec::invoke_by_name(rt, *module_idx, &func) {
+                writeln!(out, "Error while calling function {}: {}", func, err).unwrap();
+                failing_lines.push(line);
+                return;
+            }
+            if let Err(err) = exec::finish(rt) {
+                writeln!(out, "Error while running function {}: {}", func, err).unwrap();
+                failing_lines.push(line);
+                return;
+            }
+
+            let mut expected_ = Vec::with_capacity(expected.len());
+            for val in expected.into_iter() {
+                match val {
+                    spec::Value::I32(i) => {
+                        expected_.push(Value::I32(i));
+                    }
+                    spec::Value::I64(i) => {
+                        expected_.push(Value::I64(i));
+                    }
+                    spec::Value::F32(_) | spec::Value::F64(_) => {
+                        writeln!(out, "Float values are not supported yet").unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+                }
+            }
+
+            let n_expected = expected_.len();
+            let mut found = Vec::with_capacity(n_expected);
+
+            for i in 0..n_expected {
+                match rt.pop_value() {
+                    Some(val) => {
+                        found.push(val);
+                    }
+                    None => {
+                        writeln!(out, "Can't pop return value {}", i + 1).unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+                }
+            }
+
+            if expected_ == found {
+                writeln!(out, "OK").unwrap();
+            } else {
+                writeln!(
+                    out,
+                    "expected != found. Expected: {:?}, Found: {:?}",
+                    expected_, found
+                )
+                .unwrap();
+                failing_lines.push(line);
+            }
+        }
+    }
 }

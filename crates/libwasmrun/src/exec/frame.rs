@@ -1,5 +1,6 @@
 use super::store::Func;
 use super::value::Value;
+use crate::{ExecError, Result};
 
 use parity_wasm::elements as wasm;
 
@@ -21,17 +22,21 @@ pub struct Frame {
 }
 
 impl FrameStack {
-    pub fn current(&self) -> &Frame {
+    pub fn current(&self) -> Result<&Frame> {
         match self.0.last() {
-            None => panic!("FrameStack::current: call stack empty"),
-            Some(frame) => frame,
+            None => Err(ExecError::Panic(
+                "FrameStack::current: call stack empty".to_string(),
+            )),
+            Some(frame) => Ok(frame),
         }
     }
 
-    pub fn current_mut(&mut self) -> &mut Frame {
+    pub fn current_mut(&mut self) -> Result<&mut Frame> {
         match self.0.last_mut() {
-            None => panic!("FrameStack::current_mut: call stack empty"),
-            Some(frame) => frame,
+            None => Err(ExecError::Panic(
+                "FrameStack::current_mut: call stack empty".to_string(),
+            )),
+            Some(frame) => Ok(frame),
         }
     }
 
@@ -54,27 +59,28 @@ impl FrameStack {
 }
 
 impl Frame {
-    pub fn get_local(&self, idx: u32) -> Value {
+    pub fn get_local(&self, idx: u32) -> Result<Value> {
         match self.locals.get(idx as usize) {
-            Some(value) => *value,
-            None => panic!(
+            Some(value) => Ok(*value),
+            None => Err(ExecError::Panic(format!(
                 "Frame::get_local: local index OOB (n locals={}, local idx={})",
                 self.locals.len(),
                 idx
-            ),
+            ))),
         }
     }
 
-    pub fn set_local(&mut self, idx: u32, value: Value) {
+    pub fn set_local(&mut self, idx: u32, value: Value) -> Result<()> {
         match self.locals.get_mut(idx as usize) {
             Some(slot) => {
                 *slot = value;
+                Ok(())
             }
-            None => panic!(
+            None => Err(ExecError::Panic(format!(
                 "Frame::set_local: local index OOB (n locals={}, local idx={})",
                 self.locals.len(),
                 idx
-            ),
+            ))),
         }
     }
 }

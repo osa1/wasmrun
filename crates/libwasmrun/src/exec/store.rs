@@ -1,4 +1,5 @@
 use super::value::Value;
+use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
 use parity_wasm::elements as wasm;
@@ -33,16 +34,16 @@ impl Func {
         fun_idx: usize,
         fun: wasm::FuncBody,
         fun_ty_idx: u32,
-    ) -> Func {
-        let (block_bounds, else_instrs) = gen_block_bounds(fun.code().elements());
-        Func {
+    ) -> Result<Func> {
+        let (block_bounds, else_instrs) = gen_block_bounds(fun.code().elements())?;
+        Ok(Func {
             module_idx,
             fun_idx,
             fun,
             fun_ty_idx,
             block_bounds,
             else_instrs,
-        }
+        })
     }
 }
 
@@ -52,7 +53,9 @@ enum BlockKind {
     Loop,
 }
 
-fn gen_block_bounds(instrs: &[wasm::Instruction]) -> (FxHashMap<u32, u32>, FxHashMap<u32, u32>) {
+fn gen_block_bounds(
+    instrs: &[wasm::Instruction],
+) -> Result<(FxHashMap<u32, u32>, FxHashMap<u32, u32>)> {
     let mut block_bounds: FxHashMap<u32, u32> = Default::default();
     let mut else_instrs: FxHashMap<u32, u32> = Default::default();
     let mut blocks: Vec<(BlockKind, u32)> = vec![];
@@ -78,7 +81,7 @@ fn gen_block_bounds(instrs: &[wasm::Instruction]) -> (FxHashMap<u32, u32>, FxHas
                     else_instrs.insert(*if_loc, instr_idx as u32);
                 }
                 None | Some((_, _)) => {
-                    panic!("Found else block without if");
+                    return Err(ExecError::Panic("Found else block without if".to_string()));
                 }
             },
 
@@ -117,7 +120,7 @@ fn gen_block_bounds(instrs: &[wasm::Instruction]) -> (FxHashMap<u32, u32>, FxHas
         }
     }
 
-    (block_bounds, else_instrs)
+    Ok((block_bounds, else_instrs))
 }
 
 #[derive(Debug)]

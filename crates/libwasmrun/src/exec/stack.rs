@@ -1,9 +1,14 @@
 use super::value::Value;
+use crate::{ExecError, Result};
 
 #[derive(Debug, Default)]
 pub struct Stack(Vec<Value>);
 
 impl Stack {
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
     pub fn pop_value_opt(&mut self) -> Option<Value> {
         match self.0.pop() {
             Some(val) => Some(val),
@@ -11,23 +16,24 @@ impl Stack {
         }
     }
 
-    pub fn pop_value(&mut self) -> Value {
-        self.pop_value_opt().expect("Stack::pop: empty stack")
+    pub fn pop_value(&mut self) -> Result<Value> {
+        self.pop_value_opt()
+            .ok_or_else(|| ExecError::Panic("Stack::pop: empty stack".to_string()))
     }
 
-    pub fn pop_i32(&mut self) -> i32 {
+    pub fn pop_i32(&mut self) -> Result<i32> {
         match self.0.pop() {
-            Some(Value::I32(val)) => val,
-            Some(other) => panic!("Stack::pop_i32: {:#?}", other),
-            None => panic!("Stack::pop_i32: empty stack"),
+            Some(Value::I32(val)) => Ok(val),
+            Some(other) => Err(ExecError::Panic(format!("Stack::pop_i32: {:#?}", other))),
+            None => Err(ExecError::Panic("Stack::pop_i32: empty stack".to_string())),
         }
     }
 
-    pub fn pop_i64(&mut self) -> i64 {
+    pub fn pop_i64(&mut self) -> Result<i64> {
         match self.0.pop() {
-            Some(Value::I64(val)) => val,
-            Some(other) => panic!("Stack::pop_i64: {:#?}", other),
-            None => panic!("Stack::pop_i64: empty stack"),
+            Some(Value::I64(val)) => Ok(val),
+            Some(other) => Err(ExecError::Panic(format!("Stack::pop_i64: {:#?}", other))),
+            None => Err(ExecError::Panic("Stack::pop_i64: empty stack".to_string())),
         }
     }
 
@@ -60,14 +66,14 @@ impl Stack {
     }
 }
 
-pub trait StackValue {
-    fn pop(stack: &mut Stack) -> Self;
+pub trait StackValue: Sized {
+    fn pop(stack: &mut Stack) -> Result<Self>;
     fn push(&self, stack: &mut Stack);
 }
 
 impl StackValue for u32 {
-    fn pop(stack: &mut Stack) -> Self {
-        stack.pop_i32() as u32
+    fn pop(stack: &mut Stack) -> Result<Self> {
+        Ok(stack.pop_i32()? as u32)
     }
 
     fn push(&self, stack: &mut Stack) {
@@ -76,7 +82,7 @@ impl StackValue for u32 {
 }
 
 impl StackValue for i32 {
-    fn pop(stack: &mut Stack) -> Self {
+    fn pop(stack: &mut Stack) -> Result<Self> {
         stack.pop_i32()
     }
 
@@ -86,7 +92,7 @@ impl StackValue for i32 {
 }
 
 impl StackValue for i64 {
-    fn pop(stack: &mut Stack) -> Self {
+    fn pop(stack: &mut Stack) -> Result<Self> {
         stack.pop_i64()
     }
 
@@ -96,8 +102,8 @@ impl StackValue for i64 {
 }
 
 impl StackValue for u64 {
-    fn pop(stack: &mut Stack) -> Self {
-        stack.pop_i64() as u64
+    fn pop(stack: &mut Stack) -> Result<Self> {
+        Ok(stack.pop_i64()? as u64)
     }
 
     fn push(&self, stack: &mut Stack) {
@@ -106,8 +112,8 @@ impl StackValue for u64 {
 }
 
 impl StackValue for bool {
-    fn pop(stack: &mut Stack) -> Self {
-        stack.pop_i32() == 1
+    fn pop(stack: &mut Stack) -> Result<Self> {
+        Ok(stack.pop_i32()? == 1)
     }
 
     fn push(&self, stack: &mut Stack) {

@@ -11,22 +11,43 @@
 
 pub mod exec;
 
+use std::fmt::Display;
+
 pub use exec::Runtime;
 
 use parity_wasm::elements as wasm;
 
-pub fn run_wasm(file: String) -> Result<(), String> {
+#[derive(Debug)]
+pub enum ExecError {
+    /// Wasm code trapped
+    Trap,
+    /// Invalid module, unsupported operation, IO error, or a bug
+    Panic(String),
+}
+
+impl Display for ExecError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExecError::Trap => write!(f, "Wasm module trapped"),
+            ExecError::Panic(msg) => write!(f, "Interpreter panicked: {}", msg),
+        }
+    }
+}
+
+pub type Result<A> = ::std::result::Result<A, ExecError>;
+
+pub fn run_wasm(file: String) -> Result<()> {
     let module = wasm::deserialize_file(file).unwrap();
     // println!("{:#?}", module);
 
     let mut runtime = Runtime::new();
-    let module_idx = exec::allocate_module(&mut runtime, module);
+    let module_idx = exec::allocate_module(&mut runtime, module)?;
 
     // Run the 'start' function if it exists
     if let Some(start_idx) = runtime.get_module_start(module_idx) {
         println!("Calling start function {}", start_idx);
-        exec::invoke(&mut runtime, module_idx, start_idx);
-        exec::finish(&mut runtime);
+        exec::invoke(&mut runtime, module_idx, start_idx)?;
+        exec::finish(&mut runtime)?;
     }
 
     // Find exported _start function and call it
@@ -47,8 +68,8 @@ pub fn run_wasm(file: String) -> Result<(), String> {
 
     if let Some(start_fn) = start_fn {
         println!("Calling _start ({})", start_fn);
-        exec::invoke(&mut runtime, module_idx, start_fn);
-        exec::finish(&mut runtime);
+        exec::invoke(&mut runtime, module_idx, start_fn)?;
+        exec::finish(&mut runtime)?;
     }
 
     Ok(())
