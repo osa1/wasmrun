@@ -24,7 +24,7 @@ impl Stack {
     pub fn pop_i32(&mut self) -> Result<i32> {
         match self.0.pop() {
             Some(Value::I32(val)) => Ok(val),
-            Some(other) => Err(ExecError::Panic(format!("Stack::pop_i32: {:#?}", other))),
+            Some(other) => Err(ExecError::Panic(format!("Stack::pop_i32: {:?}", other))),
             None => Err(ExecError::Panic("Stack::pop_i32: empty stack".to_string())),
         }
     }
@@ -32,7 +32,7 @@ impl Stack {
     pub fn pop_i64(&mut self) -> Result<i64> {
         match self.0.pop() {
             Some(Value::I64(val)) => Ok(val),
-            Some(other) => Err(ExecError::Panic(format!("Stack::pop_i64: {:#?}", other))),
+            Some(other) => Err(ExecError::Panic(format!("Stack::pop_i64: {:?}", other))),
             None => Err(ExecError::Panic("Stack::pop_i64: empty stack".to_string())),
         }
     }

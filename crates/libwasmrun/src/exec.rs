@@ -590,6 +590,26 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I32DivS => {
+            op2::<i32, i32, _>(&mut rt.stack, i32::wrapping_div)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64DivS => {
+            op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_div)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I32DivU => {
+            op2::<u32, u32, _>(&mut rt.stack, u32::wrapping_div)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64DivU => {
+            op2::<u64, u64, _>(&mut rt.stack, u64::wrapping_div)?;
+            rt.ip += 1;
+        }
+
         Instruction::I32Ctz => {
             let val = rt.stack.pop_i32()?;
             rt.stack.push_i32(val.trailing_zeros() as i32);
@@ -608,6 +628,21 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32Or => {
             op2::<i32, i32, _>(&mut rt.stack, ::std::ops::BitOr::bitor)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64Or => {
+            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::BitOr::bitor)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I32And => {
+            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::BitAnd::bitand)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64And => {
+            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::BitAnd::bitand)?;
             rt.ip += 1;
         }
 
