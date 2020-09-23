@@ -114,10 +114,3 @@ impl StackValue for bool {
         stack.push_i32(if *self { 1 } else { 0 });
     }
 }
-
-pub fn op2<A: StackValue, B: StackValue, F: Fn(A, A) -> B>(stack: &mut Stack, op: F) {
-    let val2 = A::pop(stack);
-    let val1 = A::pop(stack);
-    let ret = op(val1, val2);
-    ret.push(stack);
-}

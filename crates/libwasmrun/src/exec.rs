@@ -4,7 +4,7 @@ pub mod store;
 pub mod value;
 
 use frame::FrameStack;
-use stack::{op2, Stack};
+use stack::{Stack, StackValue};
 use store::{Global, ModuleIdx, Store};
 pub use value::Value;
 
@@ -660,6 +660,13 @@ pub fn single_step(rt: &mut Runtime) {
 
         other => todo!("Instruction not implemented: {:?}", other),
     }
+}
+
+fn op2<A: StackValue, B: StackValue, F: Fn(A, A) -> B>(stack: &mut Stack, op: F) {
+    let val2 = A::pop(stack);
+    let val1 = A::pop(stack);
+    let ret = op(val1, val2);
+    ret.push(stack);
 }
 
 fn br(rt: &mut Runtime, n_blocks: u32) {
