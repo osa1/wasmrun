@@ -13,16 +13,17 @@ use parity_wasm::elements as wasm;
 
 fn main() {
     let Args { file } = cli::parse();
-    match run_spec_test(file) {
-        Ok(()) => {}
+    let exit_code = match run_spec_test(file) {
+        Ok(exit_code) => exit_code,
         Err(err) => {
             println!("{}", err);
-            exit(1);
+            1
         }
-    }
+    };
+    exit(exit_code)
 }
 
-fn run_spec_test(file: String) -> Result<(), String> {
+fn run_spec_test(file: String) -> Result<i32, String> {
     let path: PathBuf = file.into();
 
     match path.extension() {
@@ -60,6 +61,9 @@ fn run_spec_test(file: String) -> Result<(), String> {
     let spec = spec::parse_test_spec(&spec_json_path);
     // println!("{:#?}", spec);
 
+    let mut exit_code = 0;
+    let mut failing_lines = vec![];
+
     let mut rt = Runtime::new();
     let mut module_idx: Option<ModuleIdx> = None;
 
@@ -74,6 +78,8 @@ fn run_spec_test(file: String) -> Result<(), String> {
                     Err(err) => {
                         println!("Error while parsing module: {}", err);
                         module_idx = None;
+                        exit_code = 1;
+                        failing_lines.push(line);
                         continue;
                     }
                     Ok(module) => {
@@ -145,10 +151,16 @@ fn run_spec_test(file: String) -> Result<(), String> {
                         "expected != found. Expected: {:?}, Found: {:?}",
                         expected, found
                     );
+                    exit_code = 1;
+                    failing_lines.push(line);
                 }
             }
         }
     }
 
-    Ok(())
+    if !failing_lines.is_empty() {
+        println!("Failing lines: {:?}", failing_lines);
+    }
+
+    Ok(exit_code)
 }
