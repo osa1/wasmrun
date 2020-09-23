@@ -4,7 +4,7 @@ pub mod store;
 pub mod value;
 
 use frame::FrameStack;
-use stack::Stack;
+use stack::{op2, Stack};
 use store::{Global, ModuleIdx, Store};
 pub use value::Value;
 
@@ -444,16 +444,12 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::I32Eq => {
-            let v1 = rt.stack.pop_i32();
-            let v2 = rt.stack.pop_i32();
-            rt.stack.push_bool(v1 == v2);
+            op2::<i32, bool, _>(&mut rt.stack, |a, b| a == b);
             rt.ip += 1;
         }
 
         Instruction::I32Ne => {
-            let v1 = rt.stack.pop_i32();
-            let v2 = rt.stack.pop_i32();
-            rt.stack.push_bool(v1 != v2);
+            op2::<i32, bool, _>(&mut rt.stack, |a, b| a != b);
             rt.ip += 1;
         }
 
@@ -470,65 +466,47 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::I32LeU => {
-            let val2 = rt.stack.pop_i32() as u32;
-            let val1 = rt.stack.pop_i32() as u32;
-            rt.stack.push_bool(val1 <= val2);
+            op2::<u32, bool, _>(&mut rt.stack, |a, b| a <= b);
             rt.ip += 1;
         }
 
         Instruction::I32LeS => {
-            let val2 = rt.stack.pop_i32();
-            let val1 = rt.stack.pop_i32();
-            rt.stack.push_bool(val1 <= val2);
+            op2::<i32, bool, _>(&mut rt.stack, |a, b| a <= b);
             rt.ip += 1;
         }
 
         Instruction::I32LtU => {
-            let val2 = rt.stack.pop_i32() as u32;
-            let val1 = rt.stack.pop_i32() as u32;
-            rt.stack.push_bool(val1 < val2);
+            op2::<i32, bool, _>(&mut rt.stack, |a, b| a < b);
             rt.ip += 1;
         }
 
         Instruction::I32Add => {
-            let val2 = rt.stack.pop_i32();
-            let val1 = rt.stack.pop_i32();
-            rt.stack.push_i32(val1 + val2);
+            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::Add::add);
             rt.ip += 1;
         }
 
         Instruction::I64Add => {
-            let val2 = rt.stack.pop_i64();
-            let val1 = rt.stack.pop_i64();
-            rt.stack.push_i64(val1 + val2);
+            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::Add::add);
             rt.ip += 1;
         }
 
         Instruction::I32Sub => {
-            let val2 = rt.stack.pop_i32();
-            let val1 = rt.stack.pop_i32();
-            rt.stack.push_i32(val1 - val2);
+            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::Sub::sub);
             rt.ip += 1;
         }
 
         Instruction::I64Sub => {
-            let val2 = rt.stack.pop_i64();
-            let val1 = rt.stack.pop_i64();
-            rt.stack.push_i64(val1 - val2);
+            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::Sub::sub);
             rt.ip += 1;
         }
 
         Instruction::I32Mul => {
-            let val2 = rt.stack.pop_i32();
-            let val1 = rt.stack.pop_i32();
-            rt.stack.push_i32(val1 * val2);
+            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::Mul::mul);
             rt.ip += 1;
         }
 
         Instruction::I64Mul => {
-            let val2 = rt.stack.pop_i64();
-            let val1 = rt.stack.pop_i64();
-            rt.stack.push_i64(val1 * val2);
+            op2::<i64, i64, _>(&mut rt.stack, ::std::ops::Mul::mul);
             rt.ip += 1;
         }
 
@@ -539,23 +517,17 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::I32GtU => {
-            let val2 = rt.stack.pop_i32() as u32;
-            let val1 = rt.stack.pop_i32() as u32;
-            rt.stack.push_bool(val1 > val2);
+            op2::<u32, bool, _>(&mut rt.stack, |a, b| a > b);
             rt.ip += 1;
         }
 
         Instruction::I64GtU => {
-            let val2 = rt.stack.pop_i64() as u64;
-            let val1 = rt.stack.pop_i64() as u64;
-            rt.stack.push_bool(val1 > val2);
+            op2::<u64, bool, _>(&mut rt.stack, |a, b| a > b);
             rt.ip += 1;
         }
 
         Instruction::I32Or => {
-            let val2 = rt.stack.pop_i32();
-            let val1 = rt.stack.pop_i32();
-            rt.stack.push_i32(val1 | val2);
+            op2::<i32, i32, _>(&mut rt.stack, ::std::ops::BitOr::bitor);
             rt.ip += 1;
         }
 

@@ -59,3 +59,65 @@ impl Stack {
         self.push_u32(if bool { 1 } else { 0 })
     }
 }
+
+pub trait StackValue {
+    fn pop(stack: &mut Stack) -> Self;
+    fn push(&self, stack: &mut Stack);
+}
+
+impl StackValue for u32 {
+    fn pop(stack: &mut Stack) -> Self {
+        stack.pop_i32() as u32
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_i32(*self as i32);
+    }
+}
+
+impl StackValue for i32 {
+    fn pop(stack: &mut Stack) -> Self {
+        stack.pop_i32()
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_i32(*self);
+    }
+}
+
+impl StackValue for i64 {
+    fn pop(stack: &mut Stack) -> Self {
+        stack.pop_i64()
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_i64(*self);
+    }
+}
+
+impl StackValue for u64 {
+    fn pop(stack: &mut Stack) -> Self {
+        stack.pop_i64() as u64
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_i64(*self as i64);
+    }
+}
+
+impl StackValue for bool {
+    fn pop(stack: &mut Stack) -> Self {
+        stack.pop_i32() == 1
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_i32(if *self { 1 } else { 0 });
+    }
+}
+
+pub fn op2<A: StackValue, B: StackValue, F: Fn(A, A) -> B>(stack: &mut Stack, op: F) {
+    let val2 = A::pop(stack);
+    let val1 = A::pop(stack);
+    let ret = op(val1, val2);
+    ret.push(stack);
+}
