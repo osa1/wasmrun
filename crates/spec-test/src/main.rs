@@ -13,10 +13,10 @@ use std::process::{exit, Command};
 use parity_wasm::elements as wasm;
 
 fn main() {
-    let Args { file, accept } = cli::parse();
+    let Args { file } = cli::parse();
 
     let ret = match fs::read_dir(&file) {
-        Ok(dir_contents) => run_spec_dir(dir_contents, accept),
+        Ok(dir_contents) => run_spec_dir(dir_contents),
         Err(_) => {
             let mut out = Output { file: None };
             run_spec_test(file.into(), &mut out)
@@ -63,7 +63,7 @@ impl Write for Output {
     }
 }
 
-fn run_spec_dir(dir: fs::ReadDir, accept: bool) -> Result<i32, String> {
+fn run_spec_dir(dir: fs::ReadDir) -> Result<i32, String> {
     let out_file = fs::File::create("test_output").unwrap();
     let mut out = Output {
         file: Some(out_file),

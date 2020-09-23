@@ -6,8 +6,6 @@ pub struct Args {
     /// Spec test file or directory. When this is a directory we assume run all .wast files in the
     /// directory and compare the output with the expected output (if a reference file exists).
     pub file: String,
-    /// Update the reference test output file. Only used when running multiple .wast files.
-    pub accept: bool,
 }
 
 /// Parses command line arguments.
@@ -28,11 +26,9 @@ pub fn parse() -> Args {
                 .multiple(false)
                 .help("File to run"),
         )
-        .arg(Arg::with_name("accept").required(false).long("accept"))
         .get_matches();
 
     Args {
         file: m.value_of("file").unwrap().to_string(),
-        accept: m.is_present("accept"),
     }
 }
