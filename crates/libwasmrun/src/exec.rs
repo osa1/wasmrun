@@ -342,13 +342,13 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::Select => {
-            let first = rt.stack.pop_value();
-            let second = rt.stack.pop_value();
             let select = rt.stack.pop_i32();
+            let val2 = rt.stack.pop_value();
+            let val1 = rt.stack.pop_value();
             if select == 0 {
-                rt.stack.push_value(first);
+                rt.stack.push_value(val2);
             } else {
-                rt.stack.push_value(second);
+                rt.stack.push_value(val1);
             }
             rt.ip += 1;
         }
