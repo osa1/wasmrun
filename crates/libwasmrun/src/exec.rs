@@ -321,6 +321,38 @@ pub fn single_step(rt: &mut Runtime) {
     */
 
     match instr {
+        Instruction::GrowMemory(mem_ref) => {
+            assert_eq!(*mem_ref, 0);
+            let mem = &mut rt.store.mems[module_idx];
+            let sz = mem.len();
+            debug_assert!(sz % PAGE_SIZE == 0);
+            let sz_pages = sz / PAGE_SIZE;
+
+            // NB. This operation current does not fail
+            let n_pages = rt.stack.pop_i32() as usize;
+            mem.resize(mem.len() + PAGE_SIZE * n_pages, 0);
+
+            rt.stack.push_i32(sz_pages as i32);
+
+            rt.ip += 1;
+        }
+
+        Instruction::Nop => {
+            rt.ip += 1;
+        }
+
+        Instruction::Select => {
+            let first = rt.stack.pop_value();
+            let second = rt.stack.pop_value();
+            let select = rt.stack.pop_i32();
+            if select == 0 {
+                rt.stack.push_value(first);
+            } else {
+                rt.stack.push_value(second);
+            }
+            rt.ip += 1;
+        }
+
         Instruction::I32Store(_, offset) => {
             let value = rt.stack.pop_i32();
             let addr = rt.stack.pop_i32() as u32;
@@ -418,6 +450,13 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip += 1;
         }
 
+        Instruction::I32Ne => {
+            let v1 = rt.stack.pop_i32();
+            let v2 = rt.stack.pop_i32();
+            rt.stack.push_bool(v1 != v2);
+            rt.ip += 1;
+        }
+
         Instruction::I32Eqz => {
             let val = rt.stack.pop_i32();
             rt.stack.push_bool(val == 0);
@@ -425,9 +464,23 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::I32LeU => {
+            let val2 = rt.stack.pop_i32() as u32;
+            let val1 = rt.stack.pop_i32() as u32;
+            rt.stack.push_bool(val1 <= val2);
+            rt.ip += 1;
+        }
+
+        Instruction::I32LeS => {
             let val2 = rt.stack.pop_i32();
             let val1 = rt.stack.pop_i32();
             rt.stack.push_bool(val1 <= val2);
+            rt.ip += 1;
+        }
+
+        Instruction::I32LtU => {
+            let val2 = rt.stack.pop_i32() as u32;
+            let val1 = rt.stack.pop_i32() as u32;
+            rt.stack.push_bool(val1 < val2);
             rt.ip += 1;
         }
 
@@ -442,6 +495,12 @@ pub fn single_step(rt: &mut Runtime) {
             let val2 = rt.stack.pop_i32();
             let val1 = rt.stack.pop_i32();
             rt.stack.push_i32(val1 - val2);
+            rt.ip += 1;
+        }
+
+        Instruction::I32Ctz => {
+            let val = rt.stack.pop_i32();
+            rt.stack.push_i32(val.trailing_zeros() as i32);
             rt.ip += 1;
         }
 
@@ -491,7 +550,7 @@ pub fn single_step(rt: &mut Runtime) {
             rt.ip = rt.conts.last_mut().unwrap().pop().unwrap();
         }
 
-        Instruction::Block(_) => {
+        Instruction::Block(_) | Instruction::Loop(_) => {
             let cont = match current_fun.block_bounds.get(&rt.ip) {
                 None => {
                     panic!("Couldn't find continuation of block");
@@ -514,9 +573,14 @@ pub fn single_step(rt: &mut Runtime) {
             let cond = rt.stack.pop_i32();
             if cond == 0 {
                 match current_fun.else_instrs.get(&rt.ip) {
-                    None => {
-                        panic!("Couldn't find else block of if");
-                    }
+                    None => match current_fun.block_bounds.get(&rt.ip) {
+                        None => {
+                            panic!("Couldn't find else block or continuation of if");
+                        }
+                        Some(cont) => {
+                            rt.ip = *cont;
+                        }
+                    },
                     Some(else_) => {
                         rt.ip = else_ + 1;
                     }
