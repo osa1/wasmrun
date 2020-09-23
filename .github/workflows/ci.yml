@@ -26,7 +26,7 @@ jobs:
             ls -lha target
             ls -lha target/debug
             ls -lha tests
-            cargo run --bin spec-test -- tests/spec.wast
+            target/debug/spec-test tests/spec.wast # cargo run doesn't work here???
 
       - name: Check formatting
         run: cargo fmt --all -- --check
