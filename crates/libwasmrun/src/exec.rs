@@ -310,7 +310,9 @@ pub fn single_step(rt: &mut Runtime) {
         return;
     }
 
-    let instr = &current_fun.fun.code().elements()[rt.ip as usize];
+    // Instruction is just 3 words so clonning here should be fine, and avoid borrowchk issues
+    // later on
+    let instr = current_fun.fun.code().elements()[rt.ip as usize].clone();
     let module_idx = current_fun.module_idx;
 
     /*
@@ -322,13 +324,13 @@ pub fn single_step(rt: &mut Runtime) {
 
     match instr {
         Instruction::GrowMemory(mem_ref) => {
-            assert_eq!(*mem_ref, 0);
+            assert_eq!(mem_ref, 0);
             let mem = &mut rt.store.mems[module_idx];
             let sz = mem.len();
             debug_assert!(sz % PAGE_SIZE == 0);
             let sz_pages = sz / PAGE_SIZE;
 
-            // NB. This operation current does not fail
+            // NB. This operation currently does not fail
             let n_pages = rt.stack.pop_i32() as usize;
             mem.resize(mem.len() + PAGE_SIZE * n_pages, 0);
 
@@ -391,55 +393,55 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::GetLocal(idx) => {
-            let val = rt.frames.current().get_local(*idx);
+            let val = rt.frames.current().get_local(idx);
             rt.stack.push_value(val);
             rt.ip += 1;
         }
 
         Instruction::SetLocal(idx) => {
             let val = rt.stack.pop_value();
-            rt.frames.current_mut().set_local(*idx, val);
+            rt.frames.current_mut().set_local(idx, val);
             rt.ip += 1;
         }
 
         Instruction::TeeLocal(idx) => {
             let val = rt.stack.pop_value();
-            rt.frames.current_mut().set_local(*idx, val);
+            rt.frames.current_mut().set_local(idx, val);
             rt.stack.push_value(val);
             rt.ip += 1;
         }
 
         Instruction::GetGlobal(idx) => {
-            let global_idx = rt.modules[module_idx].global_addrs[*idx as usize];
+            let global_idx = rt.modules[module_idx].global_addrs[idx as usize];
             let value = rt.store.globals[global_idx as usize].value;
             rt.stack.push_value(value);
             rt.ip += 1;
         }
 
         Instruction::SetGlobal(idx) => {
-            let global_idx = rt.modules[module_idx].global_addrs[*idx as usize];
+            let global_idx = rt.modules[module_idx].global_addrs[idx as usize];
             let value = rt.stack.pop_value();
             rt.store.globals[global_idx as usize].value = value;
             rt.ip += 1;
         }
 
         Instruction::I32Const(i) => {
-            rt.stack.push_i32(*i);
+            rt.stack.push_i32(i);
             rt.ip += 1;
         }
 
         Instruction::I64Const(i) => {
-            rt.stack.push_i64(*i);
+            rt.stack.push_i64(i);
             rt.ip += 1;
         }
 
         Instruction::F32Const(f) => {
-            rt.stack.push_f32(unsafe { transmute(*f) });
+            rt.stack.push_f32(unsafe { transmute(f) });
             rt.ip += 1;
         }
 
         Instruction::F64Const(f) => {
-            rt.stack.push_f64(unsafe { transmute(*f) });
+            rt.stack.push_f64(unsafe { transmute(f) });
             rt.ip += 1;
         }
 
@@ -532,7 +534,6 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::Call(func_idx) => {
-            let func_idx = *func_idx;
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx);
         }
@@ -540,7 +541,7 @@ pub fn single_step(rt: &mut Runtime) {
         Instruction::CallIndirect(_sig, table_ref) => {
             let elem_idx = rt.stack.pop_i32();
 
-            let table_addr = rt.modules[module_idx].table_addrs[*table_ref as usize];
+            let table_addr = rt.modules[module_idx].table_addrs[table_ref as usize];
             let fun = rt.store.tables[table_addr as usize][elem_idx as usize];
 
             let fun_idx = match fun {
@@ -578,6 +579,7 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::Block(_) | Instruction::Loop(_) => {
+            let current_fun = &rt.store.funcs[current_fun_idx as usize];
             let cont = match current_fun.block_bounds.get(&rt.ip) {
                 None => {
                     panic!("Couldn't find continuation of block");
@@ -589,6 +591,7 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::If(_) => {
+            let current_fun = &rt.store.funcs[current_fun_idx as usize];
             let cont = match current_fun.block_bounds.get(&rt.ip) {
                 None => {
                     panic!("Couldn't find continuation of if");
@@ -599,6 +602,7 @@ pub fn single_step(rt: &mut Runtime) {
 
             let cond = rt.stack.pop_i32();
             if cond == 0 {
+                let current_fun = &rt.store.funcs[current_fun_idx as usize];
                 match current_fun.else_instrs.get(&rt.ip) {
                     None => match current_fun.block_bounds.get(&rt.ip) {
                         None => {
@@ -618,6 +622,7 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::Else => {
+            let current_fun = &rt.store.funcs[current_fun_idx as usize];
             let cont = match current_fun.block_bounds.get(&rt.ip) {
                 None => {
                     panic!("Couldn't find continuation of else");
@@ -628,14 +633,14 @@ pub fn single_step(rt: &mut Runtime) {
         }
 
         Instruction::Br(n_blocks) => {
-            rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, *n_blocks);
+            br(rt, n_blocks);
         }
 
         Instruction::BrIf(n_blocks) => {
             if rt.stack.pop_i32() == 0 {
                 rt.ip += 1;
             } else {
-                rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, *n_blocks);
+                br(rt, n_blocks);
             }
         }
 
@@ -645,7 +650,7 @@ pub fn single_step(rt: &mut Runtime) {
                 None => table.default,
                 Some(n_blocks) => *n_blocks,
             };
-            rt.ip = br(rt.ip, &mut rt.conts, &mut rt.frames, &rt.store, n_blocks);
+            br(rt, n_blocks);
         }
 
         Instruction::Drop => {
@@ -657,25 +662,19 @@ pub fn single_step(rt: &mut Runtime) {
     }
 }
 
-// Sigh.. We can't pass Runtime here as that causes borrowchk issues at call sites
-fn br(
-    mut ip: u32,
-    conts: &mut Vec<Vec<u32>>,
-    frames: &mut FrameStack,
-    store: &Store,
-    n_blocks: u32,
-) -> u32 {
+fn br(rt: &mut Runtime, n_blocks: u32) {
     for _ in 0..n_blocks + 1 {
-        let cont_frame = conts.last_mut().unwrap();
+        let cont_frame = rt.conts.last_mut().unwrap();
         match cont_frame.pop() {
             None => {
                 // Function return
-                let current_fun_idx = frames.current().fun_idx;
-                let current_fun = &store.funcs[current_fun_idx as usize];
-                ip = current_fun.fun.code().elements().len() as u32;
+                let current_fun_idx = rt.frames.current().fun_idx;
+                let current_fun = &rt.store.funcs[current_fun_idx as usize];
+                rt.ip = current_fun.fun.code().elements().len() as u32;
             }
-            Some(ip_) => ip = ip_,
+            Some(ip) => {
+                rt.ip = ip;
+            }
         }
     }
-    ip
 }
