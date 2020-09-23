@@ -109,8 +109,8 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
     }
 
     let stem = path.file_stem().unwrap().to_str().unwrap();
-    let dir_path = format!("{}-spec", stem);
-    let _ = fs::create_dir(&dir_path);
+    let dir_path = format!("specs/{}-spec", stem);
+    let _ = fs::create_dir_all(&dir_path);
 
     let spec_json_path = format!("{}/test.json", dir_path);
 
@@ -139,10 +139,6 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
             return Ok(1);
         }
     }
-
-    // if !cmd_ret.status.success() {
-    //     writeln!(out, "wast2json failed".to_string());
-    // }
 
     let spec = spec::parse_test_spec(&spec_json_path);
 
