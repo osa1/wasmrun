@@ -58,7 +58,7 @@ fn run_spec_test(file: String) -> Result<(), String> {
     }
 
     let spec = spec::parse_test_spec(&spec_json_path);
-    println!("{:#?}", spec);
+    // println!("{:#?}", spec);
 
     let mut rt = Runtime::new();
     let mut module_idx: Option<ModuleIdx> = None;
