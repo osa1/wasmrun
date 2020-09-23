@@ -443,6 +443,33 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I64Load(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 8;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I64Load (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let b3 = mem[addr + 2];
+            let b4 = mem[addr + 3];
+            let b5 = mem[addr + 4];
+            let b6 = mem[addr + 5];
+            let b7 = mem[addr + 6];
+            let b8 = mem[addr + 7];
+            rt.stack
+                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]));
+            rt.ip += 1;
+        }
+
         Instruction::GetLocal(idx) => {
             let val = rt.frames.current()?.get_local(idx)?;
             rt.stack.push_value(val);
