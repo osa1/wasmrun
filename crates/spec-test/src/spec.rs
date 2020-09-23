@@ -62,6 +62,22 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                         .collect(),
                 });
             }
+            "action" => {
+                let action = command_de.action.unwrap();
+                if action.typ != "invoke" {
+                    todo!("Unknown action type: {}", action.typ);
+                }
+                // Basically assert_return, we the function doesn't return anything
+                commands_.push(Command::AssertReturn {
+                    line: command_de.line,
+                    func: action.field,
+                    args: action.args.into_iter().map(parse_value).collect(),
+                    expected: vec![],
+                });
+            }
+            "assert_trap" => {
+                // TODO We probably want to test this
+            }
             "assert_invalid" | "assert_malformed" => {
                 // We don't want to test this stuff, skip
             }
@@ -77,10 +93,10 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
 
 fn parse_value(value_de: ValueDe) -> Value {
     match value_de.typ.as_ref() {
-        "i32" => Value::I32(parse_str::<ParseIntError, u32>(&value_de.value) as i32),
-        "i64" => Value::I64(parse_str::<ParseIntError, u64>(&value_de.value) as i64),
-        "f32" => Value::F32(value_de.value),
-        "f64" => Value::F64(value_de.value),
+        "i32" => Value::I32(parse_str::<ParseIntError, u32>(&value_de.value.unwrap()) as i32),
+        "i64" => Value::I64(parse_str::<ParseIntError, u64>(&value_de.value.unwrap()) as i64),
+        "f32" => Value::F32(value_de.value.unwrap()),
+        "f64" => Value::F64(value_de.value.unwrap()),
         other => todo!("Unknown value type: {}", other),
     }
 }
@@ -120,5 +136,5 @@ struct ActionDe {
 struct ValueDe {
     #[serde(rename = "type")]
     typ: String,
-    value: String,
+    value: Option<String>,
 }
