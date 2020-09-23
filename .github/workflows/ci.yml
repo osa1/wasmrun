@@ -23,6 +23,8 @@ jobs:
         run: |
             pwd
             ls -lha .
+            ls -lha target
+            ls -lha target/debug
             ls -lha tests
             cargo run --bin spec-test -- tests/spec.wast
 
