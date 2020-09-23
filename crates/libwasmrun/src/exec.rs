@@ -372,6 +372,16 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::CurrentMemory(mem_ref) => {
+            // memory.size
+            assert_eq!(mem_ref, 0);
+            let mem = &mut rt.store.mems[module_idx];
+            let sz = mem.len();
+            debug_assert!(sz % PAGE_SIZE == 0);
+            rt.stack.push_i32((sz / PAGE_SIZE) as i32);
+            rt.ip += 1;
+        }
+
         Instruction::Nop => {
             rt.ip += 1;
         }
@@ -407,7 +417,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem[addr] = b1;
             mem[addr + 1] = b2;
             mem[addr + 2] = b3;
-            mem[addr + 4] = b4;
+            mem[addr + 3] = b4;
             rt.ip += 1;
         }
 
