@@ -448,6 +448,48 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I64Store8(_, offset) => {
+            let c = rt.stack.pop_i64()?;
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 1;
+
+            let mem = &mut rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I64Store8 (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let val = (c % 8) as u8;
+            mem[addr] = val;
+
+            rt.ip += 1;
+        }
+
+        Instruction::I64Load8S(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 1;
+
+            let mem = &mut rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I64Load8S (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let val = mem[addr];
+            rt.stack.push_i64(val as i64);
+
+            rt.ip += 1;
+        }
+
         Instruction::I32Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = (addr + offset) as usize;
@@ -650,6 +692,35 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64GtU => {
             op2::<u64, bool, _>(&mut rt.stack, |a, b| a > b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64GtS => {
+            op2::<i64, bool, _>(&mut rt.stack, |a, b| a > b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64GeU => {
+            op2::<u64, bool, _>(&mut rt.stack, |a, b| a >= b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64GeS => {
+            op2::<i64, bool, _>(&mut rt.stack, |a, b| a >= b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I32Popcnt => {
+            let i = rt.stack.pop_i32()?;
+            let ret = unsafe { ::core::arch::x86_64::_popcnt32(i) };
+            rt.stack.push_i32(ret);
+            rt.ip += 1;
+        }
+
+        Instruction::I64Popcnt => {
+            let i = rt.stack.pop_i64()?;
+            let ret = unsafe { ::core::arch::x86_64::_popcnt64(i) };
+            rt.stack.push_i64(ret as i64);
             rt.ip += 1;
         }
 
