@@ -17,7 +17,10 @@ jobs:
             override: true
 
       - name: Build and run tests
-        run: cargo run --bin spec-test -- tests/spec.wast
+        run: |
+            pwd
+            ls -lha .
+            cargo run --bin spec-test -- tests/spec.wast
 
       - name: Check formatting
         run: cargo fmt --all -- --check
