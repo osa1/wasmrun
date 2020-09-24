@@ -610,6 +610,28 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I32Load8S(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 1;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I32Load8S (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b = mem[addr] as i8;
+            let b_abs = b.abs() as i32;
+
+            let val = if b < 0 { -1 * b_abs } else { b_abs };
+            rt.stack.push_i32(val);
+            rt.ip += 1;
+        }
+
         Instruction::I64Load8U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = (addr + offset) as usize;
@@ -649,6 +671,35 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I32Load16S(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 2;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I32Load16S (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let i_16 = i16::from_le_bytes([b1, b2]);
+            let i_16_abs = i_16.abs();
+
+            let val = if i_16 < 0 {
+                -1 * (i_16_abs as i32)
+            } else {
+                i_16_abs as i32
+            };
+
+            rt.stack.push_i32(val);
+            rt.ip += 1;
+        }
+
         Instruction::I64Load16U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = (addr + offset) as usize;
@@ -670,7 +721,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load32U(_, offset) => {
+        Instruction::I64Load16S(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = (addr + offset) as usize;
             let end_addr = addr + 2;
@@ -678,7 +729,35 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &rt.store.mems[module_idx];
             if end_addr as usize > mem.len() {
                 return Err(ExecError::Panic(format!(
-                    "OOB I32Load16U (mem size={}, addr={})",
+                    "OOB I64Load16S (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let i_16 = i16::from_le_bytes([b1, b2]);
+            let i_16_abs = i_16.abs();
+            let val = if i_16 < 0 {
+                -1 * (i_16_abs as i64)
+            } else {
+                i_16_abs as i64
+            };
+
+            rt.stack.push_i64(val);
+            rt.ip += 1;
+        }
+
+        Instruction::I64Load32U(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 4;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I32Load32U (mem size={}, addr={})",
                     mem.len(),
                     addr
                 )));
@@ -690,6 +769,37 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b4 = mem[addr + 3];
             rt.stack
                 .push_i64(i64::from_le_bytes([b1, b2, b3, b4, 0, 0, 0, 0]));
+            rt.ip += 1;
+        }
+
+        Instruction::I64Load32S(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 4;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I32Load32S (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let b3 = mem[addr + 2];
+            let b4 = mem[addr + 3];
+            let i_32 = i32::from_le_bytes([b1, b2, b3, b4]);
+            let i_32_abs = i_32.abs();
+
+            let val = if i_32 < 0 {
+                -1 * (i_32_abs as i64)
+            } else {
+                i_32_abs as i64
+            };
+
+            rt.stack.push_i64(val);
             rt.ip += 1;
         }
 
@@ -792,8 +902,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Eq => {
+            op2::<f32, bool, _>(&mut rt.stack, |a, b| a == b)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64Eq => {
             op2::<i64, bool, _>(&mut rt.stack, |a, b| a == b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Eq => {
+            op2::<f64, bool, _>(&mut rt.stack, |a, b| a == b)?;
             rt.ip += 1;
         }
 
@@ -801,9 +921,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             op2::<i32, bool, _>(&mut rt.stack, |a, b| a != b)?;
             rt.ip += 1;
         }
+        Instruction::F32Ne => {
+            op2::<f32, bool, _>(&mut rt.stack, |a, b| a != b)?;
+            rt.ip += 1;
+        }
 
         Instruction::I64Ne => {
             op2::<i64, bool, _>(&mut rt.stack, |a, b| a != b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Ne => {
+            op2::<f64, bool, _>(&mut rt.stack, |a, b| a != b)?;
             rt.ip += 1;
         }
 
@@ -834,8 +963,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Le => {
+            op2::<f32, bool, _>(&mut rt.stack, |a, b| a <= b)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64LeS => {
             op2::<i64, bool, _>(&mut rt.stack, |a, b| a <= b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Le => {
+            op2::<f64, bool, _>(&mut rt.stack, |a, b| a <= b)?;
             rt.ip += 1;
         }
 
@@ -854,8 +993,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Add => {
+            op2::<f32, f32, _>(&mut rt.stack, ::std::ops::Add::add)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64Add => {
             op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_add)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Add => {
+            op2::<f64, f64, _>(&mut rt.stack, ::std::ops::Add::add)?;
             rt.ip += 1;
         }
 
@@ -864,8 +1013,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Sub => {
+            op2::<f32, f32, _>(&mut rt.stack, ::std::ops::Sub::sub)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64Sub => {
             op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_sub)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Sub => {
+            op2::<f64, f64, _>(&mut rt.stack, ::std::ops::Sub::sub)?;
             rt.ip += 1;
         }
 
@@ -874,8 +1033,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Mul => {
+            op2::<f32, f32, _>(&mut rt.stack, ::std::ops::Mul::mul)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64Mul => {
             op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_mul)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Mul => {
+            op2::<f64, f64, _>(&mut rt.stack, ::std::ops::Mul::mul)?;
             rt.ip += 1;
         }
 
@@ -884,8 +1053,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Div => {
+            op2::<f32, f32, _>(&mut rt.stack, ::std::ops::Div::div)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64DivS => {
             op2::<i64, i64, _>(&mut rt.stack, i64::wrapping_div)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Div => {
+            op2::<f64, f64, _>(&mut rt.stack, ::std::ops::Div::div)?;
             rt.ip += 1;
         }
 
@@ -926,8 +1105,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Lt => {
+            op2::<f32, bool, _>(&mut rt.stack, |a, b| a < b)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64LtS => {
             op2::<i64, bool, _>(&mut rt.stack, |a, b| a < b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Lt => {
+            op2::<f64, bool, _>(&mut rt.stack, |a, b| a < b)?;
             rt.ip += 1;
         }
 
@@ -936,8 +1125,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Gt => {
+            op2::<f32, bool, _>(&mut rt.stack, |a, b| a > b)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64GtS => {
             op2::<i64, bool, _>(&mut rt.stack, |a, b| a > b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Gt => {
+            op2::<f64, bool, _>(&mut rt.stack, |a, b| a > b)?;
             rt.ip += 1;
         }
 
@@ -956,8 +1155,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Ge => {
+            op2::<f32, bool, _>(&mut rt.stack, |a, b| a >= b)?;
+            rt.ip += 1;
+        }
+
         Instruction::I64GeS => {
             op2::<i64, bool, _>(&mut rt.stack, |a, b| a >= b)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Ge => {
+            op2::<f64, bool, _>(&mut rt.stack, |a, b| a >= b)?;
             rt.ip += 1;
         }
 
@@ -1090,6 +1299,98 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64Clz => {
             let i = rt.stack.pop_i64()?;
             rt.stack.push_i64(i.leading_zeros() as i64);
+            rt.ip += 1;
+        }
+
+        Instruction::F32Max => {
+            op2::<f32, f32, _>(&mut rt.stack, f32::max)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Max => {
+            op2::<f64, f64, _>(&mut rt.stack, f64::max)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F32Min => {
+            op2::<f32, f32, _>(&mut rt.stack, f32::min)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Min => {
+            op2::<f64, f64, _>(&mut rt.stack, f64::min)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F32Neg => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_f32(-1f32 * f);
+            rt.ip += 1;
+        }
+
+        Instruction::F64Neg => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_f64(-1f64 * f);
+            rt.ip += 1;
+        }
+
+        Instruction::F32Sqrt => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_f32(f.sqrt());
+            rt.ip += 1;
+        }
+
+        Instruction::F64Sqrt => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_f64(f.sqrt());
+            rt.ip += 1;
+        }
+
+        Instruction::F32Abs => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_f32(f.abs());
+            rt.ip += 1;
+        }
+
+        Instruction::F64Abs => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_f64(f.abs());
+            rt.ip += 1;
+        }
+
+        Instruction::F32Ceil => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_f32(f.ceil());
+            rt.ip += 1;
+        }
+
+        Instruction::F64Ceil => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_f64(f.ceil());
+            rt.ip += 1;
+        }
+
+        Instruction::F32Floor => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_f32(f.floor());
+            rt.ip += 1;
+        }
+
+        Instruction::F64Floor => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_f64(f.floor());
+            rt.ip += 1;
+        }
+
+        Instruction::F32Trunc => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_f32(f.trunc());
+            rt.ip += 1;
+        }
+
+        Instruction::F64Trunc => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_f64(f.trunc());
             rt.ip += 1;
         }
 
@@ -1235,84 +1536,42 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 "Instruction not implemented: {:?}",
                 other
             )));
-        } /*
-                  Instruction::F32Load(_, _) => {}
-                  Instruction::F64Load(_, _) => {}
-                  Instruction::I32Load8S(_, _) => {}
-                  Instruction::I32Load16S(_, _) => {}
-                  Instruction::I64Load16S(_, _) => {}
-                  Instruction::I64Load32S(_, _) => {}
-                  Instruction::F32Store(_, _) => {}
-                  Instruction::F64Store(_, _) => {}
-                  Instruction::F32Eq => {}
-                  Instruction::F32Ne => {}
-                  Instruction::F32Lt => {}
-                  Instruction::F32Gt => {}
-                  Instruction::F32Le => {}
-                  Instruction::F32Ge => {}
-                  Instruction::F64Eq => {}
-                  Instruction::F64Ne => {}
-                  Instruction::F64Lt => {}
-                  Instruction::F64Gt => {}
-                  Instruction::F64Le => {}
-                  Instruction::F64Ge => {}
-                  Instruction::F32Abs => {}
-                  Instruction::F32Neg => {}
-                  Instruction::F32Ceil => {}
-                  Instruction::F32Floor => {}
-                  Instruction::F32Trunc => {}
-                  Instruction::F32Nearest => {}
-                  Instruction::F32Sqrt => {}
-                  Instruction::F32Add => {}
-                  Instruction::F32Sub => {}
-                  Instruction::F32Mul => {}
-                  Instruction::F32Div => {}
-                  Instruction::F32Min => {}
-                  Instruction::F32Max => {}
-                  Instruction::F32Copysign => {}
-                  Instruction::F64Abs => {}
-                  Instruction::F64Neg => {}
-                  Instruction::F64Ceil => {}
-                  Instruction::F64Floor => {}
-                  Instruction::F64Trunc => {}
-                  Instruction::F64Nearest => {}
-                  Instruction::F64Sqrt => {}
-                  Instruction::F64Add => {}
-                  Instruction::F64Sub => {}
-                  Instruction::F64Mul => {}
-                  Instruction::F64Div => {}
-                  Instruction::F64Min => {}
-                  Instruction::F64Max => {}
-                  Instruction::F64Copysign => {}
-                  Instruction::I32TruncSF32 => {}
-                  Instruction::I32TruncUF32 => {}
-                  Instruction::I32TruncSF64 => {}
-                  Instruction::I32TruncUF64 => {}
-                  Instruction::I64ExtendSI32 => {}
-                  Instruction::I64ExtendUI32 => {}
-                  Instruction::I64TruncSF32 => {}
-                  Instruction::I64TruncUF32 => {}
-                  Instruction::I64TruncSF64 => {}
-                  Instruction::I64TruncUF64 => {}
-                  Instruction::F32ConvertSI32 => {}
-                  Instruction::F32ConvertUI32 => {}
-                  Instruction::F32ConvertSI64 => {}
-                  Instruction::F32ConvertUI64 => {}
-                  Instruction::F32DemoteF64 => {}
-                  Instruction::F64ConvertSI32 => {}
-                  Instruction::F64ConvertUI32 => {}
-                  Instruction::F64ConvertSI64 => {}
-                  Instruction::F64ConvertUI64 => {}
-                  Instruction::F64PromoteF32 => {}
-                  Instruction::I32ReinterpretF32 => {}
-                  Instruction::I64ReinterpretF64 => {}
-                  Instruction::F32ReinterpretI32 => {}
-                  Instruction::F64ReinterpretI64 => {}
-                  Instruction::Atomics(_) => {}
-                  Instruction::Simd(_) => {}
-                  Instruction::SignExt(_) => {}
-                  Instruction::Bulk(_) => {}
-          */
+        } // Instruction::F32Load(_, _) => {}
+          // Instruction::F64Load(_, _) => {}
+          // Instruction::F32Store(_, _) => {}
+          // Instruction::F64Store(_, _) => {}
+          // Instruction::F32Nearest => {}
+          // Instruction::F32Copysign => {}
+          // Instruction::F64Nearest => {}
+          // Instruction::F64Copysign => {}
+          // Instruction::I32TruncSF32 => {}
+          // Instruction::I32TruncUF32 => {}
+          // Instruction::I32TruncSF64 => {}
+          // Instruction::I32TruncUF64 => {}
+          // Instruction::I64ExtendSI32 => {}
+          // Instruction::I64ExtendUI32 => {}
+          // Instruction::I64TruncSF32 => {}
+          // Instruction::I64TruncUF32 => {}
+          // Instruction::I64TruncSF64 => {}
+          // Instruction::I64TruncUF64 => {}
+          // Instruction::F32ConvertSI32 => {}
+          // Instruction::F32ConvertUI32 => {}
+          // Instruction::F32ConvertSI64 => {}
+          // Instruction::F32ConvertUI64 => {}
+          // Instruction::F32DemoteF64 => {}
+          // Instruction::F64ConvertSI32 => {}
+          // Instruction::F64ConvertUI32 => {}
+          // Instruction::F64ConvertSI64 => {}
+          // Instruction::F64ConvertUI64 => {}
+          // Instruction::F64PromoteF32 => {}
+          // Instruction::I32ReinterpretF32 => {}
+          // Instruction::I64ReinterpretF64 => {}
+          // Instruction::F32ReinterpretI32 => {}
+          // Instruction::F64ReinterpretI64 => {}
+          // Instruction::Atomics(_) => {}
+          // Instruction::Simd(_) => {}
+          // Instruction::SignExt(_) => {}
+          // Instruction::Bulk(_) => {}
     }
 
     Ok(())

@@ -37,6 +37,22 @@ impl Stack {
         }
     }
 
+    pub fn pop_f32(&mut self) -> Result<f32> {
+        match self.0.pop() {
+            Some(Value::F32(val)) => Ok(val),
+            Some(other) => Err(ExecError::Panic(format!("Stack::pop_f32: {:?}", other))),
+            None => Err(ExecError::Panic("Stack::pop_f32: empty stack".to_string())),
+        }
+    }
+
+    pub fn pop_f64(&mut self) -> Result<f64> {
+        match self.0.pop() {
+            Some(Value::F64(val)) => Ok(val),
+            Some(other) => Err(ExecError::Panic(format!("Stack::pop_f64: {:?}", other))),
+            None => Err(ExecError::Panic("Stack::pop_f64: empty stack".to_string())),
+        }
+    }
+
     pub fn push_value(&mut self, val: Value) {
         self.0.push(val)
     }
@@ -108,6 +124,26 @@ impl StackValue for u64 {
 
     fn push(&self, stack: &mut Stack) {
         stack.push_i64(*self as i64);
+    }
+}
+
+impl StackValue for f32 {
+    fn pop(stack: &mut Stack) -> Result<Self> {
+        stack.pop_f32()
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_f32(*self);
+    }
+}
+
+impl StackValue for f64 {
+    fn pop(stack: &mut Stack) -> Result<Self> {
+        stack.pop_f64()
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_f64(*self);
     }
 }
 
