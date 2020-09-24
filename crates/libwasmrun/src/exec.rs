@@ -1525,22 +1525,50 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        /* FIXME
-                Instruction::F32Nearest => {
-                    let f = rt.stack.pop_f32()?;
+        Instruction::F32Nearest => {
+            let f = rt.stack.pop_f32()?;
 
-                    let val = if f >= -0.5f32 && f < 0.0f32 {
-                        -0.0f32
-                    } else if f <= 0.5f32 && f > 0.0f32 {
-                        0.0f32
-                    } else {
-                        f.round()
-                    };
+            // NB. I don't understand this code, ported from reference interpreter
 
-                    rt.stack.push_f32(val);
-                    rt.ip += 1;
-                }
-        */
+            let val = if f == 0.0f32 {
+                f // preserve sign
+            } else {
+                let u = f.ceil();
+                let d = f.floor();
+                let um = (f - u).abs();
+                let ud = (f - d).abs();
+                let u_or_d = um < ud || (um == ud && (u / 2f32).floor() == u / 2f32);
+                let f = if u_or_d { u } else { d };
+                // TODO: canonicalize nan?
+                f
+            };
+
+            rt.stack.push_f32(val);
+            rt.ip += 1;
+        }
+
+        Instruction::F64Nearest => {
+            let f = rt.stack.pop_f64()?;
+
+            // NB. I don't understand this code, ported from reference interpreter
+
+            let val = if f == 0.0f64 {
+                f // preserve sign
+            } else {
+                let u = f.ceil();
+                let d = f.floor();
+                let um = (f - u).abs();
+                let ud = (f - d).abs();
+                let u_or_d = um < ud || (um == ud && (u / 2f64).floor() == u / 2f64);
+                let f = if u_or_d { u } else { d };
+                // TODO: canonicalize nan?
+                f
+            };
+
+            rt.stack.push_f64(val);
+            rt.ip += 1;
+        }
+
         Instruction::F32Copysign => {
             op2::<f32, f32, _>(&mut rt.stack, Ieee754::copy_sign)?;
             rt.ip += 1;
@@ -1705,9 +1733,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 "Instruction not implemented: {:?}",
                 other
             )));
-        } // Instruction::F32Nearest => {}
-          // Instruction::F64Nearest => {}
-          // Instruction::I32TruncSF32 => {}
+        } // Instruction::I32TruncSF32 => {}
           // Instruction::I32TruncUF32 => {}
           // Instruction::I32TruncSF64 => {}
           // Instruction::I32TruncUF64 => {}
