@@ -422,6 +422,32 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Store(_, offset) => {
+            let value = rt.stack.pop_f32()?;
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 4;
+
+            let mem = &mut rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB F32Store (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let value: i32 = unsafe { ::std::mem::transmute(value) };
+            let [b1, b2, b3, b4] = value.to_le_bytes();
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
+            mem[addr + 2] = b3;
+            mem[addr + 3] = b4;
+
+            rt.ip += 1;
+        }
+
         Instruction::I64Store(_, offset) => {
             let value = rt.stack.pop_i64()?;
             let addr = rt.stack.pop_i32()? as u32;
@@ -437,6 +463,35 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 )));
             }
 
+            let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
+            mem[addr + 2] = b3;
+            mem[addr + 3] = b4;
+            mem[addr + 4] = b5;
+            mem[addr + 5] = b6;
+            mem[addr + 6] = b7;
+            mem[addr + 7] = b8;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Store(_, offset) => {
+            let value = rt.stack.pop_f64()?;
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 8;
+
+            let mem = &mut rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB F64Store (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let value: i64 = unsafe { ::std::mem::transmute(value) };
             let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
             mem[addr] = b1;
             mem[addr + 1] = b2;
@@ -564,6 +619,29 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::F32Load(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 4;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB F32Load (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let b3 = mem[addr + 2];
+            let b4 = mem[addr + 3];
+            rt.stack
+                .push_f32(unsafe { ::std::mem::transmute(i32::from_le_bytes([b1, b2, b3, b4])) });
+            rt.ip += 1;
+        }
+
         Instruction::I64Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = (addr + offset) as usize;
@@ -588,6 +666,34 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b8 = mem[addr + 7];
             rt.stack
                 .push_i64(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]));
+            rt.ip += 1;
+        }
+
+        Instruction::F64Load(_, offset) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = (addr + offset) as usize;
+            let end_addr = addr + 8;
+
+            let mem = &rt.store.mems[module_idx];
+            if end_addr as usize > mem.len() {
+                return Err(ExecError::Panic(format!(
+                    "OOB I64Load (mem size={}, addr={})",
+                    mem.len(),
+                    addr
+                )));
+            }
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let b3 = mem[addr + 2];
+            let b4 = mem[addr + 3];
+            let b5 = mem[addr + 4];
+            let b6 = mem[addr + 5];
+            let b7 = mem[addr + 6];
+            let b8 = mem[addr + 7];
+            rt.stack.push_f64(unsafe {
+                ::std::mem::transmute(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))
+            });
             rt.ip += 1;
         }
 
@@ -1394,6 +1500,54 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I32ReinterpretF32 => {
+            let f = rt.stack.pop_f32()?;
+            rt.stack.push_i32(unsafe { ::std::mem::transmute(f) });
+            rt.ip += 1;
+        }
+
+        Instruction::I64ReinterpretF64 => {
+            let f = rt.stack.pop_f64()?;
+            rt.stack.push_i64(unsafe { ::std::mem::transmute(f) });
+            rt.ip += 1;
+        }
+
+        Instruction::F32ReinterpretI32 => {
+            let f = rt.stack.pop_i32()?;
+            rt.stack.push_f32(unsafe { ::std::mem::transmute(f) });
+            rt.ip += 1;
+        }
+
+        Instruction::F64ReinterpretI64 => {
+            let f = rt.stack.pop_i64()?;
+            rt.stack.push_f64(unsafe { ::std::mem::transmute(f) });
+            rt.ip += 1;
+        }
+
+        /* FIXME: These implementations are not correct
+
+                Instruction::F32Copysign => {
+                    op2::<f32, f32, _>(&mut rt.stack, |a, b| {
+                        if b.is_sign_negative() {
+                            -1f32 * a
+                        } else {
+                            a
+                        }
+                    })?;
+                    rt.ip += 1;
+                }
+
+                Instruction::F64Copysign => {
+                    op2::<f64, f64, _>(&mut rt.stack, |a, b| {
+                        if b.is_sign_negative() {
+                            -1f64 * a
+                        } else {
+                            a
+                        }
+                    })?;
+                    rt.ip += 1;
+                }
+        */
         Instruction::Call(func_idx) => {
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx)?;
@@ -1536,14 +1690,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 "Instruction not implemented: {:?}",
                 other
             )));
-        } // Instruction::F32Load(_, _) => {}
-          // Instruction::F64Load(_, _) => {}
-          // Instruction::F32Store(_, _) => {}
-          // Instruction::F64Store(_, _) => {}
-          // Instruction::F32Nearest => {}
-          // Instruction::F32Copysign => {}
+        } // Instruction::F32Nearest => {}
           // Instruction::F64Nearest => {}
-          // Instruction::F64Copysign => {}
           // Instruction::I32TruncSF32 => {}
           // Instruction::I32TruncUF32 => {}
           // Instruction::I32TruncSF64 => {}
@@ -1564,10 +1712,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
           // Instruction::F64ConvertSI64 => {}
           // Instruction::F64ConvertUI64 => {}
           // Instruction::F64PromoteF32 => {}
-          // Instruction::I32ReinterpretF32 => {}
-          // Instruction::I64ReinterpretF64 => {}
-          // Instruction::F32ReinterpretI32 => {}
-          // Instruction::F64ReinterpretI64 => {}
           // Instruction::Atomics(_) => {}
           // Instruction::Simd(_) => {}
           // Instruction::SignExt(_) => {}

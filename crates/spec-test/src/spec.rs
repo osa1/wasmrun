@@ -30,8 +30,8 @@ pub enum Command {
 pub enum Value {
     I32(i32),
     I64(i64),
-    F32(String), // uninterpreted
-    F64(String), // uninterpreted
+    F32(f32),
+    F64(f64),
 }
 
 pub fn parse_test_spec(file: &str) -> TestSpec {
@@ -95,11 +95,28 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
 }
 
 fn parse_value(value_de: ValueDe) -> Value {
+    let str = &value_de.value.unwrap();
     match value_de.typ.as_ref() {
-        "i32" => Value::I32(parse_str::<ParseIntError, u32>(&value_de.value.unwrap()) as i32),
-        "i64" => Value::I64(parse_str::<ParseIntError, u64>(&value_de.value.unwrap()) as i64),
-        "f32" => Value::F32(value_de.value.unwrap()),
-        "f64" => Value::F64(value_de.value.unwrap()),
+        "i32" => Value::I32(parse_str::<ParseIntError, u32>(str) as i32),
+        "i64" => Value::I64(parse_str::<ParseIntError, u64>(str) as i64),
+        "f32" => {
+            if str == "nan:canonical" {
+                Value::F32(f32::NAN)
+            } else {
+                let i_32 = parse_str::<ParseIntError, u32>(str) as i32;
+                let f_32: f32 = unsafe { ::std::mem::transmute(i_32) };
+                Value::F32(f_32)
+            }
+        }
+        "f64" => {
+            if str == "nan:canonical" {
+                Value::F64(f64::NAN)
+            } else {
+                let i_64 = parse_str::<ParseIntError, u64>(str) as i64;
+                let f_64: f64 = unsafe { ::std::mem::transmute(i_64) };
+                Value::F64(f_64)
+            }
+        }
         other => todo!("Unknown value type: {}", other),
     }
 }

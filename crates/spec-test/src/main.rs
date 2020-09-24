@@ -230,10 +230,8 @@ fn run_spec_cmd(
                 let val = match arg {
                     spec::Value::I32(i) => Value::I32(i),
                     spec::Value::I64(i) => Value::I64(i),
-                    spec::Value::F32(_) | spec::Value::F64(_) => {
-                        writeln!(out, "Float values are not supported yet").unwrap();
-                        return;
-                    }
+                    spec::Value::F32(f) => Value::F32(f),
+                    spec::Value::F64(f) => Value::F64(f),
                 };
                 rt.push_value(val);
             }
@@ -258,10 +256,11 @@ fn run_spec_cmd(
                     spec::Value::I64(i) => {
                         expected_.push(Value::I64(i));
                     }
-                    spec::Value::F32(_) | spec::Value::F64(_) => {
-                        writeln!(out, "Float values are not supported yet").unwrap();
-                        failing_lines.push(line);
-                        return;
+                    spec::Value::F32(f) => {
+                        expected_.push(Value::F32(f));
+                    }
+                    spec::Value::F64(f) => {
+                        expected_.push(Value::F64(f));
                     }
                 }
             }
