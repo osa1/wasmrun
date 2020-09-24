@@ -1591,6 +1591,391 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::I32TruncUF32 => {
+            let f = rt.stack.pop_f32()?;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= (-(i32::MIN as f32) * 2f32) || f <= -1f32 {
+                return Err(ExecError::Trap);
+            }
+
+            rt.stack.push_i32((f as i64) as i32);
+            rt.ip += 1;
+
+            // let trunc_f32_u x =
+            //   if F32.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf >= -.Int32.(to_float min_int) *. 2.0 || xf <= -1.0 then
+            //       raise Numeric_error.IntegerOverflow
+            //     else
+            //       Int64.(to_int32 (of_float xf))
+        }
+
+        Instruction::I32TruncSF32 => {
+            let f = rt.stack.pop_f32()?;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= (-(i32::MIN as f32) * 2f32) || f <= (i32::MIN as f32) {
+                return Err(ExecError::Trap);
+            }
+
+            rt.stack.push_i32(f as i32);
+            rt.ip += 1;
+
+            // let trunc_f32_s x =
+            //   if F32.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int) then
+            //       raise Numeric_error.IntegerOverflow
+            //     else
+            //       Int32.of_float xf
+        }
+
+        Instruction::I32TruncSF64 => {
+            let f = rt.stack.pop_f64()?;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= -(i32::MIN as f64) || f < (i32::MIN as f64 - 1f64) {
+                return Err(ExecError::Trap);
+            }
+
+            rt.stack.push_i32(f as i32);
+            rt.ip += 1;
+
+            // let trunc_f64_s x =
+            //   if F64.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf >= -.Int32.(to_float min_int) || xf <= Int32.(to_float min_int) -. 1.0 then
+            //       raise Numeric_error.IntegerOverflow
+            //     else
+            //       Int32.of_float xf
+        }
+
+        Instruction::I32TruncUF64 => {
+            let f = rt.stack.pop_f64()?;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= -(i32::MIN as f64) * 2f64 || f < -1f64 {
+                return Err(ExecError::Trap);
+            }
+
+            rt.stack.push_i32((f as i64) as i32);
+            rt.ip += 1;
+
+            // let trunc_f64_u x =
+            //   if F64.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf >= -.Int32.(to_float min_int) *. 2.0 || xf <= -1.0 then
+            //       raise Numeric_error.IntegerOverflow
+            //     else
+            //       Int64.(to_int32 (of_float xf))
+        }
+
+        Instruction::I64TruncSF32 => {
+            let f = rt.stack.pop_f32()? as f64;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
+                return Err(ExecError::Trap);
+            }
+
+            rt.stack.push_i64(f as i64);
+            rt.ip += 1;
+
+            // let trunc_f32_s x =
+            //   if F32.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int) then
+            //       raise Numeric_error.IntegerOverflow
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::I64TruncUF32 => {
+            let f = rt.stack.pop_f32()? as f64;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= -(i64::MIN as f64) * 2f64 || f < -1f64 {
+                return Err(ExecError::Trap);
+            }
+
+            let val = if f >= -(i64::MIN as f64) {
+                ((f - 10f64.powi(63)) as i64) ^ i64::MIN
+            } else {
+                f as i64
+            };
+
+            rt.stack.push_i64(val);
+            rt.ip += 1;
+
+            // let trunc_f32_u x =
+            //   if F32.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf >= -.Int64.(to_float min_int) *. 2.0 || xf <= -1.0 then
+            //       raise Numeric_error.IntegerOverflow
+            //     else if xf >= -.Int64.(to_float min_int) then
+            //       Int64.(logxor (of_float (xf -. 0x1p63)) min_int)
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::I64TruncSF64 => {
+            let f = rt.stack.pop_f64()?;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
+                return Err(ExecError::Trap);
+            }
+
+            rt.stack.push_i64(f as i64);
+            rt.ip += 1;
+
+            // let trunc_f64_s x =
+            //   if F64.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int) then
+            //       raise Numeric_error.IntegerOverflow
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::I64TruncUF64 => {
+            let f = rt.stack.pop_f64()?;
+
+            if f.is_nan() {
+                return Err(ExecError::Trap);
+            }
+
+            if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
+                return Err(ExecError::Trap);
+            }
+
+            let val = if f >= -(i64::MIN as f64) {
+                ((f - 1f64.powi(63)) as i64) ^ i64::MIN
+            } else {
+                f as i64
+            };
+
+            rt.stack.push_i64(val);
+            rt.ip += 1;
+
+            // let trunc_f64_u x =
+            //   if F64.ne x x then
+            //     raise Numeric_error.InvalidConversionToInteger
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf >= -.Int64.(to_float min_int) *. 2.0 || xf <= -1.0 then
+            //       raise Numeric_error.IntegerOverflow
+            //     else if xf >= -.Int64.(to_float min_int) then
+            //       Int64.(logxor (of_float (xf -. 0x1p63)) min_int)
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::F32ConvertSI32 => {
+            let i = rt.stack.pop_i32()?;
+            rt.stack.push_f32(i as f32);
+            rt.ip += 1;
+
+            // let convert_i32_s x =
+            //   F32.of_float (Int32.to_float x)
+        }
+
+        Instruction::F32ConvertUI32 => {
+            let i = rt.stack.pop_i32()?;
+
+            let val = if i >= 0 {
+                i as f32
+            } else {
+                (i.wrapping_shr(1) | (i & 0b1)) as f32 * 2f32
+            };
+
+            rt.stack.push_f32(val);
+            rt.ip += 1;
+
+            // let convert_i32_u x =
+            //   F32.of_float Int32.(
+            //     if x >= zero then to_float x else
+            //     to_float (logor (shift_right_logical x 1) (logand x 1l)) *. 2.0
+            //   )
+        }
+
+        Instruction::F32ConvertSI64 => {
+            let i = rt.stack.pop_i64()?;
+            let val = if i.abs() < 0x10_0000_0000_0000 {
+                i as f32
+            } else {
+                let r = if i & 0xfff == 0 { 0 } else { 1 };
+
+                (((i >> 12) | r) as f32) * 10f32.powi(12)
+            };
+
+            rt.stack.push_f32(val);
+            rt.ip += 1;
+
+            // let convert_i64_s x =
+            //   F32.of_float Int64.(
+            //     if abs x < 0x10_0000_0000_0000L then to_float x else
+            //     let r = if logand x 0xfffL = 0L then 0L else 1L in
+            //     to_float (logor (shift_right x 12) r) *. 0x1p12
+            //   )
+        }
+
+        Instruction::F32ConvertUI64 => {
+            let i = rt.stack.pop_i64()?;
+
+            let val = if i < 0x10_0000_0000_0000 {
+                i as f32
+            } else {
+                let r = if i & 0xfff == 0 { 0 } else { 1 };
+
+                ((i >> 12) | r) as f32 * 10f32.powi(12)
+            };
+
+            rt.stack.push_f32(val);
+            rt.ip += 1;
+
+            // let convert_i64_u x =
+            //   F32.of_float Int64.(
+            //     if I64.lt_u x 0x10_0000_0000_0000L then to_float x else
+            //     let r = if logand x 0xfffL = 0L then 0L else 1L in
+            //     to_float (logor (shift_right_logical x 12) r) *. 0x1p12
+            //   )
+        }
+
+        Instruction::F64ConvertSI32 => {
+            let i = rt.stack.pop_i32()?;
+            rt.stack.push_f64(i as f64);
+            rt.ip += 1;
+        }
+
+        Instruction::F64ConvertSI64 => {
+            let i = rt.stack.pop_i64()?;
+            rt.stack.push_f64(i as f64);
+            rt.ip += 1;
+        }
+
+        Instruction::F64ConvertUI32 => {
+            let i = rt.stack.pop_i32()?;
+            rt.stack
+                .push_f64(((i as i64) & 0x0000_0000_ffff_ffff) as f64);
+            rt.ip += 1;
+
+            // let convert_i32_u x =
+            //   F64.of_float Int64.(to_float (logand (of_int32 x) 0x0000_0000_ffff_ffffL))
+        }
+
+        Instruction::F64ConvertUI64 => {
+            let i = rt.stack.pop_i64()?;
+            let val = if i > 0 {
+                i as f64
+            } else {
+                (((i >> 1) | (i & 1)) as f64) * 2f64
+            };
+            rt.stack.push_f64(val);
+            rt.ip += 1;
+
+            // let convert_i64_u x =
+            //   F64.of_float Int64.(
+            //     if x >= zero then to_float x else
+            //     to_float (logor (shift_right_logical x 1) (logand x 1L)) *. 2.0
+            //   )
+        }
+
+        Instruction::F32DemoteF64 => {
+            let f = rt.stack.pop_f64()?;
+
+            let val = if f.is_nan() {
+                f as f32
+            } else {
+                let bits: u64 = unsafe { ::std::mem::transmute(f) };
+                let sign_field = (bits >> 63) << 31;
+                let signi_field = (bits << 12) >> 41;
+                let fields = sign_field | signi_field;
+                let bits_32: u32 = 0x7fc0_000 | (fields as u32);
+                let f_32: f32 = unsafe { ::std::mem::transmute(bits_32) };
+                f_32
+            };
+
+            rt.stack.push_f32(val);
+            rt.ip += 1;
+
+            // let demote_f64 x =
+            //   let xf = F64.to_float x in
+            //   if xf = xf then F32.of_float xf else
+            //   let nan64bits = F64.to_bits x in
+            //   let sign_field = Int64.(shift_left (shift_right_logical nan64bits 63) 31) in
+            //   let significand_field = Int64.(shift_right_logical (shift_left nan64bits 12) 41) in
+            //   let fields = Int64.logor sign_field significand_field in
+            //   let nan32bits = Int32.logor 0x7fc0_0000l (I32_convert.wrap_i64 fields) in
+            //   F32.of_bits nan32bits
+        }
+
+        Instruction::F64PromoteF32 => {
+            let f = rt.stack.pop_f32()?;
+
+            let val = if f.is_nan() {
+                f as f64
+            } else {
+                let bits_u32: u32 = unsafe { ::std::mem::transmute(f) };
+                let bits_u64: u64 = bits_u32 as u64;
+                let sign_field = (bits_u64 >> 31) << 63;
+                let signi_field = (bits_u64 << 41) >> 12;
+                let fields = sign_field | signi_field;
+                let bits_64 = 0x7ff8_0000_0000_0000 | fields;
+                let f_64: f64 = unsafe { ::std::mem::transmute(bits_64) };
+                f_64
+            };
+
+            rt.stack.push_f64(val);
+            rt.ip += 1;
+
+            // let promote_f32 x =
+            //   let xf = F32.to_float x in
+            //   if xf = xf then F64.of_float xf else
+            //   let nan32bits = I64_convert.extend_i32_u (F32.to_bits x) in
+            //   let sign_field = Int64.(shift_left (shift_right_logical nan32bits 31) 63) in
+            //   let significand_field = Int64.(shift_right_logical (shift_left nan32bits 41) 12) in
+            //   let fields = Int64.logor sign_field significand_field in
+            //   let nan64bits = Int64.logor 0x7ff8_0000_0000_0000L fields in
+            //   F64.of_bits nan64bits
+        }
+
         Instruction::Call(func_idx) => {
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx)?;
@@ -1728,33 +2113,15 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             return Err(ExecError::Trap);
         }
 
-        other => {
+        Instruction::Atomics(_)
+        | Instruction::Simd(_)
+        | Instruction::SignExt(_)
+        | Instruction::Bulk(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
-                other
+                instr
             )));
-        } // Instruction::I32TruncSF32 => {}
-          // Instruction::I32TruncUF32 => {}
-          // Instruction::I32TruncSF64 => {}
-          // Instruction::I32TruncUF64 => {}
-          // Instruction::I64TruncSF32 => {}
-          // Instruction::I64TruncUF32 => {}
-          // Instruction::I64TruncSF64 => {}
-          // Instruction::I64TruncUF64 => {}
-          // Instruction::F32ConvertSI32 => {}
-          // Instruction::F32ConvertUI32 => {}
-          // Instruction::F32ConvertSI64 => {}
-          // Instruction::F32ConvertUI64 => {}
-          // Instruction::F32DemoteF64 => {}
-          // Instruction::F64ConvertSI32 => {}
-          // Instruction::F64ConvertUI32 => {}
-          // Instruction::F64ConvertSI64 => {}
-          // Instruction::F64ConvertUI64 => {}
-          // Instruction::F64PromoteF32 => {}
-          // Instruction::Atomics(_) => {}
-          // Instruction::Simd(_) => {}
-          // Instruction::SignExt(_) => {}
-          // Instruction::Bulk(_) => {}
+        }
     }
 
     Ok(())
