@@ -7,4 +7,5 @@ license = "MIT"
 
 [dependencies]
 fxhash = "0.2"
+ieee754 = "0.2.6"
 parity-wasm = { version = "0.42", features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"] }

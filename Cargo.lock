@@ -66,6 +66,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ieee754"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9007da9cacbd3e6343da136e98b0d2df013f553d35bdec8b518f07bea768e19c"
+
+[[package]]
 name = "itoa"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -82,6 +88,7 @@ name = "libwasmrun"
 version = "0.1.0"
 dependencies = [
  "fxhash",
+ "ieee754",
  "parity-wasm",
 ]
 

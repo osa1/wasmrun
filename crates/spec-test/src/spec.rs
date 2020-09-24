@@ -102,6 +102,8 @@ fn parse_value(value_de: ValueDe) -> Value {
         "f32" => {
             if str == "nan:canonical" {
                 Value::F32(f32::NAN)
+            } else if str == "nan:arithmetic" {
+                Value::F32(f32::NAN) // FIXME
             } else {
                 let i_32 = parse_str::<ParseIntError, u32>(str) as i32;
                 let f_32: f32 = unsafe { ::std::mem::transmute(i_32) };
@@ -111,6 +113,8 @@ fn parse_value(value_de: ValueDe) -> Value {
         "f64" => {
             if str == "nan:canonical" {
                 Value::F64(f64::NAN)
+            } else if str == "nan:arithmetic" {
+                Value::F64(f64::NAN) // FIXME
             } else {
                 let i_64 = parse_str::<ParseIntError, u64>(str) as i64;
                 let f_64: f64 = unsafe { ::std::mem::transmute(i_64) };

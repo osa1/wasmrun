@@ -10,6 +10,7 @@ use store::{Global, ModuleIdx, Store};
 pub use value::Value;
 
 use fxhash::FxHashMap;
+use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
 use wasm::Instruction;
 
@@ -1524,30 +1525,44 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        /* FIXME: These implementations are not correct
+        /* FIXME
+                Instruction::F32Nearest => {
+                    let f = rt.stack.pop_f32()?;
 
-                Instruction::F32Copysign => {
-                    op2::<f32, f32, _>(&mut rt.stack, |a, b| {
-                        if b.is_sign_negative() {
-                            -1f32 * a
-                        } else {
-                            a
-                        }
-                    })?;
-                    rt.ip += 1;
-                }
+                    let val = if f >= -0.5f32 && f < 0.0f32 {
+                        -0.0f32
+                    } else if f <= 0.5f32 && f > 0.0f32 {
+                        0.0f32
+                    } else {
+                        f.round()
+                    };
 
-                Instruction::F64Copysign => {
-                    op2::<f64, f64, _>(&mut rt.stack, |a, b| {
-                        if b.is_sign_negative() {
-                            -1f64 * a
-                        } else {
-                            a
-                        }
-                    })?;
+                    rt.stack.push_f32(val);
                     rt.ip += 1;
                 }
         */
+        Instruction::F32Copysign => {
+            op2::<f32, f32, _>(&mut rt.stack, Ieee754::copy_sign)?;
+            rt.ip += 1;
+        }
+
+        Instruction::F64Copysign => {
+            op2::<f64, f64, _>(&mut rt.stack, Ieee754::copy_sign)?;
+            rt.ip += 1;
+        }
+
+        Instruction::I64ExtendUI32 => {
+            let i = rt.stack.pop_i32()? as u32;
+            rt.stack.push_i64((i as u64) as i64);
+            rt.ip += 1;
+        }
+
+        Instruction::I64ExtendSI32 => {
+            let i = rt.stack.pop_i32()?;
+            rt.stack.push_i64(i as i64);
+            rt.ip += 1;
+        }
+
         Instruction::Call(func_idx) => {
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx)?;
@@ -1696,8 +1711,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
           // Instruction::I32TruncUF32 => {}
           // Instruction::I32TruncSF64 => {}
           // Instruction::I32TruncUF64 => {}
-          // Instruction::I64ExtendSI32 => {}
-          // Instruction::I64ExtendUI32 => {}
           // Instruction::I64TruncSF32 => {}
           // Instruction::I64TruncUF32 => {}
           // Instruction::I64TruncSF64 => {}
