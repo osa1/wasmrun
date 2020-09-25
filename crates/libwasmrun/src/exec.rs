@@ -1,10 +1,12 @@
 pub mod frame;
+pub mod mem;
 pub mod stack;
 pub mod store;
 pub mod value;
 
 use crate::{ExecError, Result};
 use frame::FrameStack;
+use mem::Mem;
 use stack::{Stack, StackValue};
 use store::{Global, ModuleIdx, Store};
 pub use value::Value;
@@ -21,7 +23,7 @@ type Addr = u32;
 type FuncIdx = u32;
 
 const PAGE_SIZE: usize = 65536;
-const MAX_PAGES: usize = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
+const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
 #[derive(Default)]
 pub struct Module {
@@ -212,10 +214,9 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
         assert!(memory_section.entries().len() <= 1); // No more than 1 currently
         for mem in memory_section.entries_mut().drain(..) {
             let mem_idx = rt.store.mems.len();
-            // TODO: We need to record the upper bounds to be able to fail in memory.grow
             rt.store
                 .mems
-                .push(vec![0; mem.limits().initial() as usize * PAGE_SIZE]);
+                .push(Mem::new(mem.limits().initial(), mem.limits().maximum()));
             inst.mem_addrs.push(mem_idx as u32);
         }
     }
@@ -357,18 +358,16 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::GrowMemory(mem_ref) => {
             assert_eq!(mem_ref, 0);
             let mem = &mut rt.store.mems[module_idx];
-            let sz = mem.len();
-            debug_assert!(sz % PAGE_SIZE == 0);
-            let sz_pages = sz / PAGE_SIZE;
 
-            let n_pages = rt.stack.pop_i32()? as usize;
-            let new_pages = (sz / PAGE_SIZE) + n_pages;
+            let current_pages = mem.size_pages();
+            let new_pages = rt.stack.pop_i32()? as u32;
+            let total_pages = current_pages + new_pages;
 
-            if new_pages > MAX_PAGES {
+            if total_pages > mem.max_pages().unwrap_or(MAX_PAGES) {
                 rt.stack.push_i32(-1);
             } else {
-                mem.resize(sz + PAGE_SIZE * n_pages, 0);
-                rt.stack.push_i32(sz_pages as i32);
+                mem.add_pages(new_pages);
+                rt.stack.push_i32(total_pages as i32);
             }
 
             rt.ip += 1;
@@ -378,9 +377,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             // memory.size
             assert_eq!(mem_ref, 0);
             let mem = &mut rt.store.mems[module_idx];
-            let sz = mem.len();
-            debug_assert!(sz % PAGE_SIZE == 0);
-            rt.stack.push_i32((sz / PAGE_SIZE) as i32);
+            rt.stack.push_i32(mem.size_pages() as i32);
             rt.ip += 1;
         }
 
@@ -403,23 +400,17 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I32Store(_, offset) => {
             let value = rt.stack.pop_i32()?;
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Store (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let [b1, b2, b3, b4] = value.to_le_bytes();
             mem[addr] = b1;
             mem[addr + 1] = b2;
             mem[addr + 2] = b3;
             mem[addr + 3] = b4;
+
             rt.ip += 1;
         }
 
@@ -427,17 +418,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let value = rt.stack.pop_f32()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB F32Store (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let value: i32 = unsafe { ::std::mem::transmute(value) };
             let [b1, b2, b3, b4] = value.to_le_bytes();
@@ -452,17 +436,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64Store(_, offset) => {
             let value = rt.stack.pop_i64()?;
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 8;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Store (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 7)?;
 
             let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
             mem[addr] = b1;
@@ -480,17 +457,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let value = rt.stack.pop_f64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 8;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB F64Store (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 7)?;
 
             let value: i64 = unsafe { ::std::mem::transmute(value) };
             let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
@@ -509,17 +479,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let c = rt.stack.pop_i64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 1;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Store8 (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr)?;
 
             let val = (c & 0b1111_1111) as u8;
             mem[addr] = val;
@@ -531,17 +494,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let c = rt.stack.pop_i64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 2;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Store16 (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 1)?;
 
             let val = (c & 0b1111_1111) as u8;
             mem[addr] = val;
@@ -556,41 +512,27 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let c = rt.stack.pop_i64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Store32 (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let [b1, b2, b3, b4] = (c as u32).to_le_bytes();
 
             mem[addr] = b1;
             mem[addr + 1] = b2;
             mem[addr + 2] = b3;
-            mem[addr + 4] = b4;
+            mem[addr + 3] = b4;
 
             rt.ip += 1;
         }
 
         Instruction::I64Load8S(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 1;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Load8S (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr)?;
 
             let val = mem[addr];
             rt.stack.push_i64(val as i64);
@@ -600,17 +542,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -622,17 +557,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::F32Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB F32Load (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -645,17 +573,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 8;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Load (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 7)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -672,17 +593,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::F64Load(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 8;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Load (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 7)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -700,17 +614,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32Load8U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 1;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load8U (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr)?;
 
             let b = mem[addr];
             rt.stack.push_i32(b as i32);
@@ -719,17 +626,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32Load8S(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 1;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load8S (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr)?;
 
             let b = mem[addr] as i8;
             let b_abs = b.abs() as i32;
@@ -741,17 +641,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64Load8U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 1;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load8U (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr)?;
 
             let b = mem[addr];
             rt.stack.push_i64(b as i64);
@@ -760,17 +653,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32Load16U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 2;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load16U (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 1)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -780,17 +666,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32Load16S(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 2;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load16S (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 1)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -809,17 +688,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64Load16U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 2;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load16U (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 1)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -830,17 +702,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64Load16S(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 2;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I64Load16S (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 1)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -858,17 +723,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64Load32U(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load32U (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -881,17 +739,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I64Load32S(_, offset) => {
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 4;
+            let addr = addr + offset;
 
             let mem = &rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Load32S (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 3)?;
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
@@ -914,17 +765,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let c = rt.stack.pop_i32()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 1;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Store8 (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr)?;
 
             mem[addr] = c as u8;
             rt.ip += 1;
@@ -934,17 +778,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let c = rt.stack.pop_i32()?;
 
             let addr = rt.stack.pop_i32()? as u32;
-            let addr = (addr + offset) as usize;
-            let end_addr = addr + 2;
+            let addr = addr + offset;
 
             let mem = &mut rt.store.mems[module_idx];
-            if end_addr as usize > mem.len() {
-                return Err(ExecError::Panic(format!(
-                    "OOB I32Store8 (mem size={}, addr={})",
-                    mem.len(),
-                    addr
-                )));
-            }
+            mem.check_range(addr + 1)?;
 
             mem[addr] = c as u8;
             mem[addr + 1] = (c >> 8) as u8;
