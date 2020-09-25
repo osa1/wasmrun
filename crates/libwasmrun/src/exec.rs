@@ -180,10 +180,10 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 .map(|init_expr| get_const_expr_val(init_expr.code()));
 
             let offset = match offset {
-                Some(val) => match val {
+                Some(val) => match val? {
                     Value::I32(offset) => offset as usize,
                     Value::I64(offset) => offset as usize,
-                    Value::F32(_) | Value::F64(_) => {
+                    val => {
                         return Err(ExecError::Panic(format!("Weird table offset: {:?}", val)));
                     }
                 },
@@ -219,7 +219,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     if let Some(global_section) = parsed_module.global_section_mut() {
         for global in global_section.entries_mut().drain(..) {
             let global_idx = rt.store.globals.len();
-            let value = get_const_expr_val(global.init_expr().code());
+            let value = get_const_expr_val(global.init_expr().code())?;
             rt.store.globals.push(Global {
                 value,
                 mutable: global.global_type().is_mutable(),
@@ -239,8 +239,31 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
         }
     }
 
+    // Initialize memories with 'data' section
+    if let Some(data_section) = parsed_module.data_section() {
+        for data in data_section.entries() {
+            let index: u32 = data.index();
+            let offset = match data.offset() {
+                None => 0,
+                Some(offset_expr) => match get_const_expr_val(offset_expr.code())? {
+                    Value::I32(offset) => offset as u32,
+                    other => {
+                        return Err(ExecError::Panic(format!(
+                            "Weird data section offset: {:?}",
+                            other
+                        )));
+                    }
+                },
+            };
+            let values = data.value();
+
+            let mem_addr = inst.mem_addrs[index as usize];
+            let mem = &mut rt.store.mems[mem_addr as usize];
+            mem.set_range(offset, values)?;
+        }
+    }
+
     // TODO: Initialize the table with 'elems'
-    // TODO: Initialize the memory with 'data'
 
     // Set start
     inst.start = parsed_module.start_section();
@@ -251,18 +274,20 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     Ok(module_idx)
 }
 
-fn get_const_expr_val(instrs: &[Instruction]) -> Value {
+fn get_const_expr_val(instrs: &[Instruction]) -> Result<Value> {
     use Instruction::*;
     match instrs {
-        [I32Const(value), End] => Value::I32(*value),
-        [I64Const(value), End] => Value::I64(*value),
-        [F32Const(value), End] => Value::F32(unsafe { transmute(*value) }),
-        [F64Const(value), End] => Value::F64(unsafe { transmute(*value) }),
+        [I32Const(value), End] => Ok(Value::I32(*value)),
+        [I64Const(value), End] => Ok(Value::I64(*value)),
+        [F32Const(value), End] => Ok(Value::F32(unsafe { transmute(*value) })),
+        [F64Const(value), End] => Ok(Value::F64(unsafe { transmute(*value) })),
         [GetGlobal(_idx), End] => {
             // See the comments in `ConstExpr` type. This can only be an import.
-            todo!("get.global constant expression")
+            Err(ExecError::Panic(
+                "get.global constant expression not supported yet".to_string(),
+            ))
         }
-        other => todo!("Global initializer: {:?}", other),
+        other => Err(ExecError::Panic(format!("Global initializer: {:?}", other))),
     }
 }
 

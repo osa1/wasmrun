@@ -33,6 +33,16 @@ impl Mem {
         }
     }
 
+    pub fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
+        if value.len() == 0 {
+            return Ok(());
+        }
+        self.check_range((offset + (value.len() as u32)) - 1)?;
+        let offset = offset as usize;
+        (&mut self.mem[offset..offset + value.len()]).copy_from_slice(value);
+        Ok(())
+    }
+
     pub fn max_pages(&self) -> Option<u32> {
         self.limit
     }
