@@ -10,6 +10,11 @@
 // TODO: We should introduce newtypes for these.
 
 pub mod exec;
+pub mod frame;
+pub mod mem;
+pub mod stack;
+pub mod store;
+pub mod value;
 
 use std::fmt::Display;
 

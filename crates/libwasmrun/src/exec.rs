@@ -1,15 +1,9 @@
-pub mod frame;
-pub mod mem;
-pub mod stack;
-pub mod store;
-pub mod value;
-
+use crate::frame::FrameStack;
+use crate::mem::Mem;
+use crate::stack::{Stack, StackValue};
+use crate::store::{Func, Global, ModuleIdx, Store};
+pub use crate::value::Value;
 use crate::{ExecError, Result};
-use frame::FrameStack;
-use mem::Mem;
-use stack::{Stack, StackValue};
-use store::{Global, ModuleIdx, Store};
-pub use value::Value;
 
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
@@ -22,8 +16,8 @@ type Addr = u32;
 
 type FuncIdx = u32;
 
-const PAGE_SIZE: usize = 65536;
-const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
+pub const PAGE_SIZE: usize = 65536;
+pub const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
 #[derive(Default)]
 pub struct Module {
@@ -155,7 +149,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 ExecError::Panic("Module has a code section but no function section".to_string())
             })?;
 
-            rt.store.funcs.push(store::Func::new(
+            rt.store.funcs.push(Func::new(
                 module_idx,
                 fun_idx,
                 fun,

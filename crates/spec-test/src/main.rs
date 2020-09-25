@@ -2,8 +2,8 @@ mod cli;
 mod spec;
 
 use cli::Args;
-use libwasmrun::exec::store::ModuleIdx;
 use libwasmrun::exec::{self, Runtime, Value};
+use libwasmrun::store::ModuleIdx;
 
 use std::fs;
 use std::io::{self, Write};
