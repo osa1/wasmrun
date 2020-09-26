@@ -95,8 +95,7 @@ dependencies = [
 [[package]]
 name = "parity-wasm"
 version = "0.42.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d17797de36b94bc5f73edad736fd0a77ce5ab64dd622f809c1eead8c91fa6564"
+source = "git+https://github.com/osa1/parity-wasm?branch=block_multi_return#b1248250cbfd88c40274c81a24c6a967fce41464"
 
 [[package]]
 name = "proc-macro2"
