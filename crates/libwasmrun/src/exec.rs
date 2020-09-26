@@ -242,7 +242,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     // Initialize memories with 'data' section
     if let Some(data_section) = parsed_module.data_section() {
         for data in data_section.entries() {
-            let index: u32 = data.index();
+            let mem_index: u32 = data.index();
             let offset = match data.offset() {
                 None => 0,
                 Some(offset_expr) => match get_const_expr_val(offset_expr.code())? {
@@ -257,13 +257,11 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
             };
             let values = data.value();
 
-            let mem_addr = inst.mem_addrs[index as usize];
+            let mem_addr = inst.mem_addrs[mem_index as usize];
             let mem = &mut rt.store.mems[mem_addr as usize];
             mem.set_range(offset, values)?;
         }
     }
-
-    // TODO: Initialize the table with 'elems'
 
     // Set start
     inst.start = parsed_module.start_section();
