@@ -893,15 +893,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Eqz => {
-            let val = rt.stack.pop_i32()?;
-            rt.stack.push_bool(val == 0);
-            rt.ip += 1;
+            op1::<i32, bool, _>(rt, |i| i == 0)?;
         }
 
         Instruction::I64Eqz => {
-            let val = rt.stack.pop_i64()?;
-            rt.stack.push_bool(val == 0);
-            rt.ip += 1;
+            op1::<i64, bool, _>(rt, |i| i == 0)?;
         }
 
         Instruction::I32LeU => {
@@ -1009,15 +1005,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Ctz => {
-            let val = rt.stack.pop_i32()?;
-            rt.stack.push_i32(val.trailing_zeros() as i32);
-            rt.ip += 1;
+            op1::<i32, i32, _>(rt, |i| i.trailing_zeros() as i32)?;
         }
 
         Instruction::I64Ctz => {
-            let val = rt.stack.pop_i64()?;
-            rt.stack.push_i64(val.trailing_zeros() as i64);
-            rt.ip += 1;
+            op1::<i64, i64, _>(rt, |i| i.trailing_zeros() as i64)?;
         }
 
         Instruction::I32GtU => {
@@ -1085,17 +1077,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Popcnt => {
-            let i = rt.stack.pop_i32()?;
-            let ret = unsafe { ::core::arch::x86_64::_popcnt32(i) };
-            rt.stack.push_i32(ret);
-            rt.ip += 1;
+            op1::<i32, i32, _>(rt, |i| unsafe { ::core::arch::x86_64::_popcnt32(i) })?;
         }
 
         Instruction::I64Popcnt => {
-            let i = rt.stack.pop_i64()?;
-            let ret = unsafe { ::core::arch::x86_64::_popcnt64(i) };
-            rt.stack.push_i64(ret as i64);
-            rt.ip += 1;
+            op1::<i64, i64, _>(rt, |i| unsafe { ::core::arch::x86_64::_popcnt64(i) as i64 })?;
         }
 
         Instruction::I32Or => {
@@ -1115,9 +1101,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32WrapI64 => {
-            let i = rt.stack.pop_i64()?;
-            rt.stack.push_i32((i % 2i64.pow(32)) as i32);
-            rt.ip += 1;
+            op1::<i64, i32, _>(rt, |i| (i % 2i64.pow(32)) as i32)?;
         }
 
         Instruction::I32RemS => {
@@ -1185,15 +1169,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Clz => {
-            let i = rt.stack.pop_i32()?;
-            rt.stack.push_i32(i.leading_zeros() as i32);
-            rt.ip += 1;
+            op1::<i32, i32, _>(rt, |i| i.leading_zeros() as i32)?;
         }
 
         Instruction::I64Clz => {
-            let i = rt.stack.pop_i64()?;
-            rt.stack.push_i64(i.leading_zeros() as i64);
-            rt.ip += 1;
+            op1::<i64, i64, _>(rt, |i| i.leading_zeros() as i64)?;
         }
 
         Instruction::F32Max => {
@@ -1213,99 +1193,84 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Neg => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_f32(-1f32 * f);
+            // FIXME: I think there may be a miscompilation bug in rustc.
+
+            // Fails:
+            // op1::<f32, f32, _>(rt, |f| -1f32 * f)?;
+
+            // Works:
+            let val = f32::pop(&mut rt.stack)?;
+            let ret = -1f32 * val;
+            ret.push(&mut rt.stack);
             rt.ip += 1;
+
+            // Works:
+            // let f = rt.stack.pop_f32()?;
+            // rt.stack.push_f32(-1f32 * f);
+            // rt.ip += 1;
         }
 
         Instruction::F64Neg => {
+            // FIXME: Same as above, we can't use op1 here
             let f = rt.stack.pop_f64()?;
             rt.stack.push_f64(-1f64 * f);
             rt.ip += 1;
         }
 
         Instruction::F32Sqrt => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_f32(f.sqrt());
-            rt.ip += 1;
+            op1::<f32, f32, _>(rt, f32::sqrt)?;
         }
 
         Instruction::F64Sqrt => {
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(f.sqrt());
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, f64::sqrt)?;
         }
 
         Instruction::F32Abs => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_f32(f.abs());
-            rt.ip += 1;
+            op1::<f32, f32, _>(rt, f32::abs)?;
         }
 
         Instruction::F64Abs => {
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(f.abs());
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, f64::abs)?;
         }
 
         Instruction::F32Ceil => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_f32(f.ceil());
-            rt.ip += 1;
+            op1::<f32, f32, _>(rt, f32::ceil)?;
         }
 
         Instruction::F64Ceil => {
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(f.ceil());
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, f64::ceil)?;
         }
 
         Instruction::F32Floor => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_f32(f.floor());
-            rt.ip += 1;
+            op1::<f32, f32, _>(rt, f32::floor)?;
         }
 
         Instruction::F64Floor => {
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(f.floor());
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, f64::floor)?;
         }
 
         Instruction::F32Trunc => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_f32(f.trunc());
-            rt.ip += 1;
+            op1::<f32, f32, _>(rt, f32::trunc)?;
         }
 
         Instruction::F64Trunc => {
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(f.trunc());
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, f64::trunc)?;
         }
 
         Instruction::I32ReinterpretF32 => {
-            let f = rt.stack.pop_f32()?;
-            rt.stack.push_i32(unsafe { transmute(f) });
-            rt.ip += 1;
+            op1::<f32, i32, _>(rt, |f| unsafe { transmute(f) })?;
         }
 
         Instruction::I64ReinterpretF64 => {
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_i64(unsafe { transmute(f) });
-            rt.ip += 1;
+            op1::<f64, i64, _>(rt, |f| unsafe { transmute(f) })?;
         }
 
         Instruction::F32ReinterpretI32 => {
-            let f = rt.stack.pop_i32()?;
-            rt.stack.push_f32(unsafe { transmute(f) });
-            rt.ip += 1;
+            op1::<i32, f32, _>(rt, |f| unsafe { transmute(f) })?;
         }
 
         Instruction::F64ReinterpretI64 => {
-            let f = rt.stack.pop_i64()?;
-            rt.stack.push_f64(unsafe { transmute(f) });
-            rt.ip += 1;
+            op1::<i64, f64, _>(rt, |f| unsafe { transmute(f) })?;
         }
 
         Instruction::F32Nearest => {
@@ -1361,6 +1326,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64ExtendUI32 => {
+            // FIXME: Same, can't use op1
             let i = rt.stack.pop_i32()? as u32;
             rt.stack.push_i64((i as u64) as i64);
             rt.ip += 1;
@@ -1905,6 +1871,14 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn op1<A: StackValue, B: StackValue, F: Fn(A) -> B>(rt: &mut Runtime, op: F) -> Result<()> {
+    let val = A::pop(&mut rt.stack)?;
+    let ret = op(val);
+    ret.push(&mut rt.stack);
+    rt.ip += 1;
     Ok(())
 }
 
