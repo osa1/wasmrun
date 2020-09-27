@@ -1,3 +1,26 @@
+/*
+
+Notes
+~~~~~
+
+- Each block has its own value stack
+
+- The type `Stack` maintains both the block stack and value stacks.
+
+- Call frames holds function locals.
+
+- Instructions `br`, `br_if, `br_table`, `end` look at the last block that'll be popped for the
+  return arity and leave that many values onto the stack of the continuation block.
+
+- Continuaton of `br` is the `loop` instruction when the block is a `loop`, `end` instruction when
+  the block is a `block`. This means it takes two steps to actually break from a `block` or repeat
+  a `loop`.
+
+  (This is as described in the spec, but in practice we could do it differently and break outside
+  of a block directly or jump to the first instrution of a `loop`)
+
+ */
+
 use crate::frame::FrameStack;
 use crate::mem::Mem;
 use crate::stack::{Stack, StackValue};
@@ -228,7 +251,9 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
         }
     }
 
-    // Get names of functions, for now just to be able to call functions by name
+    // Get names of functions
+    // NB. This is not used for calling functions as we can only call exported functions, which
+    // already have names in the export section.
     if let Some(names_section) = parsed_module.names_section_mut() {
         if let Some(function_names) = names_section.functions_mut() {
             for (fun_idx, fun_name) in
