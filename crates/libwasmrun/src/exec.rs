@@ -1272,47 +1272,37 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Nearest => {
-            let f = rt.stack.pop_f32()?;
-
-            // NB. I don't understand this code, ported from reference interpreter
-
-            let val = if f == 0.0f32 {
-                f // preserve sign
-            } else {
-                let u = f.ceil();
-                let d = f.floor();
-                let um = (f - u).abs();
-                let ud = (f - d).abs();
-                let u_or_d = um < ud || (um == ud && (u / 2f32).floor() == u / 2f32);
-                let f = if u_or_d { u } else { d };
-                // TODO: canonicalize nan?
-                f
-            };
-
-            rt.stack.push_f32(val);
-            rt.ip += 1;
+            op1::<f32, f32, _>(rt, |f|
+                // NB. I don't understand this code, ported from reference interpreter
+                if f == 0.0f32 {
+                    f // preserve sign
+                } else {
+                    let u = f.ceil();
+                    let d = f.floor();
+                    let um = (f - u).abs();
+                    let ud = (f - d).abs();
+                    let u_or_d = um < ud || (um == ud && (u / 2f32).floor() == u / 2f32);
+                    let f = if u_or_d { u } else { d };
+                    // TODO: canonicalize nan?
+                    f
+                })?;
         }
 
         Instruction::F64Nearest => {
-            let f = rt.stack.pop_f64()?;
-
-            // NB. I don't understand this code, ported from reference interpreter
-
-            let val = if f == 0.0f64 {
-                f // preserve sign
-            } else {
-                let u = f.ceil();
-                let d = f.floor();
-                let um = (f - u).abs();
-                let ud = (f - d).abs();
-                let u_or_d = um < ud || (um == ud && (u / 2f64).floor() == u / 2f64);
-                let f = if u_or_d { u } else { d };
-                // TODO: canonicalize nan?
-                f
-            };
-
-            rt.stack.push_f64(val);
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, |f|
+                // NB. I don't understand this code, ported from reference interpreter
+                if f == 0.0f64 {
+                    f // preserve sign
+                } else {
+                    let u = f.ceil();
+                    let d = f.floor();
+                    let um = (f - u).abs();
+                    let ud = (f - d).abs();
+                    let u_or_d = um < ud || (um == ud && (u / 2f64).floor() == u / 2f64);
+                    let f = if u_or_d { u } else { d };
+                    // TODO: canonicalize nan?
+                    f
+                })?;
         }
 
         Instruction::F32Copysign => {
@@ -1553,25 +1543,20 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32ConvertSI32 => {
-            let i = rt.stack.pop_i32()?;
-            rt.stack.push_f32(i as f32);
-            rt.ip += 1;
+            op1::<i32, f32, _>(rt, |i| i as f32)?;
 
             // let convert_i32_s x =
             //   F32.of_float (Int32.to_float x)
         }
 
         Instruction::F32ConvertUI32 => {
-            let i = rt.stack.pop_i32()?;
-
-            let val = if i >= 0 {
-                i as f32
-            } else {
-                (i.wrapping_shr(1) | (i & 0b1)) as f32 * 2f32
-            };
-
-            rt.stack.push_f32(val);
-            rt.ip += 1;
+            op1::<i32, f32, _>(rt, |i| {
+                if i >= 0 {
+                    i as f32
+                } else {
+                    (i.wrapping_shr(1) | (i & 0b1)) as f32 * 2f32
+                }
+            })?;
 
             // let convert_i32_u x =
             //   F32.of_float Int32.(
@@ -1581,17 +1566,15 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32ConvertSI64 => {
-            let i = rt.stack.pop_i64()?;
-            let val = if i.abs() < 0x10_0000_0000_0000 {
-                i as f32
-            } else {
-                let r = if i & 0xfff == 0 { 0 } else { 1 };
+            op1::<i64, f32, _>(rt, |i| {
+                if i.abs() < 0x10_0000_0000_0000 {
+                    i as f32
+                } else {
+                    let r = if i & 0xfff == 0 { 0 } else { 1 };
 
-                (((i >> 12) | r) as f32) * 10f32.powi(12)
-            };
-
-            rt.stack.push_f32(val);
-            rt.ip += 1;
+                    (((i >> 12) | r) as f32) * 10f32.powi(12)
+                }
+            })?;
 
             // let convert_i64_s x =
             //   F32.of_float Int64.(
@@ -1602,18 +1585,15 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32ConvertUI64 => {
-            let i = rt.stack.pop_i64()?;
+            op1::<i64, f32, _>(rt, |i| {
+                if i < 0x10_0000_0000_0000 {
+                    i as f32
+                } else {
+                    let r = if i & 0xfff == 0 { 0 } else { 1 };
 
-            let val = if i < 0x10_0000_0000_0000 {
-                i as f32
-            } else {
-                let r = if i & 0xfff == 0 { 0 } else { 1 };
-
-                ((i >> 12) | r) as f32 * 10f32.powi(12)
-            };
-
-            rt.stack.push_f32(val);
-            rt.ip += 1;
+                    ((i >> 12) | r) as f32 * 10f32.powi(12)
+                }
+            })?;
 
             // let convert_i64_u x =
             //   F32.of_float Int64.(
@@ -1624,36 +1604,28 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64ConvertSI32 => {
-            let i = rt.stack.pop_i32()?;
-            rt.stack.push_f64(i as f64);
-            rt.ip += 1;
+            op1::<i32, f64, _>(rt, |i| i as f64)?;
         }
 
         Instruction::F64ConvertSI64 => {
-            let i = rt.stack.pop_i64()?;
-            rt.stack.push_f64(i as f64);
-            rt.ip += 1;
+            op1::<i64, f64, _>(rt, |i| i as f64)?;
         }
 
         Instruction::F64ConvertUI32 => {
-            let i = rt.stack.pop_i32()?;
-            rt.stack
-                .push_f64(((i as i64) & 0x0000_0000_ffff_ffff) as f64);
-            rt.ip += 1;
+            op1::<i32, f64, _>(rt, |i| ((i as i64) & 0x0000_0000_ffff_ffff) as f64)?;
 
             // let convert_i32_u x =
             //   F64.of_float Int64.(to_float (logand (of_int32 x) 0x0000_0000_ffff_ffffL))
         }
 
         Instruction::F64ConvertUI64 => {
-            let i = rt.stack.pop_i64()?;
-            let val = if i > 0 {
-                i as f64
-            } else {
-                (((i >> 1) | (i & 1)) as f64) * 2f64
-            };
-            rt.stack.push_f64(val);
-            rt.ip += 1;
+            op1::<i64, f64, _>(rt, |i| {
+                if i > 0 {
+                    i as f64
+                } else {
+                    (((i >> 1) | (i & 1)) as f64) * 2f64
+                }
+            })?;
 
             // let convert_i64_u x =
             //   F64.of_float Int64.(
@@ -1663,22 +1635,19 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32DemoteF64 => {
-            let f = rt.stack.pop_f64()?;
-
-            let val = if f.is_nan() {
-                f as f32
-            } else {
-                let bits: u64 = unsafe { transmute(f) };
-                let sign_field = (bits >> 63) << 31;
-                let signi_field = (bits << 12) >> 41;
-                let fields = sign_field | signi_field;
-                let bits_32: u32 = 0x7fc0_000 | (fields as u32);
-                let f_32: f32 = unsafe { transmute(bits_32) };
-                f_32
-            };
-
-            rt.stack.push_f32(val);
-            rt.ip += 1;
+            op1::<f64, f32, _>(rt, |f| {
+                if f.is_nan() {
+                    f as f32
+                } else {
+                    let bits: u64 = unsafe { transmute(f) };
+                    let sign_field = (bits >> 63) << 31;
+                    let signi_field = (bits << 12) >> 41;
+                    let fields = sign_field | signi_field;
+                    let bits_32: u32 = 0x7fc0_000 | (fields as u32);
+                    let f_32: f32 = unsafe { transmute(bits_32) };
+                    f_32
+                }
+            })?;
 
             // let demote_f64 x =
             //   let xf = F64.to_float x in
@@ -1692,23 +1661,20 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64PromoteF32 => {
-            let f = rt.stack.pop_f32()?;
-
-            let val = if f.is_nan() {
-                f as f64
-            } else {
-                let bits_u32: u32 = unsafe { transmute(f) };
-                let bits_u64: u64 = bits_u32 as u64;
-                let sign_field = (bits_u64 >> 31) << 63;
-                let signi_field = (bits_u64 << 41) >> 12;
-                let fields = sign_field | signi_field;
-                let bits_64 = 0x7ff8_0000_0000_0000 | fields;
-                let f_64: f64 = unsafe { transmute(bits_64) };
-                f_64
-            };
-
-            rt.stack.push_f64(val);
-            rt.ip += 1;
+            op1::<f32, f64, _>(rt, |f| {
+                if f.is_nan() {
+                    f as f64
+                } else {
+                    let bits_u32: u32 = unsafe { transmute(f) };
+                    let bits_u64: u64 = bits_u32 as u64;
+                    let sign_field = (bits_u64 >> 31) << 63;
+                    let signi_field = (bits_u64 << 41) >> 12;
+                    let fields = sign_field | signi_field;
+                    let bits_64 = 0x7ff8_0000_0000_0000 | fields;
+                    let f_64: f64 = unsafe { transmute(bits_64) };
+                    f_64
+                }
+            })?;
 
             // let promote_f32 x =
             //   let xf = F32.to_float x in
