@@ -22,6 +22,10 @@ pub struct Frame {
 }
 
 impl FrameStack {
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
     pub fn current(&self) -> Result<&Frame> {
         match self.0.last() {
             None => Err(ExecError::Panic(

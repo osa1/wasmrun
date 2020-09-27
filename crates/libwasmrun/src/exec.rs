@@ -1,29 +1,6 @@
-/*
-
-Notes
-~~~~~
-
-- Each block has its own value stack
-
-- The type `Stack` maintains both the block stack and value stacks.
-
-- Call frames holds function locals.
-
-- Instructions `br`, `br_if, `br_table`, `end` look at the last block that'll be popped for the
-  return arity and leave that many values onto the stack of the continuation block.
-
-- Continuaton of `br` is the `loop` instruction when the block is a `loop`, `end` instruction when
-  the block is a `block`. This means it takes two steps to actually break from a `block` or repeat
-  a `loop`.
-
-  (This is as described in the spec, but in practice we could do it differently and break outside
-  of a block directly or jump to the first instrution of a `loop`)
-
- */
-
 use crate::frame::FrameStack;
 use crate::mem::Mem;
-use crate::stack::{Stack, StackValue};
+use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{Func, Global, ModuleIdx, Store};
 pub use crate::value::Value;
 use crate::{ExecError, Result};
@@ -55,37 +32,24 @@ pub struct Module {
     pub name_to_func: FxHashMap<String, u32>,
 }
 
+#[derive(Default)]
 pub struct Runtime {
     /// The heap
     store: Store,
     /// Value stack
-    stack: Stack,
+    pub stack: Stack,
     /// Call stack
-    frames: FrameStack,
-    ///
+    pub frames: FrameStack,
+    /// Allocated modules
     modules: Vec<Module>,
-    /// Continuation stack. `conts.last_mut().pop()` gives the continuation for the current block.
-    /// On return we pop the outer vector to drop the blocks of the current function.
-    conts: Vec<Vec<u32>>,
-    /// Instruction pointer. Instruction index in the function at the top of the call stack
-    /// (`frames`).
+    /// Instruction pointer
     ip: u32,
 }
 
 impl Runtime {
-    pub fn new() -> Self {
-        Runtime {
-            store: Default::default(),
-            stack: Default::default(),
-            frames: Default::default(),
-            modules: Default::default(),
-            conts: vec![vec![]],
-            ip: 0,
-        }
-    }
-
     pub fn clear_stack(&mut self) {
-        self.stack.clear()
+        self.stack.clear();
+        self.frames.clear();
     }
 
     pub fn get_module(&self, idx: ModuleIdx) -> &Module {
@@ -97,11 +61,11 @@ impl Runtime {
     }
 
     pub fn pop_value(&mut self) -> Option<Value> {
-        self.stack.pop_value_opt()
+        self.stack.pop_value_opt().unwrap()
     }
 
     pub fn push_value(&mut self, value: Value) {
-        self.stack.push_value(value)
+        self.stack.push_value(value).unwrap()
     }
 }
 
@@ -142,7 +106,6 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     }
 
     // Allocate imported functions
-    // TODO: allocate other imported stuff (tables, memories, globals)
     // TODO: not sure how to resolve imports yet
     if let Some(import_section) = parsed_module.import_section_mut() {
         for import in import_section.entries_mut().drain(..) {
@@ -331,28 +294,28 @@ pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) -> Result<(
             ExecError::Panic(format!("Function address out of bounds: {}", fun_addr))
         })?;
 
-    let arg_tys = rt.modules[module_idx].types[func.fun_ty_idx as usize].params();
+    debug_assert!(match func.fun.code().elements().last().unwrap() {
+        Instruction::End => true,
+        other => panic!("Last instruction of function is not 'end': {:?}", other),
+    });
+
+    let fun_ty = &rt.modules[module_idx].types[func.fun_ty_idx as usize];
+    let arg_tys = fun_ty.params();
     rt.frames.push(func, arg_tys);
 
     // Set locals for arguments
-    let fun_arity = rt.get_module(module_idx).types[func.fun_ty_idx as usize]
-        .params()
-        .len();
+    let n_args = fun_ty.params().len();
+    let n_rets = fun_ty.results().len();
 
-    for local_idx in (0..fun_arity).rev() {
+    for local_idx in (0..n_args).rev() {
         let arg_val = rt.stack.pop_value()?;
         rt.frames
             .current_mut()?
             .set_local(local_idx as u32, arg_val)?;
     }
 
-    rt.conts
-        .last_mut()
-        .ok_or_else(|| {
-            ExecError::Panic("invoke: Empty continuation stack after function call".to_string())
-        })?
-        .push(rt.ip + 1);
-    rt.conts.push(vec![]);
+    rt.stack
+        .push_fun_block(rt.ip + 1, n_args as u32, n_rets as u32);
     rt.ip = 0;
 
     Ok(())
@@ -366,35 +329,31 @@ pub fn finish(rt: &mut Runtime) -> Result<()> {
 }
 
 pub fn single_step(rt: &mut Runtime) -> Result<()> {
-    let current_fun_idx = rt.frames.current()?.fun_idx;
+    let current_fun_idx = match rt.frames.current() {
+        Ok(current_fun) => current_fun.fun_idx,
+        Err(_) => {
+            return Ok(());
+        }
+    };
     let current_fun = &rt.store.funcs[current_fun_idx as usize];
 
-    if rt.ip as usize >= current_fun.fun.code().elements().len() {
-        // End of the function, pop the frame, update ip.
-        // TODO: Should this really take one step?
+    assert!((rt.ip as usize) < current_fun.fun.code().elements().len());
 
-        rt.frames.pop(); // Pop call frame
-        rt.conts.pop(); // Pop blocks of current frame
-        rt.ip = rt
-            .conts
-            .last_mut()
-            .and_then(|conts| conts.pop())
-            .unwrap_or(0); // TODO: Setting ip 0 here going to be a problem?
-
-        return Ok(());
-    }
+    // if rt.ip as usize >= current_fun.fun.code().elements().len() {
+    //     // TODO: Why is this branch taken? It think all functions end with an `end`?
+    //     // TODO: Should this really take one step?
+    //     return Ok(());
+    // }
 
     // Instruction is just 3 words so clonning here should be fine, and avoid borrowchk issues
     // later on
     let instr = current_fun.fun.code().elements()[rt.ip as usize].clone();
     let module_idx = current_fun.module_idx;
 
-    /*
-        println!(
-            "instruction={:?}, stack={:?}, call stack={:?}, conts={:?}",
-            instr, rt.stack, rt.frames, rt.conts
-        );
-    */
+    // println!(
+    //     "ip={}, instruction={:?}, stack={:?}, call stack={:?}",
+    //     rt.ip, instr, rt.stack, rt.frames,
+    // );
 
     match instr {
         Instruction::GrowMemory(mem_ref) => {
@@ -406,10 +365,10 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let total_pages = current_pages + new_pages;
 
             if total_pages > mem.max_pages().unwrap_or(MAX_PAGES) {
-                rt.stack.push_i32(-1);
+                rt.stack.push_i32(-1)?;
             } else {
                 mem.add_pages(new_pages);
-                rt.stack.push_i32(total_pages as i32);
+                rt.stack.push_i32(current_pages as i32)?;
             }
 
             rt.ip += 1;
@@ -419,7 +378,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             // memory.size
             assert_eq!(mem_ref, 0);
             let mem = &mut rt.store.mems[module_idx];
-            rt.stack.push_i32(mem.size_pages() as i32);
+            rt.stack.push_i32(mem.size_pages() as i32)?;
             rt.ip += 1;
         }
 
@@ -432,9 +391,9 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let val2 = rt.stack.pop_value()?;
             let val1 = rt.stack.pop_value()?;
             if select == 0 {
-                rt.stack.push_value(val2);
+                rt.stack.push_value(val2)?;
             } else {
-                rt.stack.push_value(val1);
+                rt.stack.push_value(val1)?;
             }
             rt.ip += 1;
         }
@@ -577,7 +536,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem.check_range(addr)?;
 
             let val = mem[addr];
-            rt.stack.push_i64(val as i64);
+            rt.stack.push_i64(val as i64)?;
 
             rt.ip += 1;
         }
@@ -593,7 +552,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b2 = mem[addr + 1];
             let b3 = mem[addr + 2];
             let b4 = mem[addr + 3];
-            rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]));
+            rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]))?;
             rt.ip += 1;
         }
 
@@ -609,7 +568,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b3 = mem[addr + 2];
             let b4 = mem[addr + 3];
             rt.stack
-                .push_f32(unsafe { transmute(i32::from_le_bytes([b1, b2, b3, b4])) });
+                .push_f32(unsafe { transmute(i32::from_le_bytes([b1, b2, b3, b4])) })?;
             rt.ip += 1;
         }
 
@@ -629,7 +588,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b7 = mem[addr + 6];
             let b8 = mem[addr + 7];
             rt.stack
-                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]));
+                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))?;
             rt.ip += 1;
         }
 
@@ -650,7 +609,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b8 = mem[addr + 7];
             rt.stack.push_f64(unsafe {
                 transmute(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))
-            });
+            })?;
             rt.ip += 1;
         }
 
@@ -662,7 +621,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem.check_range(addr)?;
 
             let b = mem[addr];
-            rt.stack.push_i32(b as i32);
+            rt.stack.push_i32(b as i32)?;
             rt.ip += 1;
         }
 
@@ -677,7 +636,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b_abs = b.abs() as i32;
 
             let val = if b < 0 { -1 * b_abs } else { b_abs };
-            rt.stack.push_i32(val);
+            rt.stack.push_i32(val)?;
             rt.ip += 1;
         }
 
@@ -689,7 +648,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem.check_range(addr)?;
 
             let b = mem[addr];
-            rt.stack.push_i64(b as i64);
+            rt.stack.push_i64(b as i64)?;
             rt.ip += 1;
         }
 
@@ -702,7 +661,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
-            rt.stack.push_i32(i32::from_le_bytes([b1, b2, 0, 0]));
+            rt.stack.push_i32(i32::from_le_bytes([b1, b2, 0, 0]))?;
             rt.ip += 1;
         }
 
@@ -724,7 +683,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 i_16_abs as i32
             };
 
-            rt.stack.push_i32(val);
+            rt.stack.push_i32(val)?;
             rt.ip += 1;
         }
 
@@ -738,7 +697,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
             rt.stack
-                .push_i64(i64::from_le_bytes([b1, b2, 0, 0, 0, 0, 0, 0]));
+                .push_i64(i64::from_le_bytes([b1, b2, 0, 0, 0, 0, 0, 0]))?;
             rt.ip += 1;
         }
 
@@ -759,7 +718,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 i_16_abs as i64
             };
 
-            rt.stack.push_i64(val);
+            rt.stack.push_i64(val)?;
             rt.ip += 1;
         }
 
@@ -775,7 +734,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b3 = mem[addr + 2];
             let b4 = mem[addr + 3];
             rt.stack
-                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, 0, 0, 0, 0]));
+                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, 0, 0, 0, 0]))?;
             rt.ip += 1;
         }
 
@@ -799,7 +758,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 i_32_abs as i64
             };
 
-            rt.stack.push_i64(val);
+            rt.stack.push_i64(val)?;
             rt.ip += 1;
         }
 
@@ -832,7 +791,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::GetLocal(idx) => {
             let val = rt.frames.current()?.get_local(idx)?;
-            rt.stack.push_value(val);
+            rt.stack.push_value(val)?;
             rt.ip += 1;
         }
 
@@ -845,14 +804,14 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::TeeLocal(idx) => {
             let val = rt.stack.pop_value()?;
             rt.frames.current_mut()?.set_local(idx, val)?;
-            rt.stack.push_value(val);
+            rt.stack.push_value(val)?;
             rt.ip += 1;
         }
 
         Instruction::GetGlobal(idx) => {
             let global_idx = rt.modules[module_idx].global_addrs[idx as usize];
             let value = rt.store.globals[global_idx as usize].value;
-            rt.stack.push_value(value);
+            rt.stack.push_value(value)?;
             rt.ip += 1;
         }
 
@@ -864,22 +823,22 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Const(i) => {
-            rt.stack.push_i32(i);
+            rt.stack.push_i32(i)?;
             rt.ip += 1;
         }
 
         Instruction::I64Const(i) => {
-            rt.stack.push_i64(i);
+            rt.stack.push_i64(i)?;
             rt.ip += 1;
         }
 
         Instruction::F32Const(f) => {
-            rt.stack.push_f32(unsafe { transmute(f) });
+            rt.stack.push_f32(unsafe { transmute(f) })?;
             rt.ip += 1;
         }
 
         Instruction::F64Const(f) => {
-            rt.stack.push_f64(unsafe { transmute(f) });
+            rt.stack.push_f64(unsafe { transmute(f) })?;
             rt.ip += 1;
         }
 
@@ -1164,7 +1123,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64Shl => {
-            op2::<u32, u32, _>(rt, |a, b| a.wrapping_shl(b))?;
+            op2::<u64, u64, _>(rt, |a, b| a.wrapping_shl(b as u32))?; // FIXME shift amount
         }
 
         Instruction::I32Rotl => {
@@ -1236,7 +1195,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::F64Neg => {
             // FIXME: Same as above, we can't use op1 here
             let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(-1f64 * f);
+            rt.stack.push_f64(-1f64 * f)?;
             rt.ip += 1;
         }
 
@@ -1341,13 +1300,13 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64ExtendUI32 => {
             // FIXME: Same, can't use op1
             let i = rt.stack.pop_i32()? as u32;
-            rt.stack.push_i64((i as u64) as i64);
+            rt.stack.push_i64((i as u64) as i64)?;
             rt.ip += 1;
         }
 
         Instruction::I64ExtendSI32 => {
             let i = rt.stack.pop_i32()?;
-            rt.stack.push_i64(i as i64);
+            rt.stack.push_i64(i as i64)?;
             rt.ip += 1;
         }
 
@@ -1362,7 +1321,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            rt.stack.push_i32((f as i64) as i32);
+            rt.stack.push_i32((f as i64) as i32)?;
             rt.ip += 1;
 
             // let trunc_f32_u x =
@@ -1387,7 +1346,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            rt.stack.push_i32(f as i32);
+            rt.stack.push_i32(f as i32)?;
             rt.ip += 1;
 
             // let trunc_f32_s x =
@@ -1412,7 +1371,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            rt.stack.push_i32(f as i32);
+            rt.stack.push_i32(f as i32)?;
             rt.ip += 1;
 
             // let trunc_f64_s x =
@@ -1437,7 +1396,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            rt.stack.push_i32((f as i64) as i32);
+            rt.stack.push_i32((f as i64) as i32)?;
             rt.ip += 1;
 
             // let trunc_f64_u x =
@@ -1462,7 +1421,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            rt.stack.push_i64(f as i64);
+            rt.stack.push_i64(f as i64)?;
             rt.ip += 1;
 
             // let trunc_f32_s x =
@@ -1493,7 +1452,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 f as i64
             };
 
-            rt.stack.push_i64(val);
+            rt.stack.push_i64(val)?;
             rt.ip += 1;
 
             // let trunc_f32_u x =
@@ -1520,7 +1479,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            rt.stack.push_i64(f as i64);
+            rt.stack.push_i64(f as i64)?;
             rt.ip += 1;
 
             // let trunc_f64_s x =
@@ -1551,7 +1510,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 f as i64
             };
 
-            rt.stack.push_i64(val);
+            rt.stack.push_i64(val)?;
             rt.ip += 1;
 
             // let trunc_f64_u x =
@@ -1736,44 +1695,26 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             invoke(rt, module_idx, fun_idx)?;
         }
 
-        Instruction::End => {
-            match rt.conts.last_mut().unwrap().pop() {
-                Some(_) => {
-                    // End of the block
-                    rt.ip += 1;
-                }
-                None => {
-                    // End of the function. Code is the same as `return` case.
-                    rt.frames.pop();
-                    rt.conts.pop();
-                    rt.ip = rt.conts.last_mut().unwrap().pop().unwrap();
-                }
-            }
-        }
-
-        Instruction::Return => {
-            rt.frames.pop();
-            rt.conts.pop();
-            rt.ip = rt.conts.last_mut().unwrap().pop().unwrap();
-        }
-
-        Instruction::Block(_) | Instruction::Loop(_) => {
-            let current_fun = &rt.store.funcs[current_fun_idx as usize];
-            let cont = match current_fun.block_bounds.get(&rt.ip) {
-                None => {
-                    return Err(ExecError::Panic(
-                        "Couldn't find continuation of block".to_string(),
-                    ));
-                }
-                Some(cont) => *cont,
-            };
-            rt.conts.last_mut().unwrap().push(cont);
+        Instruction::Drop => {
+            let _ = rt.stack.pop_value();
             rt.ip += 1;
         }
 
-        Instruction::If(_) => {
-            let current_fun = &rt.store.funcs[current_fun_idx as usize];
-            let cont = match current_fun.block_bounds.get(&rt.ip) {
+        Instruction::Unreachable => {
+            return Err(ExecError::Trap);
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        //                          Control flow instructions                                     //
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::Block(block_ty) => {
+            let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
+            let mut args = Vec::with_capacity(n_args as usize);
+            for _ in 0..n_args {
+                args.push(rt.stack.pop_value()?);
+            }
+
+            let cont = match current_fun.block_to_end.get(&rt.ip) {
                 None => {
                     return Err(ExecError::Panic(
                         "Couldn't find continuation of block".to_string(),
@@ -1781,42 +1722,66 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 }
                 Some(cont) => *cont,
             };
-            rt.conts.last_mut().unwrap().push(cont);
 
+            rt.stack.push_block(cont, n_args, n_rets);
+            rt.ip += 1;
+        }
+
+        Instruction::Loop(block_ty) => {
+            let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
+            let mut args = Vec::with_capacity(n_args as usize);
+            for _ in 0..n_args {
+                args.push(rt.stack.pop_value()?);
+            }
+
+            rt.stack.push_loop(rt.ip, n_args, n_rets);
+            rt.ip += 1;
+        }
+
+        Instruction::If(block_ty) => {
             let cond = rt.stack.pop_i32()?;
-            if cond == 0 {
-                let current_fun = &rt.store.funcs[current_fun_idx as usize];
-                match current_fun.else_instrs.get(&rt.ip) {
-                    None => match current_fun.block_bounds.get(&rt.ip) {
-                        None => {
-                            return Err(ExecError::Panic(
-                                "Couldn't find else block or continuation of if".to_string(),
-                            ));
-                        }
-                        Some(cont) => {
-                            rt.ip = *cont;
-                        }
-                    },
-                    Some(else_) => {
-                        rt.ip = else_ + 1;
-                    }
+
+            let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
+            let mut args = Vec::with_capacity(n_args as usize);
+            for _ in 0..n_args {
+                args.push(rt.stack.pop_value()?);
+            }
+
+            let cont = match current_fun.block_to_end.get(&rt.ip) {
+                None => {
+                    return Err(ExecError::Panic(
+                        "Couldn't find continuation of if".to_string(),
+                    ));
                 }
-            } else {
+                Some(cont) => *cont,
+            };
+
+            rt.stack.push_block(cont, n_args, n_rets);
+            for arg in args.into_iter().rev() {
+                rt.stack.push_value(arg)?;
+            }
+
+            if cond != 0 {
+                // true
                 rt.ip += 1;
+            } else {
+                // false
+                match current_fun.if_to_else.get(&rt.ip) {
+                    None => {
+                        // No else branch, jump to 'end', which will pop the block we've just
+                        // pushed above. TODO: Maybe push it later?
+                        rt.ip = cont;
+                    }
+                    Some(else_idx) => {
+                        rt.ip = *else_idx + 1; // first instruction in else
+                    }
+                };
             }
         }
 
         Instruction::Else => {
-            let current_fun = &rt.store.funcs[current_fun_idx as usize];
-            let cont = match current_fun.block_bounds.get(&rt.ip) {
-                None => {
-                    return Err(ExecError::Panic(
-                        "Couldn't find continuation of else".to_string(),
-                    ));
-                }
-                Some(cont) => *cont,
-            };
-            rt.ip = cont;
+            // 'end' of an 'if' block
+            br(rt, 0)?;
         }
 
         Instruction::Br(n_blocks) => {
@@ -1840,15 +1805,43 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             br(rt, n_blocks)?;
         }
 
-        Instruction::Drop => {
-            let _ = rt.stack.pop_value();
-            rt.ip += 1;
+        Instruction::End => {
+            // Kinda like 'br(0)', but also works as 'return'. Then returning from a function we
+            // use the continuation of the frame. Otherwise we bump ip by one.
+
+            // Get return vals
+            let return_arity = rt.stack.return_arity(0, EndOrBreak::End)?;
+            let mut vals = Vec::with_capacity(return_arity as usize);
+            for _ in 0..return_arity {
+                vals.push(rt.stack.pop_value()?);
+            }
+
+            let Block { cont, kind, .. } = rt.stack.pop_block()?;
+
+            let cont = if kind == BlockKind::Fun {
+                rt.frames.pop();
+
+                for val in vals {
+                    rt.stack.push_value(val)?;
+                }
+
+                cont
+            } else {
+                for val in vals.into_iter().rev() {
+                    rt.stack.push_value(val)?;
+                }
+
+                rt.ip + 1
+            };
+
+            rt.ip = cont;
         }
 
-        Instruction::Unreachable => {
-            return Err(ExecError::Trap);
+        Instruction::Return => {
+            ret(rt)?;
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Atomics(_)
         | Instruction::Simd(_)
         | Instruction::SignExt(_)
@@ -1880,20 +1873,95 @@ fn op2<A: StackValue, B: StackValue, F: Fn(A, A) -> B>(rt: &mut Runtime, op: F) 
     Ok(())
 }
 
-fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
-    for _ in 0..n_blocks + 1 {
-        let cont_frame = rt.conts.last_mut().unwrap();
-        match cont_frame.pop() {
-            None => {
-                // Function return
-                let current_fun_idx = rt.frames.current()?.fun_idx;
-                let current_fun = &rt.store.funcs[current_fun_idx as usize];
-                rt.ip = current_fun.fun.code().elements().len() as u32;
-            }
-            Some(ip) => {
-                rt.ip = ip;
-            }
+fn block_arity(rt: &Runtime, module_idx: usize, ty: wasm::BlockType) -> (u32, u32) {
+    match ty {
+        wasm::BlockType::Value(_) => (0, 1),
+        wasm::BlockType::NoResult => (0, 0),
+        wasm::BlockType::TypeIdx(ty_idx) => {
+            let ty = &rt.modules[module_idx].types[ty_idx as usize];
+            (ty.params().len() as u32, ty.results().len() as u32)
         }
     }
+}
+
+fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
+    // Get return vals
+    let return_arity = rt.stack.return_arity(n_blocks, EndOrBreak::Break)?;
+    let mut vals = Vec::with_capacity(return_arity as usize);
+    for _ in 0..return_arity {
+        vals.push(rt.stack.pop_value()?);
+    }
+
+    // Pop blocks
+    for _ in 0..n_blocks {
+        let Block { kind, .. } = rt.stack.pop_block()?;
+        assert!(kind != BlockKind::Fun);
+    }
+
+    // Last block
+    let Block { cont, kind, .. } = rt.stack.pop_block()?;
+
+    // println!("br({}) arity={}, cont={}", n_blocks, return_arity, cont);
+
+    for val in vals.into_iter().rev() {
+        rt.stack.push_value(val)?;
+    }
+
+    // `cont` is the `end` instruction for the last block but we wan't to execute `end` as we've
+    // already adjusted the stack. Continue from the next instruction after `end` (which could be
+    // `end` for another block).
+    // let current_fun_idx = rt.frames.current()?.fun_idx;
+    // match &rt.store.funcs[current_fun_idx as usize]
+    //     .fun
+    //     .code()
+    //     .elements()[cont as usize]
+    // {
+    //     Instruction::End => {}
+    //     other => {
+    //         panic!("Continuation of a block is not 'end': {:?}", other);
+    //     }
+    // }
+
+    match kind {
+        BlockKind::Top => panic!(),
+        BlockKind::Block => {
+            rt.ip = cont + 1;
+        }
+        BlockKind::Loop => {
+            rt.ip = cont;
+        }
+        BlockKind::Fun => {
+            rt.frames.pop();
+            rt.ip = cont;
+        }
+    }
+
+    Ok(())
+}
+
+fn ret(rt: &mut Runtime) -> Result<()> {
+    let current_fun_idx = rt.frames.current()?.fun_idx;
+    let current_fun = &rt.store.funcs[current_fun_idx as usize];
+    let module_idx = current_fun.module_idx;
+
+    let fun_ty_idx = current_fun.fun_ty_idx;
+    let fun_return_arity = rt.modules[module_idx].types[fun_ty_idx as usize]
+        .results()
+        .len();
+
+    let mut vals = Vec::with_capacity(fun_return_arity);
+    for _ in 0..fun_return_arity {
+        vals.push(rt.stack.pop_value()?);
+    }
+
+    let Block { cont, .. } = rt.stack.pop_fun_block()?;
+
+    for val in vals {
+        rt.stack.push_value(val)?;
+    }
+
+    rt.frames.pop();
+    rt.ip = cont;
+
     Ok(())
 }

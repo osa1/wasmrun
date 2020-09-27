@@ -45,7 +45,7 @@ pub fn run_wasm(file: String) -> Result<()> {
     let module = wasm::deserialize_file(file).unwrap();
     // println!("{:#?}", module);
 
-    let mut runtime = Runtime::new();
+    let mut runtime = Default::default();
     let module_idx = exec::allocate_module(&mut runtime, module)?;
 
     // Run the 'start' function if it exists

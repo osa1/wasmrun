@@ -143,7 +143,7 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
 
     let mut failing_lines = vec![];
 
-    let mut rt = Runtime::new();
+    let mut rt = Default::default();
     let mut module_idx: Option<ModuleIdx> = None;
 
     for cmd in spec.commands {
@@ -178,7 +178,7 @@ fn run_spec_cmd(
             // Flush the line number now so that we'll see it in case of a loop or hang
             out.flush().unwrap();
 
-            *rt = Runtime::new();
+            *rt = Default::default();
             let file_path = format!("{}/{}", dir_path, filename);
             match wasm::deserialize_file(file_path) {
                 Err(err) => {
@@ -246,6 +246,9 @@ fn run_spec_cmd(
                 failing_lines.push(line);
                 return;
             }
+
+            // println!("rt after execution:");
+            // println!("stack={:?}, frames={:?}", rt.stack, rt.frames);
 
             let mut expected_ = Vec::with_capacity(expected.len());
             for val in expected.into_iter() {
