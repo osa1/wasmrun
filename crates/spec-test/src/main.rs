@@ -21,7 +21,22 @@ fn main() {
             let mut out = Output {
                 file: Some(out_file),
             };
-            let fails = run_spec_dir(dir_contents, &mut out);
+
+            let mut dir_files: Vec<PathBuf> = vec![];
+
+            for file in dir_contents {
+                let file = file.unwrap();
+                let file_path = file.path();
+                if let Some(ext) = file_path.extension() {
+                    if ext == "wast" {
+                        dir_files.push(file_path);
+                    }
+                }
+            }
+
+            dir_files.sort();
+
+            let fails = run_spec_dir(&dir_files, &mut out);
             let ret = if fails.is_empty() { 0 } else { 1 };
             for (file, lines) in fails.into_iter() {
                 writeln!(&mut out, "{}: {:?}", file.to_string_lossy(), lines).unwrap();
@@ -81,12 +96,10 @@ impl Write for Output {
 }
 
 /// Run all .wast files in the given directory
-fn run_spec_dir(dir: fs::ReadDir, out: &mut Output) -> Vec<(PathBuf, Vec<usize>)> {
+fn run_spec_dir(dir: &[PathBuf], out: &mut Output) -> Vec<(PathBuf, Vec<usize>)> {
     let mut fails: Vec<(PathBuf, Vec<usize>)> = Default::default();
 
-    for file in dir {
-        let file = file.unwrap();
-        let file_path = file.path();
+    for file_path in dir {
         if let Some(ext) = file_path.extension() {
             if ext == "wast" {
                 writeln!(out, "{}", file_path.file_name().unwrap().to_str().unwrap()).unwrap();
@@ -94,7 +107,7 @@ fn run_spec_dir(dir: fs::ReadDir, out: &mut Output) -> Vec<(PathBuf, Vec<usize>)
                 match run_spec_test(&file_path, out) {
                     Ok(failing_lines) => {
                         if !failing_lines.is_empty() {
-                            fails.push((file_path, failing_lines));
+                            fails.push((file_path.to_owned(), failing_lines));
                         }
                     }
                     Err(err) => {
