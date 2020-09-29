@@ -5,7 +5,6 @@ use cli::Args;
 use libwasmrun::exec::{self, Runtime, Value};
 use libwasmrun::store::ModuleIdx;
 
-use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -82,8 +81,8 @@ impl Write for Output {
 }
 
 /// Run all .wast files in the given directory
-fn run_spec_dir(dir: fs::ReadDir, out: &mut Output) -> HashMap<PathBuf, Vec<usize>> {
-    let mut fails: HashMap<PathBuf, Vec<usize>> = Default::default();
+fn run_spec_dir(dir: fs::ReadDir, out: &mut Output) -> Vec<(PathBuf, Vec<usize>)> {
+    let mut fails: Vec<(PathBuf, Vec<usize>)> = Default::default();
 
     for file in dir {
         let file = file.unwrap();
@@ -95,7 +94,7 @@ fn run_spec_dir(dir: fs::ReadDir, out: &mut Output) -> HashMap<PathBuf, Vec<usiz
                 match run_spec_test(&file_path, out) {
                     Ok(failing_lines) => {
                         if !failing_lines.is_empty() {
-                            fails.insert(file_path, failing_lines);
+                            fails.push((file_path, failing_lines));
                         }
                     }
                     Err(err) => {
