@@ -2,3 +2,4 @@
 *.wasm
 *.wat
 specs/
+test_output
