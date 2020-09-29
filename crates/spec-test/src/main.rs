@@ -5,9 +5,10 @@ use cli::Args;
 use libwasmrun::exec::{self, Runtime, Value};
 use libwasmrun::store::ModuleIdx;
 
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 use parity_wasm::elements as wasm;
@@ -15,20 +16,37 @@ use parity_wasm::elements as wasm;
 fn main() {
     let Args { file } = cli::parse();
 
-    let ret = match fs::read_dir(&file) {
-        Ok(dir_contents) => run_spec_dir(dir_contents),
+    let exit_code = match fs::read_dir(&file) {
+        Ok(dir_contents) => {
+            let out_file = fs::File::create("test_output").unwrap();
+            let mut out = Output {
+                file: Some(out_file),
+            };
+            let fails = run_spec_dir(dir_contents, &mut out);
+            let ret = if fails.is_empty() { 0 } else { 1 };
+            for (file, lines) in fails.into_iter() {
+                writeln!(&mut out, "{}: {:?}", file.to_string_lossy(), lines).unwrap();
+            }
+            ret
+        }
         Err(_) => {
             let mut out = Output { file: None };
-            run_spec_test(file.into(), &mut out)
+            let file_path: PathBuf = file.into();
+            match run_spec_test(&file_path, &mut out) {
+                Ok(fails) => {
+                    if fails.is_empty() {
+                        0
+                    } else {
+                        writeln!(&mut out, "{:?}", fails).unwrap();
+                        1
+                    }
+                }
+                Err(err) => {
+                    writeln!(&mut out, "{}", err).unwrap();
+                    1
+                }
+            }
         }
-    };
-
-    let exit_code = match ret {
-        Err(err) => {
-            println!("{}", err);
-            1
-        }
-        Ok(exit_code) => exit_code,
     };
 
     exit(exit_code)
@@ -63,36 +81,36 @@ impl Write for Output {
     }
 }
 
-fn run_spec_dir(dir: fs::ReadDir) -> Result<i32, String> {
-    let out_file = fs::File::create("test_output").unwrap();
-    let mut out = Output {
-        file: Some(out_file),
-    };
-
-    let mut exit_code = 0;
+/// Run all .wast files in the given directory
+fn run_spec_dir(dir: fs::ReadDir, out: &mut Output) -> HashMap<PathBuf, Vec<usize>> {
+    let mut fails: HashMap<PathBuf, Vec<usize>> = Default::default();
 
     for file in dir {
         let file = file.unwrap();
         let file_path = file.path();
         if let Some(ext) = file_path.extension() {
             if ext == "wast" {
-                writeln!(
-                    &mut out,
-                    "{}",
-                    file_path.file_name().unwrap().to_str().unwrap()
-                )
-                .unwrap();
-                if run_spec_test(file_path, &mut out)? != 0 {
-                    exit_code = 1;
+                writeln!(out, "{}", file_path.file_name().unwrap().to_str().unwrap()).unwrap();
+
+                match run_spec_test(&file_path, out) {
+                    Ok(failing_lines) => {
+                        if !failing_lines.is_empty() {
+                            fails.insert(file_path, failing_lines);
+                        }
+                    }
+                    Err(err) => {
+                        writeln!(out, "{}", err).unwrap();
+                    }
                 }
             }
         }
     }
 
-    Ok(exit_code)
+    fails
 }
 
-fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
+/// Run a single file
+fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
     match path.extension() {
         Some(ext) => {
             if ext != "wast" {
@@ -123,19 +141,14 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
     match cmd_ret {
         Ok(output) => {
             if !output.status.success() {
-                let stderr = output.stderr;
-                writeln!(
-                    out,
+                return Err(format!(
                     "wast2json failed: {}",
-                    String::from_utf8_lossy(&stderr)
-                )
-                .unwrap();
-                return Ok(1);
+                    String::from_utf8_lossy(&output.stderr)
+                ));
             }
         }
         Err(err) => {
-            writeln!(out, "wast2json failed: {}", err).unwrap();
-            return Ok(1);
+            return Err(format!("wast2json failed: {}", err)).unwrap();
         }
     }
 
@@ -157,11 +170,7 @@ fn run_spec_test(path: PathBuf, out: &mut Output) -> Result<i32, String> {
         );
     }
 
-    if !failing_lines.is_empty() {
-        writeln!(out, "Failing lines: {:?}", failing_lines).unwrap();
-    }
-
-    Ok(if failing_lines.is_empty() { 0 } else { 1 })
+    Ok(failing_lines)
 }
 
 fn run_spec_cmd(
