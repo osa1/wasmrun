@@ -253,9 +253,15 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
 
     // Set start
     inst.start = parsed_module.start_section();
+    let start = inst.start;
 
     // Done
     rt.modules.push(inst);
+
+    if let Some(start_idx) = start {
+        invoke(rt, module_idx, start_idx)?;
+        finish(rt)?;
+    }
 
     Ok(module_idx)
 }

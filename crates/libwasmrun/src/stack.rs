@@ -194,7 +194,9 @@ impl Stack {
                 n_rets,
                 ..
             }) => match kind {
-                BlockKind::Top => Err(ExecError::Panic("Stack::return_arity of top frame".to_string())),
+                BlockKind::Top => Err(ExecError::Panic(
+                    "Stack::return_arity of top frame".to_string(),
+                )),
                 BlockKind::Block | BlockKind::Fun => Ok(*n_rets),
                 BlockKind::Loop => match end_or_break {
                     EndOrBreak::End => Ok(*n_rets),
