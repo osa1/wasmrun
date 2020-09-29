@@ -1,4 +1,4 @@
-use super::store::Func;
+use super::store::WasmFunc;
 use super::value::Value;
 use crate::{ExecError, Result};
 
@@ -44,7 +44,7 @@ impl FrameStack {
         }
     }
 
-    pub(super) fn push(&mut self, fun: &Func, arg_tys: &[wasm::ValueType]) {
+    pub(super) fn push(&mut self, fun: &WasmFunc, arg_tys: &[wasm::ValueType]) {
         self.0.push(Frame {
             fun_idx: fun.fun_idx as u32,
             locals: arg_tys

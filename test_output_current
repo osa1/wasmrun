@@ -233,8 +233,8 @@ align.wast
 	line 23: OK
 	line 24: OK
 	line 25: OK
-	line 458: OK
-Unable parse names
+	line 458: Unable parse names
+OK
 	line 802: OK
 	line 803: OK
 	line 804: OK
@@ -314,8 +314,8 @@ binary.wast
 	line 2: OK
 	line 3: OK
 	line 4: OK
-	line 350: OK
-Unable parse names
+	line 350: Unable parse names
+OK
 	line 406: OK
 	line 412: OK
 	line 418: OK
@@ -2122,95 +2122,65 @@ data.wast
 	line 5: OK
 	line 23: OK
 	line 27: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: None, shared: false }))
 	line 32: OK
 	line 40: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: None, shared: false }))
 	line 50: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 55: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 61: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 66: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 78: OK
 	line 83: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: None, shared: false }))
 	line 89: OK
 	line 94: OK
 	line 98: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 103: OK
 	line 108: OK
 	line 113: OK
 	line 117: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 122: OK
 	line 127: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 132: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: Some(3), shared: false }))
 	line 137: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 143: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 149: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 154: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: Some(3), shared: false }))
 elem.wast
 	line 4: OK
 	line 23: OK
 	line 28: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
 	line 34: OK
-Unable to allocate module: Interpreter panicked: Elem index out of bounds: 3
 	line 43: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
 	line 53: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 60: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 67: OK
-Unable to allocate module: Interpreter panicked: Elem index out of bounds: 9
-	line 81: module not available; skipping
-	line 82: module not available; skipping
+	line 81: OK
+	line 82: OK
 	line 86: OK
 	line 91: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
 	line 97: OK
 	line 101: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 106: OK
 	line 111: OK
 	line 116: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 122: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: Some(100), shared: false } })
 	line 128: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 134: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: Some(30), shared: false } })
 	line 305: OK
 	line 316: OK
 	line 318: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
-	line 329: module not available; skipping
+	line 329: OK
 	line 333: OK
 	line 351: OK
 	line 354: OK
 	line 355: OK
 	line 357: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
-	line 366: module not available; skipping
-	line 367: module not available; skipping
-	line 368: module not available; skipping
+	line 366: OK
+	line 367: OK
+	line 368: OK
 	line 370: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
-	line 379: module not available; skipping
-	line 380: module not available; skipping
-	line 381: module not available; skipping
+	line 379: OK
+	line 380: OK
+	line 381: OK
 endianness.wast
 	line 1: OK
 	line 133: OK
@@ -2298,7 +2268,7 @@ exports.wast
 	line 23: OK
 	line 24: OK
 	line 25: OK
-	line 26: Error while calling function e: Interpreter panicked: Unknown function: e
+	line 26: OK
 	line 56: OK
 	line 57: OK
 	line 58: OK
@@ -2309,11 +2279,11 @@ exports.wast
 	line 64: OK
 	line 65: OK
 	line 67: OK
-	line 71: Error while calling function e: Interpreter panicked: Unknown function: e
-	line 72: Error while calling function e: Interpreter panicked: Unknown function: e
+	line 71: OK
+	line 72: OK
 	line 73: OK
 	line 74: OK
-	line 75: Error while calling function e: Interpreter panicked: Unknown function: e
+	line 75: OK
 	line 105: OK
 	line 106: OK
 	line 110: OK
@@ -13437,11 +13407,11 @@ float_exprs.wast
 	line 1135: OK
 	line 1144: OK
 	line 1145: OK
-	line 1150: OK
-Unable parse names
+	line 1150: Unable parse names
+OK
 	line 1167: OK
-	line 1169: OK
-Unable parse names
+	line 1169: Unable parse names
+OK
 	line 1186: OK
 	line 1191: OK
 	line 1197: OK
@@ -13499,26 +13469,26 @@ Unable parse names
 	line 1351: OK
 	line 1352: OK
 	line 1353: OK
-	line 1358: OK
-Unable parse names
+	line 1358: Unable parse names
+OK
 	line 1391: OK
 	line 1392: OK
 	line 1393: OK
 	line 1394: OK
 	line 1395: OK
-	line 1397: OK
-Unable parse names
+	line 1397: Unable parse names
+OK
 	line 1430: OK
 	line 1431: OK
 	line 1432: OK
 	line 1433: OK
 	line 1434: OK
-	line 1439: OK
-Unable parse names
+	line 1439: Unable parse names
+OK
 	line 1530: OK
 	line 1531: OK
-	line 1533: OK
-Unable parse names
+	line 1533: Unable parse names
+OK
 	line 1581: OK
 	line 1582: OK
 	line 1586: OK
@@ -13706,8 +13676,8 @@ Unable parse names
 	line 2149: OK
 	line 2157: OK
 	line 2158: OK
-	line 2164: OK
-Unable parse names
+	line 2164: Unable parse names
+OK
 	line 2212: OK
 	line 2213: OK
 	line 2218: OK
@@ -13784,8 +13754,8 @@ Unable parse names
 	line 2473: OK
 	line 2478: OK
 	line 2483: OK
-	line 2488: OK
-Unable parse names
+	line 2488: Unable parse names
+OK
 	line 2553: OK
 	line 2554: OK
 	line 2558: OK
@@ -14518,7 +14488,7 @@ func_ptrs.wast
 	line 27: OK
 	line 28: OK
 	line 29: OK
-	line 30: Error while running function four: Interpreter panicked: Function address out of bounds: 4294967295
+	line 30: OK
 	line 51: OK
 	line 71: OK
 	line 72: OK
@@ -14587,7 +14557,6 @@ global.wast
 	line 248: OK
 	line 249: OK
 	line 301: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 331: OK
 i32.wast
 	line 3: OK
@@ -15459,8 +15428,8 @@ imports.wast
 	line 3: OK
 	line 19: OK
 	line 24: OK
-	line 87: Error while running function print32: Interpreter panicked: Function address out of bounds: 4294967295
-	line 88: Error while running function print64: Interpreter panicked: Function address out of bounds: 4294967295
+	line 87: OK
+	line 88: OK
 	line 98: OK
 	line 99: OK
 	line 100: OK
@@ -15469,80 +15438,52 @@ imports.wast
 	line 103: OK
 	line 104: OK
 	line 208: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
-	line 226: module not available; skipping
-	line 227: module not available; skipping
-	line 228: module not available; skipping
-	line 229: module not available; skipping
+	line 226: OK
+	line 227: OK
+	line 228: OK
+	line 229: OK
 	line 231: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 232: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: F32, is_mutable: false })
 	line 271: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: Some(20), shared: false } })
-	line 284: module not available; skipping
-	line 285: module not available; skipping
+	line 284: OK
+	line 285: OK
 	line 290: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: Some(20), shared: false } })
-	line 303: module not available; skipping
-	line 304: module not available; skipping
+	line 303: OK
+	line 304: OK
 	line 322: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
 	line 323: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 5, maximum: None, shared: false } })
 	line 324: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 325: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
 	line 326: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 5, maximum: None, shared: false } })
 	line 327: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 328: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: Some(20), shared: false } })
 	line 329: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 5, maximum: Some(20), shared: false } })
 	line 330: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: Some(20), shared: false } })
 	line 331: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: Some(25), shared: false } })
 	line 332: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 5, maximum: Some(25), shared: false } })
 	line 381: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: Some(2), shared: false }))
-	line 388: module not available; skipping
-	line 389: module not available; skipping
-	line 390: module not available; skipping
+	line 388: OK
+	line 389: OK
+	line 390: OK
 	line 393: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: Some(2), shared: false }))
-	line 399: module not available; skipping
-	line 400: module not available; skipping
-	line 401: module not available; skipping
+	line 399: OK
+	line 400: OK
+	line 401: OK
 	line 417: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 2, maximum: None, shared: false }))
 	line 418: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: None, shared: false }))
 	line 419: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 420: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: None, shared: false }))
 	line 421: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 422: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: Some(2), shared: false }))
 	line 423: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: Some(2), shared: false }))
 	line 424: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: Some(3), shared: false }))
 	line 425: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: Some(3), shared: false }))
 	line 487: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: Some(3), shared: false }))
-	line 491: module not available; skipping
-	line 492: module not available; skipping
-	line 493: module not available; skipping
-	line 494: module not available; skipping
-	line 495: module not available; skipping
+	line 491: OK
+	line 492: OK
+	line 493: OK
+	line 494: OK
+	line 495: OK
 	line 571: OK
 	line 572: OK
 inline-module.wast
@@ -15802,96 +15743,89 @@ linking.wast
 	line 3: OK
 	line 7: OK
 	line 9: OK
-	line 17: expected != found. Expected: [I32(2)], Found: [I32(3)]
-	line 18: Error while calling function Mf.call: Interpreter panicked: Function address out of bounds: 4294967295
+	line 17: OK
+	line 18: OK
 	line 19: OK
-	line 20: Error while running function call Mf.call: Interpreter panicked: Function address out of bounds: 4294967295
+	line 20: OK
 	line 22: OK
 	line 26: OK
 	line 39: OK
 	line 48: OK
 	line 50: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
-	line 67: module not available; skipping
-	line 68: module not available; skipping
-	line 69: module not available; skipping
-	line 70: module not available; skipping
-	line 71: module not available; skipping
-	line 72: module not available; skipping
-	line 74: module not available; skipping
-	line 75: module not available; skipping
-	line 76: module not available; skipping
-	line 77: module not available; skipping
-	line 79: module not available; skipping
-	line 80: module not available; skipping
-	line 81: module not available; skipping
-	line 82: module not available; skipping
-	line 83: module not available; skipping
+	line 67: OK
+	line 68: OK
+	line 69: OK
+	line 70: OK
+	line 71: OK
+	line 72: OK
+	line 74: OK
+	line 75: OK
+	line 76: OK
+	line 77: OK
+	line 79: OK
+	line 80: OK
+	line 81: OK
+	line 82: OK
+	line 83: OK
 	line 97: OK
 	line 110: OK
 	line 112: OK
-	line 131: expected != found. Expected: [I32(4)], Found: [I32(5)]
-	line 132: Error while calling function Mt.call: Interpreter panicked: Function address out of bounds: 4294967295
+	line 131: OK
+	line 132: OK
 	line 133: OK
-	line 134: Error while running function call Mt.call: Interpreter panicked: Function address out of bounds: 4294967295
+	line 134: OK
 	line 138: OK
 	line 143: OK
-	line 151: Error while running function call: Interpreter panicked: Function address out of bounds: 4294967295
+	line 151: OK
 	line 154: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 5, maximum: None, shared: false } })
-	line 167: module not available; skipping
-	line 168: module not available; skipping
-	line 169: module not available; skipping
-	line 170: module not available; skipping
-	line 172: module not available; skipping
-	line 173: module not available; skipping
-	line 174: module not available; skipping
-	line 175: module not available; skipping
-	line 176: module not available; skipping
-	line 178: module not available; skipping
-	line 179: module not available; skipping
-	line 180: module not available; skipping
-	line 181: module not available; skipping
-	line 182: module not available; skipping
-	line 186: module not available; skipping
+	line 167: OK
+	line 168: OK
+	line 169: OK
+	line 170: OK
+	line 172: OK
+	line 173: OK
+	line 174: OK
+	line 175: OK
+	line 176: OK
+	line 178: OK
+	line 179: OK
+	line 180: OK
+	line 181: OK
+	line 182: OK
+	line 186: OK
 	line 192: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 198: OK
 	line 199: OK
 	line 200: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
-	line 204: module not available; skipping
+	line 204: OK
 	line 253: OK
 	line 261: OK
 	line 263: OK
-	line 275: expected != found. Expected: [I32(2)], Found: [I32(242)]
-	line 276: Error while calling function Mm.load: Interpreter panicked: Function address out of bounds: 4294967295
+	line 275: OK
+	line 276: OK
 	line 277: OK
 	line 279: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: None, shared: false }))
-	line 288: module not available; skipping
-	line 289: module not available; skipping
-	line 290: module not available; skipping
-	line 291: module not available; skipping
+	line 288: OK
+	line 289: OK
+	line 290: OK
+	line 291: OK
 	line 293: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 0, maximum: None, shared: false }))
 	line 306: OK
-Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Memory(MemoryType(ResizableLimits { initial: 1, maximum: Some(8), shared: false }))
-	line 314: module not available; skipping
-	line 315: module not available; skipping
-	line 316: module not available; skipping
-	line 317: module not available; skipping
-	line 318: module not available; skipping
-	line 319: module not available; skipping
-	line 320: module not available; skipping
-	line 321: module not available; skipping
-	line 332: module not available; skipping
-	line 342: module not available; skipping
-	line 354: module not available; skipping
+	line 314: OK
+	line 315: OK
+	line 316: OK
+	line 317: OK
+	line 318: OK
+	line 319: OK
+	line 320: OK
+	line 321: OK
+	line 332: OK
+	line 342: OK
+	line 354: OK
 	line 357: OK
 	line 368: OK
 	line 387: expected != found. Expected: [I32(104)], Found: [I32(0)]
-	line 388: Error while running function get table[0]: Interpreter panicked: Table index not initialized. module=0, table=0, elem_idx=0
+	line 388: Error while running function get table[0]: Interpreter panicked: Table index not initialized
 load.wast
 	line 3: OK
 	line 161: OK
@@ -15932,8 +15866,8 @@ load.wast
 	line 209: OK
 	line 211: OK
 local_get.wast
-	line 3: OK
-Unable parse names
+	line 3: Unable parse names
+OK
 	line 109: OK
 	line 110: OK
 	line 111: OK
@@ -15954,8 +15888,8 @@ Unable parse names
 	line 133: OK
 	line 139: expected != found. Expected: [F64(34.8)], Found: [F64(NaN)]
 local_set.wast
-	line 3: OK
-Unable parse names
+	line 3: Unable parse names
+OK
 	line 107: OK
 	line 108: OK
 	line 109: OK
@@ -15976,8 +15910,8 @@ Unable parse names
 	line 131: OK
 	line 137: Error while running function write: Wasm module trapped
 local_tee.wast
-	line 3: OK
-Unable parse names
+	line 3: Unable parse names
+OK
 	line 280: OK
 	line 281: OK
 	line 282: OK
@@ -16795,7 +16729,7 @@ names.wast
 	line 1092: OK
 	line 1093: OK
 	line 1095: OK
-	line 1107: Error while running function print32: Interpreter panicked: Function address out of bounds: 4294967295
+	line 1107: OK
 nop.wast
 	line 3: OK
 	line 306: OK
@@ -17037,11 +16971,11 @@ select.wast
 	line 286: OK
 	line 287: OK
 skip-stack-guard-page.wast
-	line 2: OK
-Unable parse names
+	line 2: Unable parse names
+OK
 stack.wast
-	line 1: OK
-Unable parse names
+	line 1: Unable parse names
+OK
 	line 146: OK
 	line 147: OK
 	line 148: OK
@@ -17062,11 +16996,8 @@ start.wast
 	line 77: OK
 	line 78: OK
 	line 80: OK
-Unable to allocate module: Interpreter panicked: Function address out of bounds: 4294967295
 	line 86: OK
-Unable to allocate module: Interpreter panicked: Function address out of bounds: 4294967295
 	line 92: OK
-Unable to allocate module: Interpreter panicked: Function address out of bounds: 4294967295
 store.wast
 	line 3: OK
 	line 44: OK
@@ -17179,7 +17110,6 @@ utf8-import-module.wast
 utf8-invalid-encoding.wast
 testsuite/address.wast: [542, 592]
 testsuite/conversions.wast: [1]
-testsuite/exports.wast: [26, 71, 72, 75]
 testsuite/f32.wast: [51, 52, 53, 54, 55, 56, 57, 58, 91, 92, 93, 94, 95, 96, 97, 98, 131, 132, 133, 134, 135, 136, 137, 138, 171, 172, 173, 174, 175, 176, 177, 178, 211, 212, 213, 214, 215, 216, 217, 218, 251, 252, 253, 254, 255, 256, 257, 258, 291, 292, 293, 294, 295, 296, 297, 298, 328, 329, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 451, 452, 453, 454, 455, 456, 457, 458, 491, 492, 493, 494, 495, 496, 497, 498, 531, 532, 533, 534, 535, 536, 537, 538, 571, 572, 573, 574, 575, 576, 577, 578, 611, 612, 613, 614, 615, 616, 617, 618, 651, 652, 653, 654, 655, 656, 657, 658, 691, 692, 693, 694, 695, 696, 697, 698, 727, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 891, 892, 893, 894, 895, 896, 897, 898, 931, 932, 933, 934, 935, 936, 937, 938, 971, 972, 973, 974, 975, 976, 977, 978, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1141, 1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1170, 1171, 1172, 1173, 1174, 1175, 1176, 1177, 1178, 1179, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 1188, 1189, 1190, 1191, 1192, 1193, 1194, 1195, 1196, 1197, 1198, 1199, 1200, 1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1298, 1331, 1332, 1333, 1334, 1335, 1336, 1337, 1338, 1371, 1372, 1373, 1374, 1375, 1376, 1377, 1378, 1411, 1412, 1413, 1414, 1415, 1416, 1417, 1418, 1451, 1452, 1453, 1454, 1455, 1456, 1457, 1458, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498, 1527, 1528, 1529, 1530, 1531, 1532, 1533, 1534, 1535, 1536, 1537, 1538, 1539, 1540, 1541, 1542, 1543, 1544, 1545, 1546, 1547, 1548, 1549, 1550, 1551, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1562, 1563, 1564, 1565, 1566, 1567, 1568, 1569, 1570, 1571, 1572, 1573, 1574, 1575, 1576, 1577, 1578, 1579, 1580, 1581, 1582, 1583, 1584, 1585, 1586, 1587, 1588, 1589, 1590, 1591, 1592, 1593, 1594, 1595, 1596, 1597, 1598, 1599, 1600, 1601, 1602, 1603, 1604, 1605, 1606, 1607, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1616, 1617, 1618, 1651, 1652, 1653, 1654, 1655, 1656, 1657, 1658, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1891, 1892, 1893, 1894, 1895, 1896, 1897, 1898, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2421, 2423, 2425, 2427, 2429, 2431, 2433, 2435, 2436, 2437, 2438, 2455, 2456, 2457, 2458, 2475, 2476, 2477, 2478, 2495, 2496, 2497, 2498, 2515, 2516, 2517, 2518]
 testsuite/f32_bitwise.wast: [298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 350, 351, 368, 369]
 testsuite/f64.wast: [51, 52, 53, 54, 55, 56, 57, 58, 91, 92, 93, 94, 95, 96, 97, 98, 131, 132, 133, 134, 135, 136, 137, 138, 171, 172, 173, 174, 175, 176, 177, 178, 211, 212, 213, 214, 215, 216, 217, 218, 251, 252, 253, 254, 255, 256, 257, 258, 291, 292, 293, 294, 295, 296, 297, 298, 328, 329, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 451, 452, 453, 454, 455, 456, 457, 458, 491, 492, 493, 494, 495, 496, 497, 498, 531, 532, 533, 534, 535, 536, 537, 538, 571, 572, 573, 574, 575, 576, 577, 578, 611, 612, 613, 614, 615, 616, 617, 618, 651, 652, 653, 654, 655, 656, 657, 658, 691, 692, 693, 694, 695, 696, 697, 698, 727, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 891, 892, 893, 894, 895, 896, 897, 898, 931, 932, 933, 934, 935, 936, 937, 938, 971, 972, 973, 974, 975, 976, 977, 978, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1141, 1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1170, 1171, 1172, 1173, 1174, 1175, 1176, 1177, 1178, 1179, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 1188, 1189, 1190, 1191, 1192, 1193, 1194, 1195, 1196, 1197, 1198, 1199, 1200, 1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1298, 1331, 1332, 1333, 1334, 1335, 1336, 1337, 1338, 1371, 1372, 1373, 1374, 1375, 1376, 1377, 1378, 1411, 1412, 1413, 1414, 1415, 1416, 1417, 1418, 1451, 1452, 1453, 1454, 1455, 1456, 1457, 1458, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498, 1527, 1528, 1529, 1530, 1531, 1532, 1533, 1534, 1535, 1536, 1537, 1538, 1539, 1540, 1541, 1542, 1543, 1544, 1545, 1546, 1547, 1548, 1549, 1550, 1551, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1562, 1563, 1564, 1565, 1566, 1567, 1568, 1569, 1570, 1571, 1572, 1573, 1574, 1575, 1576, 1577, 1578, 1579, 1580, 1581, 1582, 1583, 1584, 1585, 1586, 1587, 1588, 1589, 1590, 1591, 1592, 1593, 1594, 1595, 1596, 1597, 1598, 1599, 1600, 1601, 1602, 1603, 1604, 1605, 1606, 1607, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1616, 1617, 1618, 1651, 1652, 1653, 1654, 1655, 1656, 1657, 1658, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1891, 1892, 1893, 1894, 1895, 1896, 1897, 1898, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2421, 2423, 2425, 2427, 2429, 2431, 2433, 2435, 2436, 2437, 2438, 2455, 2456, 2457, 2458, 2475, 2476, 2477, 2478, 2495, 2496, 2497, 2498, 2515, 2516, 2517, 2518]
@@ -17187,14 +17117,11 @@ testsuite/f64_bitwise.wast: [298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 3
 testsuite/float_exprs.wast: [49, 50, 63, 64, 75, 76, 90, 94, 106, 107, 118, 119, 120, 121, 122, 123, 124, 125, 136, 137, 148, 149, 160, 161, 172, 173, 208, 209, 210, 211, 222, 223, 224, 225, 226, 227, 228, 229, 384, 385, 386, 387, 392, 393, 394, 395, 410, 411, 412, 413, 418, 419, 420, 421, 511, 519, 624, 625, 626, 627, 628, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 661, 662, 663, 664, 665, 667, 668, 669, 670, 671, 680, 681, 682, 683, 684, 728, 746, 755, 894, 898, 902, 906, 910, 914, 918, 922, 973, 977, 981, 985, 989, 993, 997, 1001, 1020, 1021, 1024, 1025, 1028, 1029, 1032, 1033, 1036, 1037, 1040, 1041, 1044, 1045, 1048, 1049, 1099, 1100, 1103, 1104, 1107, 1108, 1111, 1112, 1115, 1116, 1119, 1120, 1123, 1124, 1127, 1128, 1656, 1657, 1661, 1662, 1793, 1799, 1815, 1821, 1905]
 testsuite/float_memory.wast: [16, 22, 28, 41, 47, 53, 68, 74, 80, 93, 99, 105, 120, 126, 132, 145, 151, 157]
 testsuite/float_misc.wast: [572, 592, 593, 594, 595, 597, 598, 599, 600, 602, 603, 604, 605, 606, 607, 608, 609]
-testsuite/func_ptrs.wast: [30]
 testsuite/i32.wast: [270, 271, 272, 273, 274, 275, 276, 278, 279, 280, 281, 282, 283, 284]
 testsuite/i64.wast: [271, 272, 273, 274, 275, 276, 277, 279, 280, 281, 282, 283, 284, 285, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296]
-testsuite/imports.wast: [87, 88]
-testsuite/linking.wast: [17, 18, 20, 131, 132, 134, 151, 275, 276, 387, 388]
+testsuite/linking.wast: [387, 388]
 testsuite/local_get.wast: [139]
 testsuite/local_set.wast: [137]
 testsuite/local_tee.wast: [338, 354, 361]
 testsuite/memory.wast: [202, 217]
-testsuite/names.wast: [1107]
 testsuite/select.wast: [190, 191, 196, 197, 199, 200, 205, 206]

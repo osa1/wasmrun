@@ -12,6 +12,7 @@
 pub mod exec;
 pub mod frame;
 pub mod mem;
+pub mod spectest;
 pub mod stack;
 pub mod store;
 pub mod value;
@@ -45,37 +46,27 @@ pub fn run_wasm(file: String) -> Result<()> {
     let module = wasm::deserialize_file(file).unwrap();
     // println!("{:#?}", module);
 
-    let mut runtime = Default::default();
-    let module_idx = exec::allocate_module(&mut runtime, module)?;
+    let mut runtime = Runtime::new();
+    // allocate_module also runs 'start'
+    let _module_idx = exec::allocate_module(&mut runtime, module)?;
 
-    // Run the 'start' function if it exists
-    if let Some(start_idx) = runtime.get_module_start(module_idx) {
-        println!("Calling start function {}", start_idx);
-        exec::invoke(&mut runtime, module_idx, start_idx)?;
-        exec::finish(&mut runtime)?;
-    }
-
-    // Find exported _start function and call it
-    let mut start_fn = None;
-    for export in &runtime.get_module(module_idx).exports {
-        if export.field() == "_start" {
-            match export.internal() {
-                wasm::Internal::Function(func_idx) => {
-                    start_fn = Some(*func_idx);
-                    break;
+    /*
+        // Find exported _start function and call it
+        let mut start_fn = None;
+        for export in &runtime.get_module(module_idx).exports {
+            if export.field() == "_start" {
+                match export.internal() {
+                    wasm::Internal::Function(func_idx) => {
+                        start_fn = Some(*func_idx);
+                        break;
+                    }
+                    wasm::Internal::Table(_)
+                    | wasm::Internal::Memory(_)
+                    | wasm::Internal::Global(_) => {}
                 }
-                wasm::Internal::Table(_)
-                | wasm::Internal::Memory(_)
-                | wasm::Internal::Global(_) => {}
             }
         }
-    }
-
-    if let Some(start_fn) = start_fn {
-        println!("Calling _start ({})", start_fn);
-        exec::invoke(&mut runtime, module_idx, start_fn)?;
-        exec::finish(&mut runtime)?;
-    }
+    */
 
     Ok(())
 }

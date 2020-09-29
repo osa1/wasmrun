@@ -15,11 +15,14 @@ pub struct TestSpec {
 pub enum Command {
     Module {
         line: usize,
+        name: Option<String>,
         filename: String,
     },
 
     AssertReturn {
         line: usize,
+        kind: ActionKind,
+        module: Option<String>,
         func: String,
         args: Vec<Value>,
         expected: Vec<Value>,
@@ -30,6 +33,14 @@ pub enum Command {
         name: Option<String>,
         register_as: String,
     },
+}
+
+#[derive(Debug)]
+pub enum ActionKind {
+    /// Call a function
+    Invoke,
+    /// Get a global
+    GetGlobal,
 }
 
 #[derive(Debug)]
@@ -52,12 +63,20 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
         match command_de.typ.as_ref() {
             "module" => commands_.push(Command::Module {
                 line: command_de.line,
+                name: command_de.name,
                 filename: command_de.filename.unwrap(),
             }),
             "assert_return" => {
                 let action = command_de.action.unwrap();
+                let action_kind = match action.typ.as_str() {
+                    "invoke" => ActionKind::Invoke,
+                    "get" => ActionKind::GetGlobal,
+                    other => panic!("Unknown action type: {}", other),
+                };
                 commands_.push(Command::AssertReturn {
                     line: command_de.line,
+                    kind: action_kind,
+                    module: action.module,
                     func: action.field,
                     args: action.args.into_iter().map(parse_value).collect(),
                     expected: command_de
@@ -76,6 +95,8 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                 // Basically assert_return, we the function doesn't return anything
                 commands_.push(Command::AssertReturn {
                     line: command_de.line,
+                    kind: ActionKind::Invoke,
+                    module: action.module,
                     func: action.field,
                     args: action.args.into_iter().map(parse_value).collect(),
                     expected: vec![],
@@ -168,6 +189,7 @@ struct CommandDe {
 struct ActionDe {
     #[serde(rename = "type")]
     typ: String,
+    module: Option<String>,
     field: String,
     #[serde(default)]
     args: Vec<ValueDe>,

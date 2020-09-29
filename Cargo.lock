@@ -163,6 +163,7 @@ name = "spec-test"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "fxhash",
  "libwasmrun",
  "parity-wasm",
  "rustc_tools_util",

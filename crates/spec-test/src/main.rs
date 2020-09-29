@@ -1,3 +1,6 @@
+// TODO: implement 'spectest' module:
+// https://github.com/WebAssembly/spec/blob/7526564b56c30250b66504fe795e9c1e88a938af/interpreter/host/spectest.ml#L33-L48
+
 mod cli;
 mod spec;
 
@@ -10,6 +13,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
+use fxhash::FxHashMap;
 use parity_wasm::elements as wasm;
 
 fn main() {
@@ -168,8 +172,9 @@ fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
 
     let mut failing_lines = vec![];
 
-    let mut rt = Default::default();
+    let mut rt = Runtime::new_test();
     let mut module_idx: Option<ModuleIdx> = None;
+    let mut modules = Default::default();
 
     for cmd in spec.commands {
         run_spec_cmd(
@@ -178,6 +183,7 @@ fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
             out,
             &mut rt,
             &mut module_idx,
+            &mut modules,
             &mut failing_lines,
         );
     }
@@ -191,15 +197,21 @@ fn run_spec_cmd(
     out: &mut Output,
     rt: &mut Runtime,
     module_idx: &mut Option<ModuleIdx>,
+    modules: &mut FxHashMap<String, ModuleIdx>,
     failing_lines: &mut Vec<usize>,
 ) {
     match cmd {
-        spec::Command::Module { line, filename } => {
+        spec::Command::Module {
+            line,
+            name,
+            filename,
+        } => {
+            // println!("module name={:?}", name);
+
             write!(out, "\tline {}: ", line).unwrap();
             // Flush the line number now so that we'll see it in case of a loop or hang
             out.flush().unwrap();
 
-            *rt = Default::default();
             let file_path = format!("{}/{}", dir_path, filename);
             match wasm::deserialize_file(file_path) {
                 Err(err) => {
@@ -209,7 +221,6 @@ fn run_spec_cmd(
                     return;
                 }
                 Ok(module) => {
-                    writeln!(out, "OK").unwrap();
                     let module = match module.parse_names() {
                         Err((_, module)) => {
                             writeln!(out, "Unable parse names").unwrap();
@@ -219,7 +230,11 @@ fn run_spec_cmd(
                     };
                     match exec::allocate_module(rt, module) {
                         Ok(module_idx_) => {
+                            writeln!(out, "OK").unwrap();
                             *module_idx = Some(module_idx_);
+                            if let Some(name) = name {
+                                modules.insert(name, module_idx_);
+                            }
                         }
                         Err(err) => {
                             writeln!(out, "Unable to allocate module: {}", err).unwrap();
@@ -232,42 +247,59 @@ fn run_spec_cmd(
 
         spec::Command::Register {
             line,
-            name: _,
+            name,
             register_as,
         } => {
-            // NB. We ignore the `name` part; as far as I can see register always registers the
-            // previously defined module
+            // println!("register name={:?}, register_as={}", name, register_as);
 
             write!(out, "\tline {}: ", line).unwrap();
             // Flush the line number now so that we'll see it in case of a loop or hang
             out.flush().unwrap();
 
-            match module_idx {
-                None => {
-                    writeln!(out, "module not available; skipping").unwrap();
-                    return;
-                }
-                Some(module_idx) => {
-                    rt.register_module(register_as, *module_idx);
-                    writeln!(out, "OK").unwrap();
-                }
-            }
+            let module_idx = match name {
+                Some(name) => modules.get(&name).unwrap(),
+                None => match module_idx {
+                    Some(module_idx) => module_idx,
+                    None => {
+                        writeln!(out, "module not available; skipping").unwrap();
+                        return;
+                    }
+                },
+            };
+
+            rt.register_module(register_as, *module_idx);
+
+            writeln!(out, "OK").unwrap();
         }
 
         spec::Command::AssertReturn {
             line,
+            kind: spec::ActionKind::Invoke,
+            module,
             func,
             args,
             expected,
         } => {
+            // println!("invoke module={:?}, func={}", module, func);
+
             write!(out, "\tline {}: ", line).unwrap();
 
-            let module_idx = match module_idx {
-                None => {
-                    writeln!(out, "module not available; skipping").unwrap();
-                    return;
-                }
-                Some(module_idx) => module_idx,
+            let module_idx = match module {
+                Some(module_name) => match modules.get(&module_name) {
+                    Some(module_idx) => *module_idx,
+                    None => {
+                        writeln!(out, "can't find registered module {}", module_name).unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+                },
+                None => match module_idx {
+                    Some(module_idx) => *module_idx,
+                    None => {
+                        writeln!(out, "module not available; skipping").unwrap();
+                        return;
+                    }
+                },
             };
 
             rt.clear_stack();
@@ -281,7 +313,7 @@ fn run_spec_cmd(
                 rt.push_value(val);
             }
 
-            if let Err(err) = exec::invoke_by_name(rt, *module_idx, &func) {
+            if let Err(err) = exec::invoke_by_name(rt, module_idx, &func) {
                 writeln!(out, "Error while calling function {}: {}", func, err).unwrap();
                 failing_lines.push(line);
                 return;
@@ -341,6 +373,65 @@ fn run_spec_cmd(
                 )
                 .unwrap();
                 failing_lines.push(line);
+            }
+        }
+
+        spec::Command::AssertReturn {
+            line,
+            kind: spec::ActionKind::GetGlobal,
+            module,
+            func,
+            args,
+            expected,
+        } => {
+            assert!(args.is_empty());
+
+            write!(out, "\tline {}: ", line).unwrap();
+
+            let module_idx = match module {
+                Some(module_name) => match modules.get(&module_name) {
+                    Some(module_idx) => *module_idx,
+                    None => {
+                        writeln!(out, "can't find registered module {}", module_name).unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+                },
+                None => match module_idx {
+                    Some(module_idx) => *module_idx,
+                    None => {
+                        writeln!(out, "module not available; skipping").unwrap();
+                        return;
+                    }
+                },
+            };
+
+            match rt.get_global(module_idx, &func) {
+                None => {
+                    writeln!(out, "can't find global {:?}", func).unwrap();
+                    failing_lines.push(line);
+                    return;
+                }
+                Some(val) => {
+                    let expected = match expected[0] {
+                        spec::Value::I32(i) => Value::I32(i),
+                        spec::Value::I64(i) => Value::I64(i),
+                        spec::Value::F32(f) => Value::F32(f),
+                        spec::Value::F64(f) => Value::F64(f),
+                    };
+
+                    if expected == val {
+                        writeln!(out, "OK").unwrap();
+                    } else {
+                        writeln!(
+                            out,
+                            "expected != found. Expected: {:?}, Found: {:?}",
+                            expected, val
+                        )
+                        .unwrap();
+                        failing_lines.push(line);
+                    }
+                }
             }
         }
     }

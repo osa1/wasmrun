@@ -1,10 +1,14 @@
-use super::mem::Mem;
-use super::value::Value;
+use crate::exec::Runtime;
+use crate::mem::Mem;
+use crate::value::Value;
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
 use parity_wasm::elements as wasm;
 use wasm::Instruction;
+
+use std::fmt;
+use std::rc::Rc;
 
 pub type ModuleIdx = usize;
 
@@ -16,14 +20,57 @@ pub struct Store {
     pub globals: Vec<Global>,
 }
 
+impl Store {
+    pub fn allocate_fun(&mut self, fun: WasmFunc) -> u32 {
+        let ret = self.funcs.len() as u32;
+        self.funcs.push(Func::Wasm(fun));
+        ret
+    }
+
+    pub fn allocate_host_fun(&mut self, fun: Rc<dyn Fn(&mut Runtime)>) -> u32 {
+        let ret = self.funcs.len() as u32;
+        self.funcs.push(Func::Host(fun));
+        ret
+    }
+
+    pub fn allocate_table(&mut self, table: Vec<Option<u32>>) -> u32 {
+        let ret = self.tables.len() as u32;
+        self.tables.push(table);
+        ret
+    }
+
+    pub fn allocate_mem(&mut self, mem: Mem) -> u32 {
+        let ret = self.mems.len() as u32;
+        self.mems.push(mem);
+        ret
+    }
+
+    pub fn allocate_global(&mut self, global: Global) -> u32 {
+        let ret = self.globals.len() as u32;
+        self.globals.push(global);
+        ret
+    }
+}
+
 #[derive(Debug)]
 pub struct Global {
     pub value: Value,
     pub mutable: bool, // Only needed for validation
 }
 
+pub enum Func {
+    Wasm(WasmFunc),
+    Host(Rc<dyn Fn(&mut Runtime)>),
+}
+
+impl fmt::Debug for Func {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
 #[derive(Debug)]
-pub struct Func {
+pub struct WasmFunc {
     pub module_idx: ModuleIdx,
     pub fun_idx: usize,
     pub fun: wasm::FuncBody,
@@ -44,14 +91,14 @@ impl Func {
         fun_ty_idx: u32,
     ) -> Result<Func> {
         let (block_to_end, if_to_else) = gen_block_bounds(fun.code().elements())?;
-        Ok(Func {
+        Ok(Func::Wasm(WasmFunc {
             module_idx,
             fun_idx,
             fun,
             fun_ty_idx,
             block_to_end,
             if_to_else,
-        })
+        }))
     }
 }
 
