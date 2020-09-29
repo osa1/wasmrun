@@ -1834,19 +1834,14 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let Block { cont, kind, .. } = rt.stack.pop_block()?;
 
+            for val in vals.into_iter().rev() {
+                rt.stack.push_value(val)?;
+            }
+
             let cont = if kind == BlockKind::Fun {
                 rt.frames.pop();
-
-                for val in vals {
-                    rt.stack.push_value(val)?;
-                }
-
                 cont
             } else {
-                for val in vals.into_iter().rev() {
-                    rt.stack.push_value(val)?;
-                }
-
                 rt.ip + 1
             };
 
@@ -1972,7 +1967,7 @@ fn ret(rt: &mut Runtime) -> Result<()> {
 
     let Block { cont, .. } = rt.stack.pop_fun_block()?;
 
-    for val in vals {
+    for val in vals.into_iter().rev() {
         rt.stack.push_value(val)?;
     }
 

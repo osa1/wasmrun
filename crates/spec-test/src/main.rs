@@ -292,6 +292,8 @@ fn run_spec_cmd(
                 }
             }
 
+            found.reverse();
+
             if expected_ == found {
                 writeln!(out, "OK").unwrap();
             } else {
