@@ -24,6 +24,12 @@ pub enum Command {
         args: Vec<Value>,
         expected: Vec<Value>,
     },
+
+    Register {
+        line: usize,
+        name: Option<String>,
+        register_as: String,
+    },
 }
 
 #[derive(Debug)]
@@ -75,7 +81,14 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     expected: vec![],
                 });
             }
-            "assert_trap" | "assert_exhaustion" | "register" => {
+            "register" => {
+                commands_.push(Command::Register {
+                    line: command_de.line,
+                    name: command_de.name,
+                    register_as: command_de.as_.unwrap(),
+                });
+            }
+            "assert_trap" | "assert_exhaustion" => {
                 // TODO We probably want to test these
             }
             "assert_invalid"
@@ -146,6 +159,9 @@ struct CommandDe {
     filename: Option<String>,
     action: Option<ActionDe>,
     expected: Option<Vec<ValueDe>>,
+    name: Option<String>,
+    #[serde(rename = "as")]
+    as_: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

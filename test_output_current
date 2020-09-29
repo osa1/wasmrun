@@ -2198,6 +2198,7 @@ Unable to allocate module: Interpreter panicked: Importing tables, memories, and
 Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 10, maximum: None, shared: false } })
 	line 329: module not available; skipping
 	line 333: OK
+	line 351: OK
 	line 354: OK
 	line 355: OK
 	line 357: OK
@@ -15456,6 +15457,7 @@ if.wast
 	line 723: OK
 imports.wast
 	line 3: OK
+	line 19: OK
 	line 24: OK
 	line 87: Error while running function print32: Interpreter panicked: Function address out of bounds: 4294967295
 	line 88: Error while running function print64: Interpreter panicked: Function address out of bounds: 4294967295
@@ -15542,6 +15544,7 @@ Unable to allocate module: Interpreter panicked: Importing tables, memories, and
 	line 494: module not available; skipping
 	line 495: module not available; skipping
 	line 571: OK
+	line 572: OK
 inline-module.wast
 	line 1: OK
 int_exprs.wast
@@ -15797,13 +15800,16 @@ left-to-right.wast
 	line 233: OK
 linking.wast
 	line 3: OK
+	line 7: OK
 	line 9: OK
 	line 17: expected != found. Expected: [I32(2)], Found: [I32(3)]
 	line 18: Error while calling function Mf.call: Interpreter panicked: Function address out of bounds: 4294967295
 	line 19: OK
 	line 20: Error while running function call Mf.call: Interpreter panicked: Function address out of bounds: 4294967295
 	line 22: OK
+	line 26: OK
 	line 39: OK
+	line 48: OK
 	line 50: OK
 Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 67: module not available; skipping
@@ -15822,6 +15828,7 @@ Unable to allocate module: Interpreter panicked: Importing tables, memories, and
 	line 82: module not available; skipping
 	line 83: module not available; skipping
 	line 97: OK
+	line 110: OK
 	line 112: OK
 	line 131: expected != found. Expected: [I32(4)], Found: [I32(5)]
 	line 132: Error while calling function Mt.call: Interpreter panicked: Function address out of bounds: 4294967295
@@ -15850,10 +15857,12 @@ Unable to allocate module: Interpreter panicked: Importing tables, memories, and
 	line 192: OK
 Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Table(TableType { elem_type: AnyFunc, limits: ResizableLimits { initial: 0, maximum: None, shared: false } })
 	line 198: OK
+	line 199: OK
 	line 200: OK
 Unable to allocate module: Interpreter panicked: Importing tables, memories, and globals are not implemented yet: Global(GlobalType { content_type: I32, is_mutable: false })
 	line 204: module not available; skipping
 	line 253: OK
+	line 261: OK
 	line 263: OK
 	line 275: expected != found. Expected: [I32(2)], Found: [I32(242)]
 	line 276: Error while calling function Mm.load: Interpreter panicked: Function address out of bounds: 4294967295
@@ -15880,6 +15889,7 @@ Unable to allocate module: Interpreter panicked: Importing tables, memories, and
 	line 342: module not available; skipping
 	line 354: module not available; skipping
 	line 357: OK
+	line 368: OK
 	line 387: expected != found. Expected: [I32(104)], Found: [I32(0)]
 	line 388: Error while running function get table[0]: Interpreter panicked: Table index not initialized. module=0, table=0, elem_idx=0
 load.wast

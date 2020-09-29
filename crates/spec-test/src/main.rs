@@ -230,6 +230,30 @@ fn run_spec_cmd(
             }
         }
 
+        spec::Command::Register {
+            line,
+            name: _,
+            register_as,
+        } => {
+            // NB. We ignore the `name` part; as far as I can see register always registers the
+            // previously defined module
+
+            write!(out, "\tline {}: ", line).unwrap();
+            // Flush the line number now so that we'll see it in case of a loop or hang
+            out.flush().unwrap();
+
+            match module_idx {
+                None => {
+                    writeln!(out, "module not available; skipping").unwrap();
+                    return;
+                }
+                Some(module_idx) => {
+                    rt.register_module(register_as, *module_idx);
+                    writeln!(out, "OK").unwrap();
+                }
+            }
+        }
+
         spec::Command::AssertReturn {
             line,
             func,

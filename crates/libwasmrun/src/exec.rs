@@ -42,6 +42,8 @@ pub struct Runtime {
     pub frames: FrameStack,
     /// Allocated modules
     modules: Vec<Module>,
+    /// Maps registered modules to their indices in `modules`
+    module_names: FxHashMap<String, usize>,
     /// Instruction pointer
     ip: u32,
 }
@@ -66,6 +68,10 @@ impl Runtime {
 
     pub fn push_value(&mut self, value: Value) {
         self.stack.push_value(value).unwrap()
+    }
+
+    pub fn register_module(&mut self, name: String, module_addr: usize) {
+        self.module_names.insert(name, module_addr);
     }
 }
 
