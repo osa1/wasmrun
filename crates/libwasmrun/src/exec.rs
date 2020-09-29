@@ -1746,6 +1746,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             }
 
             rt.stack.push_loop(rt.ip, n_args, n_rets);
+
+            for arg in args.into_iter().rev() {
+                rt.stack.push_value(arg)?;
+            }
+
             rt.ip += 1;
         }
 
