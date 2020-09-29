@@ -907,11 +907,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32LtU => {
-            op2::<i32, bool, _>(rt, |a, b| a < b)?;
+            op2::<u32, bool, _>(rt, |a, b| a < b)?;
         }
 
         Instruction::I64LtU => {
-            op2::<i64, bool, _>(rt, |a, b| a < b)?;
+            op2::<u64, bool, _>(rt, |a, b| a < b)?;
         }
 
         Instruction::I32Add => {
