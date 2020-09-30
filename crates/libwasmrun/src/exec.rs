@@ -1903,13 +1903,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 if f.is_nan() {
                     f as f32
                 } else {
-                    let bits: u64 = unsafe { transmute(f) };
-                    let sign_field = (bits >> 63) << 31;
-                    let signi_field = (bits << 12) >> 41;
-                    let fields = sign_field | signi_field;
-                    let bits_32: u32 = 0x7fc0_000 | (fields as u32);
-                    let f_32: f32 = unsafe { transmute(bits_32) };
-                    f_32
+                    let (sign, exp, signi) = f.decompose();
+                    f32::recompose(sign, exp, signi as u32)
                 }
             })?;
 
@@ -1929,17 +1924,12 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 if f.is_nan() {
                     f as f64
                 } else {
-                    let bits_u32: u32 = unsafe { transmute(f) };
-                    let bits_u64: u64 = bits_u32 as u64;
-                    let sign_field = (bits_u64 >> 31) << 63;
-                    let signi_field = (bits_u64 << 41) >> 12;
-                    let fields = sign_field | signi_field;
-                    let bits_64 = 0x7ff8_0000_0000_0000 | fields;
-                    let f_64: f64 = unsafe { transmute(bits_64) };
-                    f_64
+                    let (sign, exp, signi) = f.decompose();
+                    f64::recompose(sign, exp, u64::from(signi))
                 }
             })?;
 
+            // let extend_i32_u x = Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
             // let promote_f32 x =
             //   let xf = F32.to_float x in
             //   if xf = xf then F64.of_float xf else
