@@ -9,7 +9,7 @@ use crate::{ExecError, Result};
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
-use wasm::Instruction;
+use wasm::{Instruction, SignExtInstruction};
 
 use std::mem::{replace, transmute};
 use std::rc::Rc;
@@ -1951,6 +1951,24 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             //   F64.of_bits nan64bits
         }
 
+        Instruction::SignExt(sign_ext) => match sign_ext {
+            SignExtInstruction::I32Extend8S => {
+                op1::<i32, i32, _>(rt, |i| (i << 24) >> 24)?;
+            }
+            SignExtInstruction::I32Extend16S => {
+                op1::<i32, i32, _>(rt, |i| (i << 16) >> 16)?;
+            }
+            SignExtInstruction::I64Extend8S => {
+                op1::<i64, i64, _>(rt, |i| (i << 56) >> 56)?;
+            }
+            SignExtInstruction::I64Extend16S => {
+                op1::<i64, i64, _>(rt, |i| (i << 48) >> 48)?;
+            }
+            SignExtInstruction::I64Extend32S => {
+                op1::<i64, i64, _>(rt, |i| (i << 32) >> 32)?;
+            }
+        },
+
         Instruction::Call(func_idx) => {
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx)?;
@@ -2122,10 +2140,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Atomics(_)
-        | Instruction::Simd(_)
-        | Instruction::SignExt(_)
-        | Instruction::Bulk(_) => {
+        Instruction::Atomics(_) | Instruction::Simd(_) | Instruction::Bulk(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr
