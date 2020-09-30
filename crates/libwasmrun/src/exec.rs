@@ -1485,28 +1485,17 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Neg => {
-            // FIXME: I think there may be a miscompilation bug in rustc.
-
-            // Fails:
-            // op1::<f32, f32, _>(rt, |f| -1f32 * f)?;
-
-            // Works:
-            let val = f32::pop(&mut rt.stack)?;
-            let ret = -1f32 * val;
-            ret.push(&mut rt.stack);
-            rt.ip += 1;
-
-            // Works:
-            // let f = rt.stack.pop_f32()?;
-            // rt.stack.push_f32(-1f32 * f);
-            // rt.ip += 1;
+            op1::<f32, f32, _>(rt, |f| {
+                let (sign, exp, signi) = f.decompose();
+                f32::recompose(!sign, exp, signi)
+            })?;
         }
 
         Instruction::F64Neg => {
-            // FIXME: Same as above, we can't use op1 here
-            let f = rt.stack.pop_f64()?;
-            rt.stack.push_f64(-1f64 * f)?;
-            rt.ip += 1;
+            op1::<f64, f64, _>(rt, |f| {
+                let (sign, exp, signi) = f.decompose();
+                f64::recompose(!sign, exp, signi)
+            })?;
         }
 
         Instruction::F32Sqrt => {
@@ -1518,11 +1507,17 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Abs => {
-            op1::<f32, f32, _>(rt, f32::abs)?;
+            op1::<f32, f32, _>(rt, |f| {
+                let (_, exp, signi) = f.decompose();
+                f32::recompose(false, exp, signi)
+            })?;
         }
 
         Instruction::F64Abs => {
-            op1::<f64, f64, _>(rt, f64::abs)?;
+            op1::<f64, f64, _>(rt, |f| {
+                let (_, exp, signi) = f.decompose();
+                f64::recompose(false, exp, signi)
+            })?;
         }
 
         Instruction::F32Ceil => {
