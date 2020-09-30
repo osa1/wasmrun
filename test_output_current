@@ -13085,13 +13085,13 @@ float_exprs.wast
 	line 507: OK
 	line 509: OK
 	line 510: OK
-	line 511: Error while running function i32.no_fold_f32_u: Wasm module trapped
+	line 511: OK
 	line 513: OK
 	line 514: OK
 	line 515: OK
 	line 517: OK
 	line 518: OK
-	line 519: Error while running function i64.no_fold_f64_u: Wasm module trapped
+	line 519: expected != found. Expected: [I64(-1152921504606846976)], Found: [I64(-1)]
 	line 523: OK
 	line 530: OK
 	line 531: OK
@@ -13182,7 +13182,7 @@ float_exprs.wast
 	line 725: OK
 	line 726: OK
 	line 727: OK
-	line 728: expected != found. Expected: [F32(4294967300.0)], Found: [F32(-2.0)]
+	line 728: OK
 	line 729: OK
 	line 730: OK
 	line 732: OK
@@ -13206,7 +13206,7 @@ float_exprs.wast
 	line 752: OK
 	line 753: OK
 	line 754: OK
-	line 755: expected != found. Expected: [F64(18446744073709552000.0)], Found: [F64(-2.0)]
+	line 755: OK
 	line 756: OK
 	line 757: OK
 	line 763: OK
@@ -17094,7 +17094,7 @@ utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
 testsuite/conversions.wast: [1]
-testsuite/float_exprs.wast: [511, 519, 624, 625, 626, 627, 628, 661, 662, 663, 664, 665, 667, 668, 669, 670, 671, 680, 681, 682, 683, 684, 728, 746, 755, 1905]
+testsuite/float_exprs.wast: [519, 624, 625, 626, 627, 628, 661, 662, 663, 664, 665, 667, 668, 669, 670, 671, 680, 681, 682, 683, 684, 746, 1905]
 testsuite/linking.wast: [387, 388]
 testsuite/local_get.wast: [139]
 testsuite/local_set.wast: [137]

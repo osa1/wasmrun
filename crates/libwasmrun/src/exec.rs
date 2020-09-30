@@ -1843,7 +1843,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 if i >= 0 {
                     i as f32
                 } else {
-                    (i.wrapping_shr(1) | (i & 0b1)) as f32 * 2f32
+                    let i = i as u32;
+                    ((i >> 1) | (i & 0b1)) as f32 * 2f32
                 }
             })?;
 
@@ -1860,7 +1861,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                     i as f32
                 } else {
                     let r = if i & 0xfff == 0 { 0 } else { 1 };
-
                     (((i >> 12) | r) as f32) * 10f32.powi(12)
                 }
             })?;
@@ -1901,7 +1901,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64ConvertUI32 => {
-            op1::<i32, f64, _>(rt, |i| ((i as i64) & 0x0000_0000_ffff_ffff) as f64)?;
+            op1::<u32, f64, _>(rt, |i| ((i as u64) & 0x0000_0000_ffff_ffff) as f64)?;
 
             // let convert_i32_u x =
             //   F64.of_float Int64.(to_float (logand (of_int32 x) 0x0000_0000_ffff_ffffL))
@@ -1912,7 +1912,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 if i >= 0 {
                     i as f64
                 } else {
-                    (((i >> 1) | (i & 1)) as f64) * 2f64
+                    let i = i as u64;
+                    ((i >> 1) | (i & 1)) as f64 * 2f64
                 }
             })?;
 
