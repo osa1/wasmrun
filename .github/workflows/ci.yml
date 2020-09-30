@@ -9,10 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Get nightly toolchain
+      - name: Get Rust stable toolchain
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
+            toolchain: stable
             components: rustfmt
             override: true
 
