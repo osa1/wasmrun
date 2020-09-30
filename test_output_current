@@ -13198,7 +13198,7 @@ float_exprs.wast
 	line 743: OK
 	line 744: OK
 	line 745: OK
-	line 746: expected != found. Expected: [F32(18446744000000000000.0)], Found: [F32(-1.0)]
+	line 746: OK
 	line 747: OK
 	line 748: OK
 	line 750: OK
@@ -17094,5 +17094,5 @@ utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
 testsuite/conversions.wast: [1]
-testsuite/float_exprs.wast: [519, 746]
+testsuite/float_exprs.wast: [519]
 testsuite/linking.wast: [387, 388]

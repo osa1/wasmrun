@@ -1861,7 +1861,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                     i as f32
                 } else {
                     let r = if i & 0xfff == 0 { 0 } else { 1 };
-                    (((i >> 12) | r) as f32) * 10f32.powi(12)
+                    ((i >> 12) | r) as f32 * 2f32.powi(12)
                 }
             })?;
 
@@ -1874,13 +1874,12 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32ConvertUI64 => {
-            op1::<i64, f32, _>(rt, |i| {
+            op1::<u64, f32, _>(rt, |i| {
                 if i < 0x10_0000_0000_0000 {
                     i as f32
                 } else {
                     let r = if i & 0xfff == 0 { 0 } else { 1 };
-
-                    ((i >> 12) | r) as f32 * 10f32.powi(12)
+                    ((i >> 12) | r) as f32 * 2f32.powi(12)
                 }
             })?;
 
