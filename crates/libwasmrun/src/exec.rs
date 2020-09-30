@@ -1925,14 +1925,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32DemoteF64 => {
-            op1::<f64, f32, _>(rt, |f| {
-                if f.is_nan() {
-                    f as f32
-                } else {
-                    let (sign, exp, signi) = f.decompose();
-                    f32::recompose(sign, exp, signi as u32)
-                }
-            })?;
+            op1::<f64, f32, _>(rt, |f| f as f32)?;
 
             // let demote_f64 x =
             //   let xf = F64.to_float x in
@@ -1946,14 +1939,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64PromoteF32 => {
-            op1::<f32, f64, _>(rt, |f| {
-                if f.is_nan() {
-                    f as f64
-                } else {
-                    let (sign, exp, signi) = f.decompose();
-                    f64::recompose(sign, exp, u64::from(signi))
-                }
-            })?;
+            op1::<f32, f64, _>(rt, |f| f as f64)?;
 
             // let extend_i32_u x = Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
             // let promote_f32 x =

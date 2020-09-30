@@ -13140,11 +13140,11 @@ float_exprs.wast
 	line 614: OK
 	line 615: OK
 	line 619: OK
-	line 624: expected != found. Expected: [F64(-0.00000000000000000000000000000000000000017176275796615013)], Found: [F64(-170141183601742980000000000000000000000.0)]
-	line 625: expected != found. Expected: [F64(-0.00000000000000000000000002846477619188087)], Found: [F64(-21267647938606225000000000000000000000.0)]
-	line 626: expected != found. Expected: [F64(208970700445326000000000000000000.0)], Found: [F64(NaN)]
-	line 627: expected != found. Expected: [F64(-0.0000000000000000000000000047074161331556024)], Found: [F64(-72057594143925000.0)]
-	line 628: expected != found. Expected: [F64(23359452224542198000000000000000.0)], Found: [F64(5192296865955582000000000000000000.0)]
+	line 624: OK
+	line 625: OK
+	line 626: OK
+	line 627: OK
+	line 628: OK
 	line 633: OK
 	line 638: OK
 	line 639: OK
@@ -13160,22 +13160,22 @@ float_exprs.wast
 	line 649: OK
 	line 650: OK
 	line 654: OK
-	line 661: expected != found. Expected: [F32(0.000000000000000000000000000049412667)], Found: [F32(-247998910000000000000000000000.0)]
-	line 662: expected != found. Expected: [F32(541947950000.0)], Found: [F32(-133054760000000000000000000000000000000.0)]
-	line 663: expected != found. Expected: [F32(0.0000000000000000000000000000000000014781066)], Found: [F32(0.00000000000000000000000000000064178183)]
-	line 664: expected != found. Expected: [F32(-0.0000010013515)], Found: [F32(-1.4024466)]
-	line 665: expected != found. Expected: [F32(-0.0000013840212)], Found: [F32(NaN)]
-	line 667: expected != found. Expected: [F32(0.000000000000000000000000000049412667)], Found: [F32(-247998910000000000000000000000.0)]
-	line 668: expected != found. Expected: [F32(541947950000.0)], Found: [F32(-133054760000000000000000000000000000000.0)]
-	line 669: expected != found. Expected: [F32(0.0000000000000000000000000000000000014781066)], Found: [F32(0.00000000000000000000000000000064178183)]
-	line 670: expected != found. Expected: [F32(-0.0000010013515)], Found: [F32(-1.4024466)]
-	line 671: expected != found. Expected: [F32(-0.0000013840212)], Found: [F32(NaN)]
+	line 661: OK
+	line 662: OK
+	line 663: OK
+	line 664: OK
+	line 665: OK
+	line 667: OK
+	line 668: OK
+	line 669: OK
+	line 670: OK
+	line 671: OK
 	line 675: OK
-	line 680: expected != found. Expected: [F32(7869931000000000000000000.0)], Found: [F32(-417753540000000000000000000000000000.0)]
-	line 681: expected != found. Expected: [F32(-1536081900.0)], Found: [F32(-28778215000000000000000000000.0)]
-	line 682: expected != found. Expected: [F32(-102.194984)], Found: [F32(-5754895000000000000000000000000000.0)]
-	line 683: expected != found. Expected: [F32(0.00000000000000005645412)], Found: [F32(0.00000025539813)]
-	line 684: expected != found. Expected: [F32(-36030.504)], Found: [F32(-22617440000000.0)]
+	line 680: OK
+	line 681: OK
+	line 682: OK
+	line 683: OK
+	line 684: OK
 	line 688: OK
 	line 723: OK
 	line 724: OK
@@ -13623,7 +13623,7 @@ float_exprs.wast
 	line 1901: OK
 	line 1902: OK
 	line 1903: OK
-	line 1905: expected != found. Expected: [F32(0.0000000000000000000000000000000000002913312)], Found: [F32(inf)]
+	line 1905: OK
 	line 1910: OK
 	line 1918: OK
 	line 1919: OK
@@ -15875,7 +15875,7 @@ local_get.wast
 	line 129: OK
 	line 130: OK
 	line 133: OK
-	line 139: expected != found. Expected: [F64(34.8)], Found: [F64(33.300000002793965)]
+	line 139: OK
 local_set.wast
 	line 3: OK
 	line 107: OK
@@ -15896,7 +15896,7 @@ local_set.wast
 	line 127: OK
 	line 128: OK
 	line 131: OK
-	line 137: expected != found. Expected: [I64(56)], Found: [I64(55)]
+	line 137: OK
 local_tee.wast
 	line 3: OK
 	line 280: OK
@@ -15952,8 +15952,8 @@ local_tee.wast
 	line 344: OK
 	line 345: OK
 	line 348: OK
-	line 354: expected != found. Expected: [I64(56)], Found: [I64(55)]
-	line 361: expected != found. Expected: [F64(34.8)], Found: [F64(33.300000002793965)]
+	line 354: OK
+	line 361: OK
 loop.wast
 	line 3: OK
 	line 430: OK
@@ -17094,8 +17094,5 @@ utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
 testsuite/conversions.wast: [1]
-testsuite/float_exprs.wast: [519, 624, 625, 626, 627, 628, 661, 662, 663, 664, 665, 667, 668, 669, 670, 671, 680, 681, 682, 683, 684, 746, 1905]
+testsuite/float_exprs.wast: [519, 746]
 testsuite/linking.wast: [387, 388]
-testsuite/local_get.wast: [139]
-testsuite/local_set.wast: [137]
-testsuite/local_tee.wast: [354, 361]
