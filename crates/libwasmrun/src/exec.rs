@@ -1884,7 +1884,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::F64ConvertUI64 => {
             op1::<i64, f64, _>(rt, |i| {
-                if i > 0 {
+                if i >= 0 {
                     i as f64
                 } else {
                     (((i >> 1) | (i & 1)) as f64) * 2f64
