@@ -221,13 +221,6 @@ fn run_spec_cmd(
                     return;
                 }
                 Ok(module) => {
-                    let module = match module.parse_names() {
-                        Err((_, module)) => {
-                            writeln!(out, "Unable parse names").unwrap();
-                            module
-                        }
-                        Ok(module) => module,
-                    };
                     match exec::allocate_module(rt, module) {
                         Ok(module_idx_) => {
                             writeln!(out, "OK").unwrap();

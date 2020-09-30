@@ -233,8 +233,7 @@ align.wast
 	line 23: OK
 	line 24: OK
 	line 25: OK
-	line 458: Unable parse names
-OK
+	line 458: OK
 	line 802: OK
 	line 803: OK
 	line 804: OK
@@ -314,8 +313,7 @@ binary.wast
 	line 2: OK
 	line 3: OK
 	line 4: OK
-	line 350: Unable parse names
-OK
+	line 350: OK
 	line 406: OK
 	line 412: OK
 	line 418: OK
@@ -13407,11 +13405,9 @@ float_exprs.wast
 	line 1135: OK
 	line 1144: OK
 	line 1145: OK
-	line 1150: Unable parse names
-OK
+	line 1150: OK
 	line 1167: OK
-	line 1169: Unable parse names
-OK
+	line 1169: OK
 	line 1186: OK
 	line 1191: OK
 	line 1197: OK
@@ -13469,26 +13465,22 @@ OK
 	line 1351: OK
 	line 1352: OK
 	line 1353: OK
-	line 1358: Unable parse names
-OK
+	line 1358: OK
 	line 1391: OK
 	line 1392: OK
 	line 1393: OK
 	line 1394: OK
 	line 1395: OK
-	line 1397: Unable parse names
-OK
+	line 1397: OK
 	line 1430: OK
 	line 1431: OK
 	line 1432: OK
 	line 1433: OK
 	line 1434: OK
-	line 1439: Unable parse names
-OK
+	line 1439: OK
 	line 1530: OK
 	line 1531: OK
-	line 1533: Unable parse names
-OK
+	line 1533: OK
 	line 1581: OK
 	line 1582: OK
 	line 1586: OK
@@ -13676,8 +13668,7 @@ OK
 	line 2149: OK
 	line 2157: OK
 	line 2158: OK
-	line 2164: Unable parse names
-OK
+	line 2164: OK
 	line 2212: OK
 	line 2213: OK
 	line 2218: OK
@@ -13754,8 +13745,7 @@ OK
 	line 2473: OK
 	line 2478: OK
 	line 2483: OK
-	line 2488: Unable parse names
-OK
+	line 2488: OK
 	line 2553: OK
 	line 2554: OK
 	line 2558: OK
@@ -15866,8 +15856,7 @@ load.wast
 	line 209: OK
 	line 211: OK
 local_get.wast
-	line 3: Unable parse names
-OK
+	line 3: OK
 	line 109: OK
 	line 110: OK
 	line 111: OK
@@ -15888,8 +15877,7 @@ OK
 	line 133: OK
 	line 139: expected != found. Expected: [F64(34.8)], Found: [F64(NaN)]
 local_set.wast
-	line 3: Unable parse names
-OK
+	line 3: OK
 	line 107: OK
 	line 108: OK
 	line 109: OK
@@ -15910,8 +15898,7 @@ OK
 	line 131: OK
 	line 137: Error while running function write: Wasm module trapped
 local_tee.wast
-	line 3: Unable parse names
-OK
+	line 3: OK
 	line 280: OK
 	line 281: OK
 	line 282: OK
@@ -16971,11 +16958,9 @@ select.wast
 	line 286: OK
 	line 287: OK
 skip-stack-guard-page.wast
-	line 2: Unable parse names
-OK
+	line 2: OK
 stack.wast
-	line 1: Unable parse names
-OK
+	line 1: OK
 	line 146: OK
 	line 147: OK
 	line 148: OK
