@@ -13091,7 +13091,7 @@ float_exprs.wast
 	line 515: OK
 	line 517: OK
 	line 518: OK
-	line 519: expected != found. Expected: [I64(-1152921504606846976)], Found: [I64(-1)]
+	line 519: OK
 	line 523: OK
 	line 530: OK
 	line 531: OK
@@ -17094,5 +17094,4 @@ utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
 testsuite/conversions.wast: [1]
-testsuite/float_exprs.wast: [519]
 testsuite/linking.wast: [387, 388]

@@ -1752,7 +1752,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             }
 
             let val = if f >= -(i64::MIN as f64) {
-                ((f - 10f64.powi(63)) as i64) ^ i64::MIN
+                ((f - 2f64.powi(63)) as i64) ^ i64::MIN
             } else {
                 f as i64
             };
@@ -1810,7 +1810,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             }
 
             let val = if f >= -(i64::MIN as f64) {
-                ((f - 1f64.powi(63)) as i64) ^ i64::MIN
+                ((f - 2f64.powi(63)) as i64) ^ i64::MIN
             } else {
                 f as i64
             };
