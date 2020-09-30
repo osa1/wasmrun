@@ -16065,7 +16065,7 @@ memory.wast
 	line 198: OK
 	line 199: OK
 	line 200: OK
-	line 202: expected != found. Expected: [I64(-1)], Found: [I64(255)]
+	line 202: OK
 	line 203: OK
 	line 204: OK
 	line 205: OK
@@ -16078,7 +16078,7 @@ memory.wast
 	line 213: OK
 	line 214: OK
 	line 216: OK
-	line 217: expected != found. Expected: [I64(-17)], Found: [I64(239)]
+	line 217: OK
 	line 218: OK
 	line 219: OK
 	line 220: OK
@@ -17101,4 +17101,3 @@ testsuite/linking.wast: [387, 388]
 testsuite/local_get.wast: [139]
 testsuite/local_set.wast: [137]
 testsuite/local_tee.wast: [354, 361]
-testsuite/memory.wast: [202, 217]

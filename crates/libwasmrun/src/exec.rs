@@ -683,7 +683,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &mut rt.store.mems[mem_addr as usize];
             mem.check_range(addr + 3)?;
 
-            let value: i32 = unsafe { transmute(value) };
             let [b1, b2, b3, b4] = value.to_le_bytes();
             mem[addr] = b1;
             mem[addr + 1] = b2;
@@ -724,7 +723,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &mut rt.store.mems[mem_addr as usize];
             mem.check_range(addr + 7)?;
 
-            let value: i64 = unsafe { transmute(value) };
             let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
             mem[addr] = b1;
             mem[addr + 1] = b2;
@@ -747,7 +745,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &mut rt.store.mems[mem_addr as usize];
             mem.check_range(addr)?;
 
-            let val = (c & 0b1111_1111) as u8;
+            let val = c as u8;
             mem[addr] = val;
 
             rt.ip += 1;
@@ -763,11 +761,9 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &mut rt.store.mems[mem_addr as usize];
             mem.check_range(addr + 1)?;
 
-            let val = (c & 0b1111_1111) as u8;
-            mem[addr] = val;
-
-            let val = ((c >> 8) & 0b1111_1111) as u8;
-            mem[addr + 1] = val;
+            let [b1, b2] = (c as u16).to_le_bytes();
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
 
             rt.ip += 1;
         }
@@ -801,7 +797,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem.check_range(addr)?;
 
             let val = mem[addr];
-            rt.stack.push_i64(val as i64)?;
+            rt.stack.push_i64(((val as i64) << 56) >> 56)?;
 
             rt.ip += 1;
         }
@@ -834,8 +830,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b2 = mem[addr + 1];
             let b3 = mem[addr + 2];
             let b4 = mem[addr + 3];
-            rt.stack
-                .push_f32(unsafe { transmute(i32::from_le_bytes([b1, b2, b3, b4])) })?;
+            rt.stack.push_f32(f32::from_le_bytes([b1, b2, b3, b4]))?;
             rt.ip += 1;
         }
 
@@ -876,9 +871,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b6 = mem[addr + 5];
             let b7 = mem[addr + 6];
             let b8 = mem[addr + 7];
-            rt.stack.push_f64(unsafe {
-                transmute(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))
-            })?;
+            rt.stack
+                .push_f64(f64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))?;
             rt.ip += 1;
         }
 
@@ -891,7 +885,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem.check_range(addr)?;
 
             let b = mem[addr];
-            rt.stack.push_i32(b as i32)?;
+            rt.stack.push_i32(i32::from_le_bytes([b, 0, 0, 0]))?;
             rt.ip += 1;
         }
 
@@ -903,10 +897,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &rt.store.mems[mem_addr as usize];
             mem.check_range(addr)?;
 
-            let b = mem[addr] as i8;
-            let b_abs = b.abs() as i32;
-
-            let val = if b < 0 { -1 * b_abs } else { b_abs };
+            let b = mem[addr];
+            let val = i8::from_le_bytes([b]) as i32;
             rt.stack.push_i32(val)?;
             rt.ip += 1;
         }
@@ -920,7 +912,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             mem.check_range(addr)?;
 
             let b = mem[addr];
-            rt.stack.push_i64(b as i64)?;
+            rt.stack
+                .push_i64(i64::from_le_bytes([b, 0, 0, 0, 0, 0, 0, 0]))?;
             rt.ip += 1;
         }
 
@@ -948,16 +941,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
-            let i_16 = i16::from_le_bytes([b1, b2]);
-            let i_16_abs = i_16.abs();
 
-            let val = if i_16 < 0 {
-                -1 * (i_16_abs as i32)
-            } else {
-                i_16_abs as i32
-            };
-
-            rt.stack.push_i32(val)?;
+            rt.stack.push_i32(i16::from_le_bytes([b1, b2]) as i32)?;
             rt.ip += 1;
         }
 
@@ -986,15 +971,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let b1 = mem[addr];
             let b2 = mem[addr + 1];
-            let i_16 = i16::from_le_bytes([b1, b2]);
-            let i_16_abs = i_16.abs();
-            let val = if i_16 < 0 {
-                -1 * (i_16_abs as i64)
-            } else {
-                i_16_abs as i64
-            };
 
-            rt.stack.push_i64(val)?;
+            rt.stack.push_i64(i16::from_le_bytes([b1, b2]) as i64)?;
             rt.ip += 1;
         }
 
@@ -1027,16 +1005,9 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let b2 = mem[addr + 1];
             let b3 = mem[addr + 2];
             let b4 = mem[addr + 3];
-            let i_32 = i32::from_le_bytes([b1, b2, b3, b4]);
-            let i_32_abs = i_32.abs();
 
-            let val = if i_32 < 0 {
-                -1 * (i_32_abs as i64)
-            } else {
-                i_32_abs as i64
-            };
-
-            rt.stack.push_i64(val)?;
+            rt.stack
+                .push_i64(i32::from_le_bytes([b1, b2, b3, b4]) as i64)?;
             rt.ip += 1;
         }
 
@@ -1064,8 +1035,9 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = &mut rt.store.mems[mem_addr as usize];
             mem.check_range(addr + 1)?;
 
-            mem[addr] = c as u8;
-            mem[addr + 1] = (c >> 8) as u8;
+            let [b1, b2] = (c as u16).to_le_bytes();
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
             rt.ip += 1;
         }
 
