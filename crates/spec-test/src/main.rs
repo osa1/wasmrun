@@ -220,21 +220,19 @@ fn run_spec_cmd(
                     failing_lines.push(line);
                     return;
                 }
-                Ok(module) => {
-                    match exec::allocate_module(rt, module) {
-                        Ok(module_idx_) => {
-                            writeln!(out, "OK").unwrap();
-                            *module_idx = Some(module_idx_);
-                            if let Some(name) = name {
-                                modules.insert(name, module_idx_);
-                            }
-                        }
-                        Err(err) => {
-                            writeln!(out, "Unable to allocate module: {}", err).unwrap();
-                            *module_idx = None;
+                Ok(module) => match exec::allocate_module(rt, module) {
+                    Ok(module_idx_) => {
+                        writeln!(out, "OK").unwrap();
+                        *module_idx = Some(module_idx_);
+                        if let Some(name) = name {
+                            modules.insert(name, module_idx_);
                         }
                     }
-                }
+                    Err(err) => {
+                        writeln!(out, "Unable to allocate module: {}", err).unwrap();
+                        *module_idx = None;
+                    }
+                },
             }
         }
 
