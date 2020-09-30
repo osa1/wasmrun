@@ -1411,19 +1411,77 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Max => {
-            op2::<f32, f32, _>(rt, f32::max)?;
+            op2::<f32, f32, _>(rt, |a, b| {
+                if a == b {
+                    f32::from_bits(a.to_bits() | b.to_bits())
+                } else if a > b {
+                    a
+                } else if a < b {
+                    b
+                } else {
+                    f32::NAN // TODO: canonicalize?
+                }
+            })?;
+
+            // let max x y =
+            //   let xf = to_float x in
+            //   let yf = to_float y in
+            //   (* max -0 0 is 0 *)
+            //   if xf = yf then Rep.logand x y else
+            //   if xf > yf then x else
+            //   if xf < yf then y else
+            //   determine_binary_nan x y
         }
 
         Instruction::F64Max => {
-            op2::<f64, f64, _>(rt, f64::max)?;
+            op2::<f64, f64, _>(rt, |a, b| {
+                if a == b {
+                    f64::from_bits(a.to_bits() | b.to_bits())
+                } else if a > b {
+                    a
+                } else if a < b {
+                    b
+                } else {
+                    f64::NAN // TODO: canonicalize?
+                }
+            })?;
         }
 
         Instruction::F32Min => {
-            op2::<f32, f32, _>(rt, f32::min)?;
+            op2::<f32, f32, _>(rt, |a, b| {
+                if a == b {
+                    f32::from_bits(a.to_bits() | b.to_bits())
+                } else if a < b {
+                    a
+                } else if a > b {
+                    b
+                } else {
+                    f32::NAN // TODO: canonicalize?
+                }
+            })?;
+
+            //   let min x y =
+            //     let xf = to_float x in
+            //     let yf = to_float y in
+            //     (* min -0 0 is -0 *)
+            //     if xf = yf then Rep.logor x y else
+            //     if xf < yf then x else
+            //     if xf > yf then y else
+            //     determine_binary_nan x y
         }
 
         Instruction::F64Min => {
-            op2::<f64, f64, _>(rt, f64::min)?;
+            op2::<f64, f64, _>(rt, |a, b| {
+                if a == b {
+                    f64::from_bits(a.to_bits() | b.to_bits())
+                } else if a < b {
+                    a
+                } else if a > b {
+                    b
+                } else {
+                    f64::NAN // TODO: canonicalize?
+                }
+            })?;
         }
 
         Instruction::F32Neg => {
