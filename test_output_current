@@ -184,7 +184,7 @@ address.wast
 	line 539: OK
 	line 540: OK
 	line 541: OK
-	line 542: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 542: OK
 	line 544: OK
 	line 545: OK
 	line 546: OK
@@ -199,7 +199,7 @@ address.wast
 	line 589: OK
 	line 590: OK
 	line 591: OK
-	line 592: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 592: OK
 	line 594: OK
 	line 595: OK
 	line 596: OK
@@ -2346,14 +2346,14 @@ f32.wast
 	line 48: OK
 	line 49: OK
 	line 50: OK
-	line 51: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 52: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 53: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 54: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 55: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 56: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 57: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 58: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 51: OK
+	line 52: OK
+	line 53: OK
+	line 54: OK
+	line 55: OK
+	line 56: OK
+	line 57: OK
+	line 58: OK
 	line 59: OK
 	line 60: OK
 	line 61: OK
@@ -2386,14 +2386,14 @@ f32.wast
 	line 88: OK
 	line 89: OK
 	line 90: OK
-	line 91: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 92: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 93: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 94: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 95: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 96: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 97: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 98: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 91: OK
+	line 92: OK
+	line 93: OK
+	line 94: OK
+	line 95: OK
+	line 96: OK
+	line 97: OK
+	line 98: OK
 	line 99: OK
 	line 100: OK
 	line 101: OK
@@ -2426,14 +2426,14 @@ f32.wast
 	line 128: OK
 	line 129: OK
 	line 130: OK
-	line 131: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 132: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 133: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 134: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 135: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 136: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 137: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 138: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 131: OK
+	line 132: OK
+	line 133: OK
+	line 134: OK
+	line 135: OK
+	line 136: OK
+	line 137: OK
+	line 138: OK
 	line 139: OK
 	line 140: OK
 	line 141: OK
@@ -2466,14 +2466,14 @@ f32.wast
 	line 168: OK
 	line 169: OK
 	line 170: OK
-	line 171: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 172: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 173: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 174: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 175: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 176: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 177: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 178: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 171: OK
+	line 172: OK
+	line 173: OK
+	line 174: OK
+	line 175: OK
+	line 176: OK
+	line 177: OK
+	line 178: OK
 	line 179: OK
 	line 180: OK
 	line 181: OK
@@ -2506,14 +2506,14 @@ f32.wast
 	line 208: OK
 	line 209: OK
 	line 210: OK
-	line 211: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 212: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 213: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 214: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 215: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 216: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 217: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 218: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 211: OK
+	line 212: OK
+	line 213: OK
+	line 214: OK
+	line 215: OK
+	line 216: OK
+	line 217: OK
+	line 218: OK
 	line 219: OK
 	line 220: OK
 	line 221: OK
@@ -2546,14 +2546,14 @@ f32.wast
 	line 248: OK
 	line 249: OK
 	line 250: OK
-	line 251: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 252: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 253: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 254: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 255: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 256: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 257: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 258: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 251: OK
+	line 252: OK
+	line 253: OK
+	line 254: OK
+	line 255: OK
+	line 256: OK
+	line 257: OK
+	line 258: OK
 	line 259: OK
 	line 260: OK
 	line 261: OK
@@ -2586,14 +2586,14 @@ f32.wast
 	line 288: OK
 	line 289: OK
 	line 290: OK
-	line 291: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 292: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 293: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 294: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 295: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 296: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 297: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 298: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 291: OK
+	line 292: OK
+	line 293: OK
+	line 294: OK
+	line 295: OK
+	line 296: OK
+	line 297: OK
+	line 298: OK
 	line 299: OK
 	line 300: OK
 	line 301: OK
@@ -2623,97 +2623,97 @@ f32.wast
 	line 325: OK
 	line 326: OK
 	line 327: OK
-	line 328: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 329: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 328: OK
+	line 329: OK
 	line 330: OK
-	line 331: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 332: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 333: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 334: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 335: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 336: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 337: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 338: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 339: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 340: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 341: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 342: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 343: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 344: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 345: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 346: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 347: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 348: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 349: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 350: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 351: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 352: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 353: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 354: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 355: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 356: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 357: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 358: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 359: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 360: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 361: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 362: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 363: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 364: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 365: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 366: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 367: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 368: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 369: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 370: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 371: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 372: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 373: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 374: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 375: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 376: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 377: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 378: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 379: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 380: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 381: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 382: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 383: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 384: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 385: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 386: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 387: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 388: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 389: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 390: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 391: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 392: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 393: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 394: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 395: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 396: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 397: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 398: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 399: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 400: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 401: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 402: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 403: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 404: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 405: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 406: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 407: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 408: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 409: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 410: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 411: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 412: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 413: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 414: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 415: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 416: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 417: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 418: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 331: OK
+	line 332: OK
+	line 333: OK
+	line 334: OK
+	line 335: OK
+	line 336: OK
+	line 337: OK
+	line 338: OK
+	line 339: OK
+	line 340: OK
+	line 341: OK
+	line 342: OK
+	line 343: OK
+	line 344: OK
+	line 345: OK
+	line 346: OK
+	line 347: OK
+	line 348: OK
+	line 349: OK
+	line 350: OK
+	line 351: OK
+	line 352: OK
+	line 353: OK
+	line 354: OK
+	line 355: OK
+	line 356: OK
+	line 357: OK
+	line 358: OK
+	line 359: OK
+	line 360: OK
+	line 361: OK
+	line 362: OK
+	line 363: OK
+	line 364: OK
+	line 365: OK
+	line 366: OK
+	line 367: OK
+	line 368: OK
+	line 369: OK
+	line 370: OK
+	line 371: OK
+	line 372: OK
+	line 373: OK
+	line 374: OK
+	line 375: OK
+	line 376: OK
+	line 377: OK
+	line 378: OK
+	line 379: OK
+	line 380: OK
+	line 381: OK
+	line 382: OK
+	line 383: OK
+	line 384: OK
+	line 385: OK
+	line 386: OK
+	line 387: OK
+	line 388: OK
+	line 389: OK
+	line 390: OK
+	line 391: OK
+	line 392: OK
+	line 393: OK
+	line 394: OK
+	line 395: OK
+	line 396: OK
+	line 397: OK
+	line 398: OK
+	line 399: OK
+	line 400: OK
+	line 401: OK
+	line 402: OK
+	line 403: OK
+	line 404: OK
+	line 405: OK
+	line 406: OK
+	line 407: OK
+	line 408: OK
+	line 409: OK
+	line 410: OK
+	line 411: OK
+	line 412: OK
+	line 413: OK
+	line 414: OK
+	line 415: OK
+	line 416: OK
+	line 417: OK
+	line 418: OK
 	line 419: OK
 	line 420: OK
 	line 421: OK
@@ -2746,14 +2746,14 @@ f32.wast
 	line 448: OK
 	line 449: OK
 	line 450: OK
-	line 451: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 452: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 453: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 454: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 455: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 456: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 457: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 458: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 451: OK
+	line 452: OK
+	line 453: OK
+	line 454: OK
+	line 455: OK
+	line 456: OK
+	line 457: OK
+	line 458: OK
 	line 459: OK
 	line 460: OK
 	line 461: OK
@@ -2786,14 +2786,14 @@ f32.wast
 	line 488: OK
 	line 489: OK
 	line 490: OK
-	line 491: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 492: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 493: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 494: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 495: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 496: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 497: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 498: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 491: OK
+	line 492: OK
+	line 493: OK
+	line 494: OK
+	line 495: OK
+	line 496: OK
+	line 497: OK
+	line 498: OK
 	line 499: OK
 	line 500: OK
 	line 501: OK
@@ -2826,14 +2826,14 @@ f32.wast
 	line 528: OK
 	line 529: OK
 	line 530: OK
-	line 531: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 532: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 533: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 534: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 535: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 536: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 537: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 538: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 531: OK
+	line 532: OK
+	line 533: OK
+	line 534: OK
+	line 535: OK
+	line 536: OK
+	line 537: OK
+	line 538: OK
 	line 539: OK
 	line 540: OK
 	line 541: OK
@@ -2866,14 +2866,14 @@ f32.wast
 	line 568: OK
 	line 569: OK
 	line 570: OK
-	line 571: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 572: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 573: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 574: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 575: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 576: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 577: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 578: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 571: OK
+	line 572: OK
+	line 573: OK
+	line 574: OK
+	line 575: OK
+	line 576: OK
+	line 577: OK
+	line 578: OK
 	line 579: OK
 	line 580: OK
 	line 581: OK
@@ -2906,14 +2906,14 @@ f32.wast
 	line 608: OK
 	line 609: OK
 	line 610: OK
-	line 611: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 612: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 613: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 614: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 615: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 616: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 617: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 618: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 611: OK
+	line 612: OK
+	line 613: OK
+	line 614: OK
+	line 615: OK
+	line 616: OK
+	line 617: OK
+	line 618: OK
 	line 619: OK
 	line 620: OK
 	line 621: OK
@@ -2946,14 +2946,14 @@ f32.wast
 	line 648: OK
 	line 649: OK
 	line 650: OK
-	line 651: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 652: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 653: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 654: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 655: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 656: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 657: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 658: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 651: OK
+	line 652: OK
+	line 653: OK
+	line 654: OK
+	line 655: OK
+	line 656: OK
+	line 657: OK
+	line 658: OK
 	line 659: OK
 	line 660: OK
 	line 661: OK
@@ -2986,14 +2986,14 @@ f32.wast
 	line 688: OK
 	line 689: OK
 	line 690: OK
-	line 691: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 692: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 693: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 694: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 695: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 696: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 697: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 698: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 691: OK
+	line 692: OK
+	line 693: OK
+	line 694: OK
+	line 695: OK
+	line 696: OK
+	line 697: OK
+	line 698: OK
 	line 699: OK
 	line 700: OK
 	line 701: OK
@@ -3022,98 +3022,98 @@ f32.wast
 	line 724: OK
 	line 725: OK
 	line 726: OK
-	line 727: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 727: OK
 	line 728: OK
 	line 729: OK
-	line 730: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 731: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 732: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 733: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 734: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 735: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 736: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 737: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 738: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 739: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 740: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 741: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 742: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 743: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 744: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 745: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 746: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 747: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 748: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 749: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 750: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 751: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 752: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 753: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 754: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 755: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 756: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 757: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 758: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 759: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 760: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 761: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 762: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 763: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 764: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 765: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 766: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 767: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 768: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 769: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 770: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 771: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 772: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 773: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 774: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 775: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 776: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 777: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 778: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 779: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 780: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 781: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 782: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 783: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 784: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 785: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 786: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 787: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 788: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 789: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 790: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 791: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 792: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 793: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 794: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 795: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 796: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 797: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 798: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 799: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 800: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 801: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 802: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 803: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 804: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 805: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 806: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 807: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 808: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 809: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 810: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 811: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 812: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 813: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 814: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 815: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 816: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 817: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 818: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 730: OK
+	line 731: OK
+	line 732: OK
+	line 733: OK
+	line 734: OK
+	line 735: OK
+	line 736: OK
+	line 737: OK
+	line 738: OK
+	line 739: OK
+	line 740: OK
+	line 741: OK
+	line 742: OK
+	line 743: OK
+	line 744: OK
+	line 745: OK
+	line 746: OK
+	line 747: OK
+	line 748: OK
+	line 749: OK
+	line 750: OK
+	line 751: OK
+	line 752: OK
+	line 753: OK
+	line 754: OK
+	line 755: OK
+	line 756: OK
+	line 757: OK
+	line 758: OK
+	line 759: OK
+	line 760: OK
+	line 761: OK
+	line 762: OK
+	line 763: OK
+	line 764: OK
+	line 765: OK
+	line 766: OK
+	line 767: OK
+	line 768: OK
+	line 769: OK
+	line 770: OK
+	line 771: OK
+	line 772: OK
+	line 773: OK
+	line 774: OK
+	line 775: OK
+	line 776: OK
+	line 777: OK
+	line 778: OK
+	line 779: OK
+	line 780: OK
+	line 781: OK
+	line 782: OK
+	line 783: OK
+	line 784: OK
+	line 785: OK
+	line 786: OK
+	line 787: OK
+	line 788: OK
+	line 789: OK
+	line 790: OK
+	line 791: OK
+	line 792: OK
+	line 793: OK
+	line 794: OK
+	line 795: OK
+	line 796: OK
+	line 797: OK
+	line 798: OK
+	line 799: OK
+	line 800: OK
+	line 801: OK
+	line 802: OK
+	line 803: OK
+	line 804: OK
+	line 805: OK
+	line 806: OK
+	line 807: OK
+	line 808: OK
+	line 809: OK
+	line 810: OK
+	line 811: OK
+	line 812: OK
+	line 813: OK
+	line 814: OK
+	line 815: OK
+	line 816: OK
+	line 817: OK
+	line 818: OK
 	line 819: OK
 	line 820: OK
 	line 821: OK
@@ -3142,18 +3142,18 @@ f32.wast
 	line 844: OK
 	line 845: OK
 	line 846: OK
-	line 847: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 848: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 849: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 850: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 851: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 852: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 853: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 854: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 855: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 856: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 857: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 858: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 847: OK
+	line 848: OK
+	line 849: OK
+	line 850: OK
+	line 851: OK
+	line 852: OK
+	line 853: OK
+	line 854: OK
+	line 855: OK
+	line 856: OK
+	line 857: OK
+	line 858: OK
 	line 859: OK
 	line 860: OK
 	line 861: OK
@@ -3186,14 +3186,14 @@ f32.wast
 	line 888: OK
 	line 889: OK
 	line 890: OK
-	line 891: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 892: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 893: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 894: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 895: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 896: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 897: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 898: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 891: OK
+	line 892: OK
+	line 893: OK
+	line 894: OK
+	line 895: OK
+	line 896: OK
+	line 897: OK
+	line 898: OK
 	line 899: OK
 	line 900: OK
 	line 901: OK
@@ -3226,14 +3226,14 @@ f32.wast
 	line 928: OK
 	line 929: OK
 	line 930: OK
-	line 931: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 932: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 933: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 934: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 935: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 936: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 937: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 938: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 931: OK
+	line 932: OK
+	line 933: OK
+	line 934: OK
+	line 935: OK
+	line 936: OK
+	line 937: OK
+	line 938: OK
 	line 939: OK
 	line 940: OK
 	line 941: OK
@@ -3266,14 +3266,14 @@ f32.wast
 	line 968: OK
 	line 969: OK
 	line 970: OK
-	line 971: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 972: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 973: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 974: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 975: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 976: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 977: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 978: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 971: OK
+	line 972: OK
+	line 973: OK
+	line 974: OK
+	line 975: OK
+	line 976: OK
+	line 977: OK
+	line 978: OK
 	line 979: OK
 	line 980: OK
 	line 981: OK
@@ -3306,14 +3306,14 @@ f32.wast
 	line 1008: OK
 	line 1009: OK
 	line 1010: OK
-	line 1011: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1012: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1013: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1014: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1015: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1016: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1017: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1018: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1011: OK
+	line 1012: OK
+	line 1013: OK
+	line 1014: OK
+	line 1015: OK
+	line 1016: OK
+	line 1017: OK
+	line 1018: OK
 	line 1019: OK
 	line 1020: OK
 	line 1021: OK
@@ -3346,14 +3346,14 @@ f32.wast
 	line 1048: OK
 	line 1049: OK
 	line 1050: OK
-	line 1051: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1052: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1053: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1054: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1055: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1056: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1057: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1058: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1051: OK
+	line 1052: OK
+	line 1053: OK
+	line 1054: OK
+	line 1055: OK
+	line 1056: OK
+	line 1057: OK
+	line 1058: OK
 	line 1059: OK
 	line 1060: OK
 	line 1061: OK
@@ -3386,18 +3386,18 @@ f32.wast
 	line 1088: OK
 	line 1089: OK
 	line 1090: OK
-	line 1091: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1092: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1093: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1094: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1095: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1096: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1097: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1098: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1099: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1100: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1101: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1102: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1091: OK
+	line 1092: OK
+	line 1093: OK
+	line 1094: OK
+	line 1095: OK
+	line 1096: OK
+	line 1097: OK
+	line 1098: OK
+	line 1099: OK
+	line 1100: OK
+	line 1101: OK
+	line 1102: OK
 	line 1103: OK
 	line 1104: OK
 	line 1105: OK
@@ -3426,98 +3426,98 @@ f32.wast
 	line 1128: OK
 	line 1129: OK
 	line 1130: OK
-	line 1131: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1132: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1133: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1134: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1135: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1136: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1137: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1138: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1139: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1140: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1141: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1142: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1143: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1144: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1145: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1146: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1147: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1148: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1149: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1150: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1151: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1152: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1153: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1154: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1155: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1156: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1157: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1158: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1159: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1160: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1161: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1162: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1163: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1164: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1165: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1166: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1167: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1168: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1169: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1170: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1171: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1172: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1173: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1174: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1175: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1176: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1177: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1178: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1179: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1180: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1181: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1182: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1183: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1184: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1185: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1186: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1187: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1188: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1189: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1190: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1191: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1192: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1193: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1194: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1195: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1196: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1197: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1198: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1199: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1200: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1201: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1202: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1203: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1204: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1205: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1206: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1207: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1208: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1209: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1210: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1211: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1212: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1213: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1214: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1215: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1216: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1217: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1218: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1219: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1220: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1221: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1222: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1131: OK
+	line 1132: OK
+	line 1133: OK
+	line 1134: OK
+	line 1135: OK
+	line 1136: OK
+	line 1137: OK
+	line 1138: OK
+	line 1139: OK
+	line 1140: OK
+	line 1141: OK
+	line 1142: OK
+	line 1143: OK
+	line 1144: OK
+	line 1145: OK
+	line 1146: OK
+	line 1147: OK
+	line 1148: OK
+	line 1149: OK
+	line 1150: OK
+	line 1151: OK
+	line 1152: OK
+	line 1153: OK
+	line 1154: OK
+	line 1155: OK
+	line 1156: OK
+	line 1157: OK
+	line 1158: OK
+	line 1159: OK
+	line 1160: OK
+	line 1161: OK
+	line 1162: OK
+	line 1163: OK
+	line 1164: OK
+	line 1165: OK
+	line 1166: OK
+	line 1167: OK
+	line 1168: OK
+	line 1169: OK
+	line 1170: OK
+	line 1171: OK
+	line 1172: OK
+	line 1173: OK
+	line 1174: OK
+	line 1175: OK
+	line 1176: OK
+	line 1177: OK
+	line 1178: OK
+	line 1179: OK
+	line 1180: OK
+	line 1181: OK
+	line 1182: OK
+	line 1183: OK
+	line 1184: OK
+	line 1185: OK
+	line 1186: OK
+	line 1187: OK
+	line 1188: OK
+	line 1189: OK
+	line 1190: OK
+	line 1191: OK
+	line 1192: OK
+	line 1193: OK
+	line 1194: OK
+	line 1195: OK
+	line 1196: OK
+	line 1197: OK
+	line 1198: OK
+	line 1199: OK
+	line 1200: OK
+	line 1201: OK
+	line 1202: OK
+	line 1203: OK
+	line 1204: OK
+	line 1205: OK
+	line 1206: OK
+	line 1207: OK
+	line 1208: OK
+	line 1209: OK
+	line 1210: OK
+	line 1211: OK
+	line 1212: OK
+	line 1213: OK
+	line 1214: OK
+	line 1215: OK
+	line 1216: OK
+	line 1217: OK
+	line 1218: OK
+	line 1219: OK
+	line 1220: OK
+	line 1221: OK
+	line 1222: OK
 	line 1223: OK
 	line 1224: OK
 	line 1225: OK
@@ -3546,14 +3546,14 @@ f32.wast
 	line 1248: OK
 	line 1249: OK
 	line 1250: OK
-	line 1251: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1252: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1253: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1254: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1255: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1256: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1257: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1258: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1251: OK
+	line 1252: OK
+	line 1253: OK
+	line 1254: OK
+	line 1255: OK
+	line 1256: OK
+	line 1257: OK
+	line 1258: OK
 	line 1259: OK
 	line 1260: OK
 	line 1261: OK
@@ -3586,14 +3586,14 @@ f32.wast
 	line 1288: OK
 	line 1289: OK
 	line 1290: OK
-	line 1291: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1292: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1293: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1294: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1295: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1296: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1297: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1298: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1291: OK
+	line 1292: OK
+	line 1293: OK
+	line 1294: OK
+	line 1295: OK
+	line 1296: OK
+	line 1297: OK
+	line 1298: OK
 	line 1299: OK
 	line 1300: OK
 	line 1301: OK
@@ -3626,14 +3626,14 @@ f32.wast
 	line 1328: OK
 	line 1329: OK
 	line 1330: OK
-	line 1331: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1332: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1333: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1334: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1335: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1336: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1337: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1338: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1331: OK
+	line 1332: OK
+	line 1333: OK
+	line 1334: OK
+	line 1335: OK
+	line 1336: OK
+	line 1337: OK
+	line 1338: OK
 	line 1339: OK
 	line 1340: OK
 	line 1341: OK
@@ -3666,14 +3666,14 @@ f32.wast
 	line 1368: OK
 	line 1369: OK
 	line 1370: OK
-	line 1371: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1372: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1373: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1374: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1375: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1376: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1377: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1378: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1371: OK
+	line 1372: OK
+	line 1373: OK
+	line 1374: OK
+	line 1375: OK
+	line 1376: OK
+	line 1377: OK
+	line 1378: OK
 	line 1379: OK
 	line 1380: OK
 	line 1381: OK
@@ -3706,14 +3706,14 @@ f32.wast
 	line 1408: OK
 	line 1409: OK
 	line 1410: OK
-	line 1411: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1412: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1413: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1414: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1415: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1416: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1417: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1418: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1411: OK
+	line 1412: OK
+	line 1413: OK
+	line 1414: OK
+	line 1415: OK
+	line 1416: OK
+	line 1417: OK
+	line 1418: OK
 	line 1419: OK
 	line 1420: OK
 	line 1421: OK
@@ -3746,14 +3746,14 @@ f32.wast
 	line 1448: OK
 	line 1449: OK
 	line 1450: OK
-	line 1451: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1452: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1453: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1454: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1455: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1456: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1457: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1458: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1451: OK
+	line 1452: OK
+	line 1453: OK
+	line 1454: OK
+	line 1455: OK
+	line 1456: OK
+	line 1457: OK
+	line 1458: OK
 	line 1459: OK
 	line 1460: OK
 	line 1461: OK
@@ -3786,14 +3786,14 @@ f32.wast
 	line 1488: OK
 	line 1489: OK
 	line 1490: OK
-	line 1491: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1492: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1493: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1494: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1495: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1496: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1497: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1498: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1491: OK
+	line 1492: OK
+	line 1493: OK
+	line 1494: OK
+	line 1495: OK
+	line 1496: OK
+	line 1497: OK
+	line 1498: OK
 	line 1499: OK
 	line 1500: OK
 	line 1501: OK
@@ -3822,98 +3822,98 @@ f32.wast
 	line 1524: OK
 	line 1525: OK
 	line 1526: OK
-	line 1527: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1528: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1529: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1530: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1531: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1532: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1533: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1534: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1535: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1536: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1537: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1538: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1539: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1540: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1541: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1542: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1543: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1544: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1545: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1546: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1547: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1548: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1549: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1550: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1551: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1552: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1553: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1554: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1555: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1556: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1557: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1558: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1559: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1560: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1561: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1562: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1563: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1564: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1565: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1566: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1567: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1568: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1569: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1570: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1571: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1572: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1573: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1574: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1575: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1576: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1577: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1578: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1579: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1580: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1581: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1582: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1583: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1584: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1585: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1586: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1587: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1588: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1589: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1590: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1591: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1592: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1593: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1594: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1595: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1596: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1597: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1598: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1599: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1600: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1601: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1602: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1603: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1604: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1605: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1606: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1607: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1608: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1609: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1610: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1611: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1612: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1613: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1614: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1615: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1616: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1617: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1618: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1527: OK
+	line 1528: OK
+	line 1529: OK
+	line 1530: OK
+	line 1531: OK
+	line 1532: OK
+	line 1533: OK
+	line 1534: OK
+	line 1535: OK
+	line 1536: OK
+	line 1537: OK
+	line 1538: OK
+	line 1539: OK
+	line 1540: OK
+	line 1541: OK
+	line 1542: OK
+	line 1543: OK
+	line 1544: OK
+	line 1545: OK
+	line 1546: OK
+	line 1547: OK
+	line 1548: OK
+	line 1549: OK
+	line 1550: OK
+	line 1551: OK
+	line 1552: OK
+	line 1553: OK
+	line 1554: OK
+	line 1555: OK
+	line 1556: OK
+	line 1557: OK
+	line 1558: OK
+	line 1559: OK
+	line 1560: OK
+	line 1561: OK
+	line 1562: OK
+	line 1563: OK
+	line 1564: OK
+	line 1565: OK
+	line 1566: OK
+	line 1567: OK
+	line 1568: OK
+	line 1569: OK
+	line 1570: OK
+	line 1571: OK
+	line 1572: OK
+	line 1573: OK
+	line 1574: OK
+	line 1575: OK
+	line 1576: OK
+	line 1577: OK
+	line 1578: OK
+	line 1579: OK
+	line 1580: OK
+	line 1581: OK
+	line 1582: OK
+	line 1583: OK
+	line 1584: OK
+	line 1585: OK
+	line 1586: OK
+	line 1587: OK
+	line 1588: OK
+	line 1589: OK
+	line 1590: OK
+	line 1591: OK
+	line 1592: OK
+	line 1593: OK
+	line 1594: OK
+	line 1595: OK
+	line 1596: OK
+	line 1597: OK
+	line 1598: OK
+	line 1599: OK
+	line 1600: OK
+	line 1601: OK
+	line 1602: OK
+	line 1603: OK
+	line 1604: OK
+	line 1605: OK
+	line 1606: OK
+	line 1607: OK
+	line 1608: OK
+	line 1609: OK
+	line 1610: OK
+	line 1611: OK
+	line 1612: OK
+	line 1613: OK
+	line 1614: OK
+	line 1615: OK
+	line 1616: OK
+	line 1617: OK
+	line 1618: OK
 	line 1619: OK
 	line 1620: OK
 	line 1621: OK
@@ -4298,22 +4298,22 @@ f32.wast
 	line 2000: expected != found. Expected: [F32(NaN)], Found: [F32(-inf)]
 	line 2001: expected != found. Expected: [F32(NaN)], Found: [F32(inf)]
 	line 2002: expected != found. Expected: [F32(NaN)], Found: [F32(inf)]
-	line 2003: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2004: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2005: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2006: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2007: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2008: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2009: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2010: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2011: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2012: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2013: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2014: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2015: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2016: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2017: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2018: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2003: OK
+	line 2004: OK
+	line 2005: OK
+	line 2006: OK
+	line 2007: OK
+	line 2008: OK
+	line 2009: OK
+	line 2010: OK
+	line 2011: OK
+	line 2012: OK
+	line 2013: OK
+	line 2014: OK
+	line 2015: OK
+	line 2016: OK
+	line 2017: OK
+	line 2018: OK
 	line 2019: OK
 	line 2020: OK
 	line 2021: OK
@@ -4698,42 +4698,42 @@ f32.wast
 	line 2400: expected != found. Expected: [F32(NaN)], Found: [F32(-inf)]
 	line 2401: expected != found. Expected: [F32(NaN)], Found: [F32(inf)]
 	line 2402: expected != found. Expected: [F32(NaN)], Found: [F32(inf)]
-	line 2403: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2404: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2405: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2406: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2407: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2408: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2409: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2410: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2411: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2412: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2413: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2414: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2415: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2416: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2417: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2418: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2403: OK
+	line 2404: OK
+	line 2405: OK
+	line 2406: OK
+	line 2407: OK
+	line 2408: OK
+	line 2409: OK
+	line 2410: OK
+	line 2411: OK
+	line 2412: OK
+	line 2413: OK
+	line 2414: OK
+	line 2415: OK
+	line 2416: OK
+	line 2417: OK
+	line 2418: OK
 	line 2419: OK
 	line 2420: OK
-	line 2421: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2421: OK
 	line 2422: OK
-	line 2423: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2423: OK
 	line 2424: OK
-	line 2425: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2425: OK
 	line 2426: OK
-	line 2427: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2427: OK
 	line 2428: OK
-	line 2429: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2429: OK
 	line 2430: OK
-	line 2431: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2431: OK
 	line 2432: OK
-	line 2433: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2433: OK
 	line 2434: OK
-	line 2435: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2436: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2437: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2438: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2435: OK
+	line 2436: OK
+	line 2437: OK
+	line 2438: OK
 	line 2439: OK
 	line 2440: OK
 	line 2441: OK
@@ -4750,10 +4750,10 @@ f32.wast
 	line 2452: OK
 	line 2453: OK
 	line 2454: OK
-	line 2455: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2456: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2457: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2458: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2455: OK
+	line 2456: OK
+	line 2457: OK
+	line 2458: OK
 	line 2459: OK
 	line 2460: OK
 	line 2461: OK
@@ -4770,10 +4770,10 @@ f32.wast
 	line 2472: OK
 	line 2473: OK
 	line 2474: OK
-	line 2475: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2476: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2477: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2478: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2475: OK
+	line 2476: OK
+	line 2477: OK
+	line 2478: OK
 	line 2479: OK
 	line 2480: OK
 	line 2481: OK
@@ -4790,10 +4790,10 @@ f32.wast
 	line 2492: OK
 	line 2493: OK
 	line 2494: OK
-	line 2495: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2496: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2497: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2498: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2495: OK
+	line 2496: OK
+	line 2497: OK
+	line 2498: OK
 	line 2499: OK
 	line 2500: OK
 	line 2501: OK
@@ -4810,10 +4810,10 @@ f32.wast
 	line 2512: OK
 	line 2513: OK
 	line 2514: OK
-	line 2515: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2516: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2517: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 2518: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 2515: OK
+	line 2516: OK
+	line 2517: OK
+	line 2518: OK
 f32_bitwise.wast
 	line 4: OK
 	line 10: OK
@@ -5104,42 +5104,42 @@ f32_bitwise.wast
 	line 295: OK
 	line 296: OK
 	line 297: OK
-	line 298: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 299: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 300: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 301: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 302: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 303: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 304: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 305: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 306: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 307: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 308: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 309: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 310: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 311: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 312: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 313: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 314: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 315: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 316: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 317: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 318: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 319: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 320: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 321: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 322: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 323: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 324: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 325: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 326: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 327: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 328: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 329: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 330: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 331: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 332: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 333: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 298: OK
+	line 299: OK
+	line 300: OK
+	line 301: OK
+	line 302: OK
+	line 303: OK
+	line 304: OK
+	line 305: OK
+	line 306: OK
+	line 307: OK
+	line 308: OK
+	line 309: OK
+	line 310: OK
+	line 311: OK
+	line 312: OK
+	line 313: OK
+	line 314: OK
+	line 315: OK
+	line 316: OK
+	line 317: OK
+	line 318: OK
+	line 319: OK
+	line 320: OK
+	line 321: OK
+	line 322: OK
+	line 323: OK
+	line 324: OK
+	line 325: OK
+	line 326: OK
+	line 327: OK
+	line 328: OK
+	line 329: OK
+	line 330: OK
+	line 331: OK
+	line 332: OK
+	line 333: OK
 	line 334: OK
 	line 335: OK
 	line 336: OK
@@ -5156,8 +5156,8 @@ f32_bitwise.wast
 	line 347: OK
 	line 348: OK
 	line 349: OK
-	line 350: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 351: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 350: OK
+	line 351: OK
 	line 352: OK
 	line 353: OK
 	line 354: OK
@@ -5174,8 +5174,8 @@ f32_bitwise.wast
 	line 365: OK
 	line 366: OK
 	line 367: OK
-	line 368: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 369: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 368: OK
+	line 369: OK
 f32_cmp.wast
 	line 4: OK
 	line 13: OK
@@ -7612,14 +7612,14 @@ f64.wast
 	line 48: OK
 	line 49: OK
 	line 50: OK
-	line 51: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 52: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 53: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 54: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 55: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 56: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 57: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 58: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 51: OK
+	line 52: OK
+	line 53: OK
+	line 54: OK
+	line 55: OK
+	line 56: OK
+	line 57: OK
+	line 58: OK
 	line 59: OK
 	line 60: OK
 	line 61: OK
@@ -7652,14 +7652,14 @@ f64.wast
 	line 88: OK
 	line 89: OK
 	line 90: OK
-	line 91: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 92: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 93: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 94: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 95: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 96: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 97: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 98: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 91: OK
+	line 92: OK
+	line 93: OK
+	line 94: OK
+	line 95: OK
+	line 96: OK
+	line 97: OK
+	line 98: OK
 	line 99: OK
 	line 100: OK
 	line 101: OK
@@ -7692,14 +7692,14 @@ f64.wast
 	line 128: OK
 	line 129: OK
 	line 130: OK
-	line 131: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 132: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 133: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 134: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 135: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 136: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 137: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 138: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 131: OK
+	line 132: OK
+	line 133: OK
+	line 134: OK
+	line 135: OK
+	line 136: OK
+	line 137: OK
+	line 138: OK
 	line 139: OK
 	line 140: OK
 	line 141: OK
@@ -7732,14 +7732,14 @@ f64.wast
 	line 168: OK
 	line 169: OK
 	line 170: OK
-	line 171: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 172: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 173: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 174: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 175: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 176: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 177: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 178: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 171: OK
+	line 172: OK
+	line 173: OK
+	line 174: OK
+	line 175: OK
+	line 176: OK
+	line 177: OK
+	line 178: OK
 	line 179: OK
 	line 180: OK
 	line 181: OK
@@ -7772,14 +7772,14 @@ f64.wast
 	line 208: OK
 	line 209: OK
 	line 210: OK
-	line 211: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 212: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 213: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 214: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 215: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 216: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 217: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 218: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 211: OK
+	line 212: OK
+	line 213: OK
+	line 214: OK
+	line 215: OK
+	line 216: OK
+	line 217: OK
+	line 218: OK
 	line 219: OK
 	line 220: OK
 	line 221: OK
@@ -7812,14 +7812,14 @@ f64.wast
 	line 248: OK
 	line 249: OK
 	line 250: OK
-	line 251: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 252: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 253: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 254: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 255: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 256: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 257: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 258: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 251: OK
+	line 252: OK
+	line 253: OK
+	line 254: OK
+	line 255: OK
+	line 256: OK
+	line 257: OK
+	line 258: OK
 	line 259: OK
 	line 260: OK
 	line 261: OK
@@ -7852,14 +7852,14 @@ f64.wast
 	line 288: OK
 	line 289: OK
 	line 290: OK
-	line 291: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 292: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 293: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 294: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 295: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 296: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 297: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 298: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 291: OK
+	line 292: OK
+	line 293: OK
+	line 294: OK
+	line 295: OK
+	line 296: OK
+	line 297: OK
+	line 298: OK
 	line 299: OK
 	line 300: OK
 	line 301: OK
@@ -7889,97 +7889,97 @@ f64.wast
 	line 325: OK
 	line 326: OK
 	line 327: OK
-	line 328: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 329: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 328: OK
+	line 329: OK
 	line 330: OK
-	line 331: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 332: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 333: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 334: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 335: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 336: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 337: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 338: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 339: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 340: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 341: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 342: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 343: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 344: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 345: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 346: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 347: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 348: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 349: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 350: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 351: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 352: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 353: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 354: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 355: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 356: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 357: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 358: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 359: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 360: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 361: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 362: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 363: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 364: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 365: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 366: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 367: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 368: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 369: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 370: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 371: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 372: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 373: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 374: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 375: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 376: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 377: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 378: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 379: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 380: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 381: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 382: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 383: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 384: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 385: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 386: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 387: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 388: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 389: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 390: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 391: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 392: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 393: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 394: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 395: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 396: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 397: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 398: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 399: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 400: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 401: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 402: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 403: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 404: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 405: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 406: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 407: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 408: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 409: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 410: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 411: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 412: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 413: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 414: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 415: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 416: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 417: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 418: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 331: OK
+	line 332: OK
+	line 333: OK
+	line 334: OK
+	line 335: OK
+	line 336: OK
+	line 337: OK
+	line 338: OK
+	line 339: OK
+	line 340: OK
+	line 341: OK
+	line 342: OK
+	line 343: OK
+	line 344: OK
+	line 345: OK
+	line 346: OK
+	line 347: OK
+	line 348: OK
+	line 349: OK
+	line 350: OK
+	line 351: OK
+	line 352: OK
+	line 353: OK
+	line 354: OK
+	line 355: OK
+	line 356: OK
+	line 357: OK
+	line 358: OK
+	line 359: OK
+	line 360: OK
+	line 361: OK
+	line 362: OK
+	line 363: OK
+	line 364: OK
+	line 365: OK
+	line 366: OK
+	line 367: OK
+	line 368: OK
+	line 369: OK
+	line 370: OK
+	line 371: OK
+	line 372: OK
+	line 373: OK
+	line 374: OK
+	line 375: OK
+	line 376: OK
+	line 377: OK
+	line 378: OK
+	line 379: OK
+	line 380: OK
+	line 381: OK
+	line 382: OK
+	line 383: OK
+	line 384: OK
+	line 385: OK
+	line 386: OK
+	line 387: OK
+	line 388: OK
+	line 389: OK
+	line 390: OK
+	line 391: OK
+	line 392: OK
+	line 393: OK
+	line 394: OK
+	line 395: OK
+	line 396: OK
+	line 397: OK
+	line 398: OK
+	line 399: OK
+	line 400: OK
+	line 401: OK
+	line 402: OK
+	line 403: OK
+	line 404: OK
+	line 405: OK
+	line 406: OK
+	line 407: OK
+	line 408: OK
+	line 409: OK
+	line 410: OK
+	line 411: OK
+	line 412: OK
+	line 413: OK
+	line 414: OK
+	line 415: OK
+	line 416: OK
+	line 417: OK
+	line 418: OK
 	line 419: OK
 	line 420: OK
 	line 421: OK
@@ -8012,14 +8012,14 @@ f64.wast
 	line 448: OK
 	line 449: OK
 	line 450: OK
-	line 451: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 452: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 453: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 454: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 455: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 456: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 457: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 458: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 451: OK
+	line 452: OK
+	line 453: OK
+	line 454: OK
+	line 455: OK
+	line 456: OK
+	line 457: OK
+	line 458: OK
 	line 459: OK
 	line 460: OK
 	line 461: OK
@@ -8052,14 +8052,14 @@ f64.wast
 	line 488: OK
 	line 489: OK
 	line 490: OK
-	line 491: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 492: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 493: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 494: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 495: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 496: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 497: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 498: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 491: OK
+	line 492: OK
+	line 493: OK
+	line 494: OK
+	line 495: OK
+	line 496: OK
+	line 497: OK
+	line 498: OK
 	line 499: OK
 	line 500: OK
 	line 501: OK
@@ -8092,14 +8092,14 @@ f64.wast
 	line 528: OK
 	line 529: OK
 	line 530: OK
-	line 531: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 532: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 533: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 534: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 535: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 536: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 537: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 538: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 531: OK
+	line 532: OK
+	line 533: OK
+	line 534: OK
+	line 535: OK
+	line 536: OK
+	line 537: OK
+	line 538: OK
 	line 539: OK
 	line 540: OK
 	line 541: OK
@@ -8132,14 +8132,14 @@ f64.wast
 	line 568: OK
 	line 569: OK
 	line 570: OK
-	line 571: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 572: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 573: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 574: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 575: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 576: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 577: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 578: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 571: OK
+	line 572: OK
+	line 573: OK
+	line 574: OK
+	line 575: OK
+	line 576: OK
+	line 577: OK
+	line 578: OK
 	line 579: OK
 	line 580: OK
 	line 581: OK
@@ -8172,14 +8172,14 @@ f64.wast
 	line 608: OK
 	line 609: OK
 	line 610: OK
-	line 611: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 612: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 613: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 614: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 615: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 616: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 617: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 618: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 611: OK
+	line 612: OK
+	line 613: OK
+	line 614: OK
+	line 615: OK
+	line 616: OK
+	line 617: OK
+	line 618: OK
 	line 619: OK
 	line 620: OK
 	line 621: OK
@@ -8212,14 +8212,14 @@ f64.wast
 	line 648: OK
 	line 649: OK
 	line 650: OK
-	line 651: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 652: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 653: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 654: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 655: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 656: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 657: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 658: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 651: OK
+	line 652: OK
+	line 653: OK
+	line 654: OK
+	line 655: OK
+	line 656: OK
+	line 657: OK
+	line 658: OK
 	line 659: OK
 	line 660: OK
 	line 661: OK
@@ -8252,14 +8252,14 @@ f64.wast
 	line 688: OK
 	line 689: OK
 	line 690: OK
-	line 691: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 692: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 693: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 694: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 695: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 696: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 697: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 698: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 691: OK
+	line 692: OK
+	line 693: OK
+	line 694: OK
+	line 695: OK
+	line 696: OK
+	line 697: OK
+	line 698: OK
 	line 699: OK
 	line 700: OK
 	line 701: OK
@@ -8288,98 +8288,98 @@ f64.wast
 	line 724: OK
 	line 725: OK
 	line 726: OK
-	line 727: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 727: OK
 	line 728: OK
 	line 729: OK
-	line 730: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 731: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 732: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 733: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 734: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 735: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 736: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 737: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 738: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 739: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 740: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 741: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 742: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 743: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 744: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 745: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 746: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 747: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 748: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 749: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 750: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 751: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 752: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 753: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 754: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 755: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 756: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 757: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 758: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 759: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 760: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 761: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 762: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 763: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 764: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 765: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 766: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 767: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 768: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 769: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 770: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 771: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 772: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 773: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 774: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 775: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 776: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 777: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 778: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 779: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 780: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 781: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 782: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 783: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 784: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 785: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 786: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 787: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 788: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 789: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 790: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 791: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 792: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 793: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 794: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 795: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 796: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 797: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 798: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 799: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 800: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 801: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 802: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 803: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 804: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 805: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 806: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 807: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 808: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 809: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 810: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 811: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 812: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 813: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 814: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 815: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 816: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 817: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 818: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 730: OK
+	line 731: OK
+	line 732: OK
+	line 733: OK
+	line 734: OK
+	line 735: OK
+	line 736: OK
+	line 737: OK
+	line 738: OK
+	line 739: OK
+	line 740: OK
+	line 741: OK
+	line 742: OK
+	line 743: OK
+	line 744: OK
+	line 745: OK
+	line 746: OK
+	line 747: OK
+	line 748: OK
+	line 749: OK
+	line 750: OK
+	line 751: OK
+	line 752: OK
+	line 753: OK
+	line 754: OK
+	line 755: OK
+	line 756: OK
+	line 757: OK
+	line 758: OK
+	line 759: OK
+	line 760: OK
+	line 761: OK
+	line 762: OK
+	line 763: OK
+	line 764: OK
+	line 765: OK
+	line 766: OK
+	line 767: OK
+	line 768: OK
+	line 769: OK
+	line 770: OK
+	line 771: OK
+	line 772: OK
+	line 773: OK
+	line 774: OK
+	line 775: OK
+	line 776: OK
+	line 777: OK
+	line 778: OK
+	line 779: OK
+	line 780: OK
+	line 781: OK
+	line 782: OK
+	line 783: OK
+	line 784: OK
+	line 785: OK
+	line 786: OK
+	line 787: OK
+	line 788: OK
+	line 789: OK
+	line 790: OK
+	line 791: OK
+	line 792: OK
+	line 793: OK
+	line 794: OK
+	line 795: OK
+	line 796: OK
+	line 797: OK
+	line 798: OK
+	line 799: OK
+	line 800: OK
+	line 801: OK
+	line 802: OK
+	line 803: OK
+	line 804: OK
+	line 805: OK
+	line 806: OK
+	line 807: OK
+	line 808: OK
+	line 809: OK
+	line 810: OK
+	line 811: OK
+	line 812: OK
+	line 813: OK
+	line 814: OK
+	line 815: OK
+	line 816: OK
+	line 817: OK
+	line 818: OK
 	line 819: OK
 	line 820: OK
 	line 821: OK
@@ -8408,18 +8408,18 @@ f64.wast
 	line 844: OK
 	line 845: OK
 	line 846: OK
-	line 847: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 848: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 849: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 850: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 851: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 852: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 853: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 854: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 855: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 856: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 857: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 858: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 847: OK
+	line 848: OK
+	line 849: OK
+	line 850: OK
+	line 851: OK
+	line 852: OK
+	line 853: OK
+	line 854: OK
+	line 855: OK
+	line 856: OK
+	line 857: OK
+	line 858: OK
 	line 859: OK
 	line 860: OK
 	line 861: OK
@@ -8452,14 +8452,14 @@ f64.wast
 	line 888: OK
 	line 889: OK
 	line 890: OK
-	line 891: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 892: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 893: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 894: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 895: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 896: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 897: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 898: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 891: OK
+	line 892: OK
+	line 893: OK
+	line 894: OK
+	line 895: OK
+	line 896: OK
+	line 897: OK
+	line 898: OK
 	line 899: OK
 	line 900: OK
 	line 901: OK
@@ -8492,14 +8492,14 @@ f64.wast
 	line 928: OK
 	line 929: OK
 	line 930: OK
-	line 931: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 932: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 933: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 934: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 935: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 936: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 937: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 938: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 931: OK
+	line 932: OK
+	line 933: OK
+	line 934: OK
+	line 935: OK
+	line 936: OK
+	line 937: OK
+	line 938: OK
 	line 939: OK
 	line 940: OK
 	line 941: OK
@@ -8532,14 +8532,14 @@ f64.wast
 	line 968: OK
 	line 969: OK
 	line 970: OK
-	line 971: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 972: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 973: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 974: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 975: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 976: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 977: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 978: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 971: OK
+	line 972: OK
+	line 973: OK
+	line 974: OK
+	line 975: OK
+	line 976: OK
+	line 977: OK
+	line 978: OK
 	line 979: OK
 	line 980: OK
 	line 981: OK
@@ -8572,14 +8572,14 @@ f64.wast
 	line 1008: OK
 	line 1009: OK
 	line 1010: OK
-	line 1011: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1012: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1013: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1014: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1015: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1016: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1017: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1018: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1011: OK
+	line 1012: OK
+	line 1013: OK
+	line 1014: OK
+	line 1015: OK
+	line 1016: OK
+	line 1017: OK
+	line 1018: OK
 	line 1019: OK
 	line 1020: OK
 	line 1021: OK
@@ -8612,14 +8612,14 @@ f64.wast
 	line 1048: OK
 	line 1049: OK
 	line 1050: OK
-	line 1051: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1052: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1053: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1054: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1055: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1056: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1057: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1058: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1051: OK
+	line 1052: OK
+	line 1053: OK
+	line 1054: OK
+	line 1055: OK
+	line 1056: OK
+	line 1057: OK
+	line 1058: OK
 	line 1059: OK
 	line 1060: OK
 	line 1061: OK
@@ -8652,18 +8652,18 @@ f64.wast
 	line 1088: OK
 	line 1089: OK
 	line 1090: OK
-	line 1091: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1092: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1093: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1094: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1095: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1096: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1097: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1098: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1099: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1100: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1101: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1102: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1091: OK
+	line 1092: OK
+	line 1093: OK
+	line 1094: OK
+	line 1095: OK
+	line 1096: OK
+	line 1097: OK
+	line 1098: OK
+	line 1099: OK
+	line 1100: OK
+	line 1101: OK
+	line 1102: OK
 	line 1103: OK
 	line 1104: OK
 	line 1105: OK
@@ -8692,98 +8692,98 @@ f64.wast
 	line 1128: OK
 	line 1129: OK
 	line 1130: OK
-	line 1131: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1132: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1133: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1134: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1135: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1136: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1137: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1138: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1139: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1140: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1141: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1142: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1143: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1144: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1145: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1146: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1147: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1148: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1149: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1150: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1151: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1152: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1153: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1154: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1155: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1156: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1157: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1158: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1159: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1160: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1161: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1162: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1163: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1164: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1165: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1166: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1167: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1168: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1169: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1170: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1171: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1172: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1173: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1174: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1175: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1176: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1177: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1178: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1179: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1180: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1181: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1182: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1183: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1184: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1185: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1186: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1187: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1188: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1189: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1190: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1191: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1192: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1193: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1194: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1195: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1196: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1197: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1198: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1199: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1200: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1201: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1202: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1203: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1204: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1205: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1206: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1207: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1208: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1209: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1210: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1211: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1212: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1213: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1214: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1215: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1216: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1217: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1218: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1219: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1220: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1221: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1222: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1131: OK
+	line 1132: OK
+	line 1133: OK
+	line 1134: OK
+	line 1135: OK
+	line 1136: OK
+	line 1137: OK
+	line 1138: OK
+	line 1139: OK
+	line 1140: OK
+	line 1141: OK
+	line 1142: OK
+	line 1143: OK
+	line 1144: OK
+	line 1145: OK
+	line 1146: OK
+	line 1147: OK
+	line 1148: OK
+	line 1149: OK
+	line 1150: OK
+	line 1151: OK
+	line 1152: OK
+	line 1153: OK
+	line 1154: OK
+	line 1155: OK
+	line 1156: OK
+	line 1157: OK
+	line 1158: OK
+	line 1159: OK
+	line 1160: OK
+	line 1161: OK
+	line 1162: OK
+	line 1163: OK
+	line 1164: OK
+	line 1165: OK
+	line 1166: OK
+	line 1167: OK
+	line 1168: OK
+	line 1169: OK
+	line 1170: OK
+	line 1171: OK
+	line 1172: OK
+	line 1173: OK
+	line 1174: OK
+	line 1175: OK
+	line 1176: OK
+	line 1177: OK
+	line 1178: OK
+	line 1179: OK
+	line 1180: OK
+	line 1181: OK
+	line 1182: OK
+	line 1183: OK
+	line 1184: OK
+	line 1185: OK
+	line 1186: OK
+	line 1187: OK
+	line 1188: OK
+	line 1189: OK
+	line 1190: OK
+	line 1191: OK
+	line 1192: OK
+	line 1193: OK
+	line 1194: OK
+	line 1195: OK
+	line 1196: OK
+	line 1197: OK
+	line 1198: OK
+	line 1199: OK
+	line 1200: OK
+	line 1201: OK
+	line 1202: OK
+	line 1203: OK
+	line 1204: OK
+	line 1205: OK
+	line 1206: OK
+	line 1207: OK
+	line 1208: OK
+	line 1209: OK
+	line 1210: OK
+	line 1211: OK
+	line 1212: OK
+	line 1213: OK
+	line 1214: OK
+	line 1215: OK
+	line 1216: OK
+	line 1217: OK
+	line 1218: OK
+	line 1219: OK
+	line 1220: OK
+	line 1221: OK
+	line 1222: OK
 	line 1223: OK
 	line 1224: OK
 	line 1225: OK
@@ -8812,14 +8812,14 @@ f64.wast
 	line 1248: OK
 	line 1249: OK
 	line 1250: OK
-	line 1251: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1252: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1253: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1254: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1255: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1256: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1257: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1258: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1251: OK
+	line 1252: OK
+	line 1253: OK
+	line 1254: OK
+	line 1255: OK
+	line 1256: OK
+	line 1257: OK
+	line 1258: OK
 	line 1259: OK
 	line 1260: OK
 	line 1261: OK
@@ -8852,14 +8852,14 @@ f64.wast
 	line 1288: OK
 	line 1289: OK
 	line 1290: OK
-	line 1291: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1292: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1293: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1294: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1295: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1296: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1297: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1298: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1291: OK
+	line 1292: OK
+	line 1293: OK
+	line 1294: OK
+	line 1295: OK
+	line 1296: OK
+	line 1297: OK
+	line 1298: OK
 	line 1299: OK
 	line 1300: OK
 	line 1301: OK
@@ -8892,14 +8892,14 @@ f64.wast
 	line 1328: OK
 	line 1329: OK
 	line 1330: OK
-	line 1331: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1332: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1333: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1334: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1335: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1336: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1337: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1338: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1331: OK
+	line 1332: OK
+	line 1333: OK
+	line 1334: OK
+	line 1335: OK
+	line 1336: OK
+	line 1337: OK
+	line 1338: OK
 	line 1339: OK
 	line 1340: OK
 	line 1341: OK
@@ -8932,14 +8932,14 @@ f64.wast
 	line 1368: OK
 	line 1369: OK
 	line 1370: OK
-	line 1371: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1372: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1373: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1374: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1375: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1376: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1377: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1378: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1371: OK
+	line 1372: OK
+	line 1373: OK
+	line 1374: OK
+	line 1375: OK
+	line 1376: OK
+	line 1377: OK
+	line 1378: OK
 	line 1379: OK
 	line 1380: OK
 	line 1381: OK
@@ -8972,14 +8972,14 @@ f64.wast
 	line 1408: OK
 	line 1409: OK
 	line 1410: OK
-	line 1411: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1412: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1413: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1414: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1415: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1416: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1417: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1418: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1411: OK
+	line 1412: OK
+	line 1413: OK
+	line 1414: OK
+	line 1415: OK
+	line 1416: OK
+	line 1417: OK
+	line 1418: OK
 	line 1419: OK
 	line 1420: OK
 	line 1421: OK
@@ -9012,14 +9012,14 @@ f64.wast
 	line 1448: OK
 	line 1449: OK
 	line 1450: OK
-	line 1451: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1452: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1453: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1454: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1455: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1456: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1457: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1458: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1451: OK
+	line 1452: OK
+	line 1453: OK
+	line 1454: OK
+	line 1455: OK
+	line 1456: OK
+	line 1457: OK
+	line 1458: OK
 	line 1459: OK
 	line 1460: OK
 	line 1461: OK
@@ -9052,14 +9052,14 @@ f64.wast
 	line 1488: OK
 	line 1489: OK
 	line 1490: OK
-	line 1491: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1492: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1493: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1494: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1495: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1496: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1497: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1498: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1491: OK
+	line 1492: OK
+	line 1493: OK
+	line 1494: OK
+	line 1495: OK
+	line 1496: OK
+	line 1497: OK
+	line 1498: OK
 	line 1499: OK
 	line 1500: OK
 	line 1501: OK
@@ -9088,98 +9088,98 @@ f64.wast
 	line 1524: OK
 	line 1525: OK
 	line 1526: OK
-	line 1527: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1528: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1529: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1530: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1531: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1532: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1533: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1534: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1535: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1536: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1537: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1538: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1539: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1540: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1541: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1542: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1543: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1544: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1545: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1546: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1547: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1548: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1549: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1550: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1551: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1552: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1553: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1554: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1555: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1556: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1557: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1558: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1559: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1560: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1561: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1562: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1563: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1564: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1565: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1566: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1567: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1568: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1569: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1570: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1571: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1572: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1573: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1574: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1575: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1576: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1577: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1578: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1579: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1580: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1581: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1582: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1583: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1584: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1585: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1586: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1587: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1588: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1589: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1590: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1591: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1592: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1593: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1594: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1595: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1596: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1597: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1598: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1599: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1600: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1601: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1602: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1603: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1604: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1605: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1606: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1607: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1608: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1609: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1610: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1611: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1612: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1613: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1614: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1615: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1616: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1617: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1618: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1527: OK
+	line 1528: OK
+	line 1529: OK
+	line 1530: OK
+	line 1531: OK
+	line 1532: OK
+	line 1533: OK
+	line 1534: OK
+	line 1535: OK
+	line 1536: OK
+	line 1537: OK
+	line 1538: OK
+	line 1539: OK
+	line 1540: OK
+	line 1541: OK
+	line 1542: OK
+	line 1543: OK
+	line 1544: OK
+	line 1545: OK
+	line 1546: OK
+	line 1547: OK
+	line 1548: OK
+	line 1549: OK
+	line 1550: OK
+	line 1551: OK
+	line 1552: OK
+	line 1553: OK
+	line 1554: OK
+	line 1555: OK
+	line 1556: OK
+	line 1557: OK
+	line 1558: OK
+	line 1559: OK
+	line 1560: OK
+	line 1561: OK
+	line 1562: OK
+	line 1563: OK
+	line 1564: OK
+	line 1565: OK
+	line 1566: OK
+	line 1567: OK
+	line 1568: OK
+	line 1569: OK
+	line 1570: OK
+	line 1571: OK
+	line 1572: OK
+	line 1573: OK
+	line 1574: OK
+	line 1575: OK
+	line 1576: OK
+	line 1577: OK
+	line 1578: OK
+	line 1579: OK
+	line 1580: OK
+	line 1581: OK
+	line 1582: OK
+	line 1583: OK
+	line 1584: OK
+	line 1585: OK
+	line 1586: OK
+	line 1587: OK
+	line 1588: OK
+	line 1589: OK
+	line 1590: OK
+	line 1591: OK
+	line 1592: OK
+	line 1593: OK
+	line 1594: OK
+	line 1595: OK
+	line 1596: OK
+	line 1597: OK
+	line 1598: OK
+	line 1599: OK
+	line 1600: OK
+	line 1601: OK
+	line 1602: OK
+	line 1603: OK
+	line 1604: OK
+	line 1605: OK
+	line 1606: OK
+	line 1607: OK
+	line 1608: OK
+	line 1609: OK
+	line 1610: OK
+	line 1611: OK
+	line 1612: OK
+	line 1613: OK
+	line 1614: OK
+	line 1615: OK
+	line 1616: OK
+	line 1617: OK
+	line 1618: OK
 	line 1619: OK
 	line 1620: OK
 	line 1621: OK
@@ -9564,22 +9564,22 @@ f64.wast
 	line 2000: expected != found. Expected: [F64(NaN)], Found: [F64(-inf)]
 	line 2001: expected != found. Expected: [F64(NaN)], Found: [F64(inf)]
 	line 2002: expected != found. Expected: [F64(NaN)], Found: [F64(inf)]
-	line 2003: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2004: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2005: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2006: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2007: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2008: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2009: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2010: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2011: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2012: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2013: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2014: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2015: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2016: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2017: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2018: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2003: OK
+	line 2004: OK
+	line 2005: OK
+	line 2006: OK
+	line 2007: OK
+	line 2008: OK
+	line 2009: OK
+	line 2010: OK
+	line 2011: OK
+	line 2012: OK
+	line 2013: OK
+	line 2014: OK
+	line 2015: OK
+	line 2016: OK
+	line 2017: OK
+	line 2018: OK
 	line 2019: OK
 	line 2020: OK
 	line 2021: OK
@@ -9964,42 +9964,42 @@ f64.wast
 	line 2400: expected != found. Expected: [F64(NaN)], Found: [F64(-inf)]
 	line 2401: expected != found. Expected: [F64(NaN)], Found: [F64(inf)]
 	line 2402: expected != found. Expected: [F64(NaN)], Found: [F64(inf)]
-	line 2403: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2404: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2405: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2406: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2407: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2408: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2409: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2410: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2411: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2412: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2413: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2414: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2415: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2416: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2417: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2418: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2403: OK
+	line 2404: OK
+	line 2405: OK
+	line 2406: OK
+	line 2407: OK
+	line 2408: OK
+	line 2409: OK
+	line 2410: OK
+	line 2411: OK
+	line 2412: OK
+	line 2413: OK
+	line 2414: OK
+	line 2415: OK
+	line 2416: OK
+	line 2417: OK
+	line 2418: OK
 	line 2419: OK
 	line 2420: OK
-	line 2421: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2421: OK
 	line 2422: OK
-	line 2423: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2423: OK
 	line 2424: OK
-	line 2425: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2425: OK
 	line 2426: OK
-	line 2427: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2427: OK
 	line 2428: OK
-	line 2429: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2429: OK
 	line 2430: OK
-	line 2431: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2431: OK
 	line 2432: OK
-	line 2433: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2433: OK
 	line 2434: OK
-	line 2435: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2436: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2437: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2438: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2435: OK
+	line 2436: OK
+	line 2437: OK
+	line 2438: OK
 	line 2439: OK
 	line 2440: OK
 	line 2441: OK
@@ -10016,10 +10016,10 @@ f64.wast
 	line 2452: OK
 	line 2453: OK
 	line 2454: OK
-	line 2455: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2456: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2457: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2458: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2455: OK
+	line 2456: OK
+	line 2457: OK
+	line 2458: OK
 	line 2459: OK
 	line 2460: OK
 	line 2461: OK
@@ -10036,10 +10036,10 @@ f64.wast
 	line 2472: OK
 	line 2473: OK
 	line 2474: OK
-	line 2475: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2476: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2477: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2478: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2475: OK
+	line 2476: OK
+	line 2477: OK
+	line 2478: OK
 	line 2479: OK
 	line 2480: OK
 	line 2481: OK
@@ -10056,10 +10056,10 @@ f64.wast
 	line 2492: OK
 	line 2493: OK
 	line 2494: OK
-	line 2495: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2496: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2497: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2498: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2495: OK
+	line 2496: OK
+	line 2497: OK
+	line 2498: OK
 	line 2499: OK
 	line 2500: OK
 	line 2501: OK
@@ -10076,10 +10076,10 @@ f64.wast
 	line 2512: OK
 	line 2513: OK
 	line 2514: OK
-	line 2515: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2516: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2517: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 2518: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 2515: OK
+	line 2516: OK
+	line 2517: OK
+	line 2518: OK
 f64_bitwise.wast
 	line 4: OK
 	line 10: OK
@@ -10370,42 +10370,42 @@ f64_bitwise.wast
 	line 295: OK
 	line 296: OK
 	line 297: OK
-	line 298: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 299: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 300: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 301: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 302: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 303: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 304: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 305: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 306: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 307: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 308: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 309: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 310: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 311: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 312: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 313: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 314: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 315: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 316: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 317: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 318: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 319: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 320: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 321: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 322: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 323: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 324: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 325: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 326: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 327: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 328: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 329: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 330: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 331: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 332: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 333: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 298: OK
+	line 299: OK
+	line 300: OK
+	line 301: OK
+	line 302: OK
+	line 303: OK
+	line 304: OK
+	line 305: OK
+	line 306: OK
+	line 307: OK
+	line 308: OK
+	line 309: OK
+	line 310: OK
+	line 311: OK
+	line 312: OK
+	line 313: OK
+	line 314: OK
+	line 315: OK
+	line 316: OK
+	line 317: OK
+	line 318: OK
+	line 319: OK
+	line 320: OK
+	line 321: OK
+	line 322: OK
+	line 323: OK
+	line 324: OK
+	line 325: OK
+	line 326: OK
+	line 327: OK
+	line 328: OK
+	line 329: OK
+	line 330: OK
+	line 331: OK
+	line 332: OK
+	line 333: OK
 	line 334: OK
 	line 335: OK
 	line 336: OK
@@ -10422,8 +10422,8 @@ f64_bitwise.wast
 	line 347: OK
 	line 348: OK
 	line 349: OK
-	line 350: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 351: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 350: OK
+	line 351: OK
 	line 352: OK
 	line 353: OK
 	line 354: OK
@@ -10440,8 +10440,8 @@ f64_bitwise.wast
 	line 365: OK
 	line 366: OK
 	line 367: OK
-	line 368: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 369: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 368: OK
+	line 369: OK
 f64_cmp.wast
 	line 4: OK
 	line 13: OK
@@ -12873,49 +12873,49 @@ float_exprs.wast
 	line 40: OK
 	line 47: OK
 	line 48: OK
-	line 49: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 50: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 49: OK
+	line 50: OK
 	line 54: OK
 	line 61: OK
 	line 62: OK
-	line 63: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 64: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 63: OK
+	line 64: OK
 	line 68: OK
-	line 75: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 76: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 75: OK
+	line 76: OK
 	line 80: OK
 	line 87: OK
 	line 88: OK
 	line 89: OK
-	line 90: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 90: OK
 	line 91: OK
 	line 92: OK
 	line 93: OK
-	line 94: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 94: OK
 	line 99: OK
-	line 106: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 107: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 106: OK
+	line 107: OK
 	line 111: OK
-	line 118: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 119: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 120: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 121: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 122: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 123: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 124: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 125: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 118: OK
+	line 119: OK
+	line 120: OK
+	line 121: OK
+	line 122: OK
+	line 123: OK
+	line 124: OK
+	line 125: OK
 	line 129: OK
-	line 136: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 137: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 136: OK
+	line 137: OK
 	line 141: OK
-	line 148: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 149: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 148: OK
+	line 149: OK
 	line 153: OK
-	line 160: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 161: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 160: OK
+	line 161: OK
 	line 165: OK
-	line 172: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 173: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 172: OK
+	line 173: OK
 	line 177: OK
 	line 184: OK
 	line 185: OK
@@ -12923,19 +12923,19 @@ float_exprs.wast
 	line 196: OK
 	line 197: OK
 	line 201: OK
-	line 208: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 209: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 210: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 211: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 208: OK
+	line 209: OK
+	line 210: OK
+	line 211: OK
 	line 215: OK
-	line 222: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 223: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 224: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 225: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 226: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 227: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 228: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 229: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 222: OK
+	line 223: OK
+	line 224: OK
+	line 225: OK
+	line 226: OK
+	line 227: OK
+	line 228: OK
+	line 229: OK
 	line 233: OK
 	line 240: OK
 	line 241: OK
@@ -13018,35 +13018,35 @@ float_exprs.wast
 	line 381: OK
 	line 382: OK
 	line 383: OK
-	line 384: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 385: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 386: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 387: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 384: OK
+	line 385: OK
+	line 386: OK
+	line 387: OK
 	line 388: OK
 	line 389: OK
 	line 390: OK
 	line 391: OK
-	line 392: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 393: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 394: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 395: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 392: OK
+	line 393: OK
+	line 394: OK
+	line 395: OK
 	line 399: OK
 	line 406: OK
 	line 407: OK
 	line 408: OK
 	line 409: OK
-	line 410: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 411: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 412: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 413: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 410: OK
+	line 411: OK
+	line 412: OK
+	line 413: OK
 	line 414: OK
 	line 415: OK
 	line 416: OK
 	line 417: OK
-	line 418: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 419: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 420: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 421: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 418: OK
+	line 419: OK
+	line 420: OK
+	line 421: OK
 	line 425: OK
 	line 434: OK
 	line 435: OK
@@ -13148,7 +13148,7 @@ float_exprs.wast
 	line 627: expected != found. Expected: [F64(-0.0000000000000000000000000047074161331556024)], Found: [F64(NaN)]
 	line 628: expected != found. Expected: [F64(23359452224542198000000000000000.0)], Found: [F64(NaN)]
 	line 633: OK
-	line 638: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 638: OK
 	line 639: expected != found. Expected: [F32(0.0)], Found: [F32(NaN)]
 	line 640: expected != found. Expected: [F32(-0.0)], Found: [F32(NaN)]
 	line 641: expected != found. Expected: [F32(0.000000000000000000000000000000000000000000001)], Found: [F32(NaN)]
@@ -13273,135 +13273,135 @@ float_exprs.wast
 	line 877: OK
 	line 878: OK
 	line 882: OK
-	line 894: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 894: OK
 	line 895: OK
 	line 896: OK
 	line 897: OK
-	line 898: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 898: OK
 	line 899: OK
 	line 900: OK
 	line 901: OK
-	line 902: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 902: OK
 	line 903: OK
 	line 904: OK
 	line 905: OK
-	line 906: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 906: OK
 	line 907: OK
 	line 908: OK
 	line 909: OK
-	line 910: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 910: OK
 	line 911: OK
 	line 912: OK
 	line 913: OK
-	line 914: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 914: OK
 	line 915: OK
 	line 916: OK
 	line 917: OK
-	line 918: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 918: OK
 	line 919: OK
 	line 920: OK
 	line 921: OK
-	line 922: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 922: OK
 	line 923: OK
 	line 924: OK
 	line 925: OK
 	line 929: OK
-	line 973: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 973: OK
 	line 974: OK
 	line 975: OK
 	line 976: OK
-	line 977: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 977: OK
 	line 978: OK
 	line 979: OK
 	line 980: OK
-	line 981: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 981: OK
 	line 982: OK
 	line 983: OK
 	line 984: OK
-	line 985: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 985: OK
 	line 986: OK
 	line 987: OK
 	line 988: OK
-	line 989: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 989: OK
 	line 990: OK
 	line 991: OK
 	line 992: OK
-	line 993: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 993: OK
 	line 994: OK
 	line 995: OK
 	line 996: OK
-	line 997: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 997: OK
 	line 998: OK
 	line 999: OK
 	line 1000: OK
-	line 1001: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1001: OK
 	line 1002: OK
 	line 1003: OK
 	line 1004: OK
 	line 1008: OK
-	line 1020: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1021: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1020: OK
+	line 1021: OK
 	line 1022: OK
 	line 1023: OK
-	line 1024: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1025: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1024: OK
+	line 1025: OK
 	line 1026: OK
 	line 1027: OK
-	line 1028: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1029: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1028: OK
+	line 1029: OK
 	line 1030: OK
 	line 1031: OK
-	line 1032: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1033: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1032: OK
+	line 1033: OK
 	line 1034: OK
 	line 1035: OK
-	line 1036: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1037: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1036: OK
+	line 1037: OK
 	line 1038: OK
 	line 1039: OK
-	line 1040: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1041: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1040: OK
+	line 1041: OK
 	line 1042: OK
 	line 1043: OK
-	line 1044: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1045: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1044: OK
+	line 1045: OK
 	line 1046: OK
 	line 1047: OK
-	line 1048: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1049: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1048: OK
+	line 1049: OK
 	line 1050: OK
 	line 1051: OK
 	line 1055: OK
-	line 1099: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1100: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1099: OK
+	line 1100: OK
 	line 1101: OK
 	line 1102: OK
-	line 1103: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1104: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1103: OK
+	line 1104: OK
 	line 1105: OK
 	line 1106: OK
-	line 1107: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1108: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1107: OK
+	line 1108: OK
 	line 1109: OK
 	line 1110: OK
-	line 1111: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1112: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1111: OK
+	line 1112: OK
 	line 1113: OK
 	line 1114: OK
-	line 1115: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1116: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1115: OK
+	line 1116: OK
 	line 1117: OK
 	line 1118: OK
-	line 1119: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1120: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1119: OK
+	line 1120: OK
 	line 1121: OK
 	line 1122: OK
-	line 1123: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1124: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1123: OK
+	line 1124: OK
 	line 1125: OK
 	line 1126: OK
-	line 1127: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1128: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1127: OK
+	line 1128: OK
 	line 1129: OK
 	line 1130: OK
 	line 1135: OK
@@ -13521,12 +13521,12 @@ OK
 	line 1646: OK
 	line 1654: OK
 	line 1655: OK
-	line 1656: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 1657: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1656: OK
+	line 1657: OK
 	line 1659: OK
 	line 1660: OK
-	line 1661: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 1662: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1661: OK
+	line 1662: OK
 	line 1666: OK
 	line 1680: OK
 	line 1681: OK
@@ -13583,23 +13583,23 @@ OK
 	line 1780: OK
 	line 1781: OK
 	line 1785: OK
-	line 1793: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1793: OK
 	line 1794: OK
 	line 1795: OK
 	line 1796: OK
 	line 1797: OK
-	line 1799: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1799: OK
 	line 1800: OK
 	line 1801: OK
 	line 1802: OK
 	line 1803: OK
 	line 1807: OK
-	line 1815: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 1815: OK
 	line 1816: OK
 	line 1817: OK
 	line 1818: OK
 	line 1819: OK
-	line 1821: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 1821: OK
 	line 1822: OK
 	line 1823: OK
 	line 1824: OK
@@ -13850,94 +13850,94 @@ float_literals.wast
 float_memory.wast
 	line 5: OK
 	line 15: OK
-	line 16: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 16: OK
 	line 17: OK
 	line 18: OK
 	line 19: OK
 	line 20: OK
 	line 21: OK
-	line 22: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 22: OK
 	line 23: OK
 	line 24: OK
 	line 25: OK
 	line 26: OK
 	line 27: OK
-	line 28: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 28: OK
 	line 30: OK
 	line 40: OK
-	line 41: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 41: OK
 	line 42: OK
 	line 43: OK
 	line 44: OK
 	line 45: OK
 	line 46: OK
-	line 47: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 47: OK
 	line 48: OK
 	line 49: OK
 	line 50: OK
 	line 51: OK
 	line 52: OK
-	line 53: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 53: OK
 	line 57: OK
 	line 67: OK
-	line 68: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 68: OK
 	line 69: OK
 	line 70: OK
 	line 71: OK
 	line 72: OK
 	line 73: OK
-	line 74: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 74: OK
 	line 75: OK
 	line 76: OK
 	line 77: OK
 	line 78: OK
 	line 79: OK
-	line 80: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 80: OK
 	line 82: OK
 	line 92: OK
-	line 93: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 93: OK
 	line 94: OK
 	line 95: OK
 	line 96: OK
 	line 97: OK
 	line 98: OK
-	line 99: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 99: OK
 	line 100: OK
 	line 101: OK
 	line 102: OK
 	line 103: OK
 	line 104: OK
-	line 105: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 105: OK
 	line 109: OK
 	line 119: OK
-	line 120: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 120: OK
 	line 121: OK
 	line 122: OK
 	line 123: OK
 	line 124: OK
 	line 125: OK
-	line 126: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 126: OK
 	line 127: OK
 	line 128: OK
 	line 129: OK
 	line 130: OK
 	line 131: OK
-	line 132: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 132: OK
 	line 134: OK
 	line 144: OK
-	line 145: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 145: OK
 	line 146: OK
 	line 147: OK
 	line 148: OK
 	line 149: OK
 	line 150: OK
-	line 151: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 151: OK
 	line 152: OK
 	line 153: OK
 	line 154: OK
 	line 155: OK
 	line 156: OK
-	line 157: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 157: OK
 float_misc.wast
 	line 17: OK
 	line 50: OK
@@ -14307,7 +14307,7 @@ float_misc.wast
 	line 567: OK
 	line 568: OK
 	line 569: OK
-	line 572: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 572: OK
 	line 573: OK
 	line 574: OK
 	line 575: OK
@@ -14320,22 +14320,22 @@ float_misc.wast
 	line 586: OK
 	line 587: OK
 	line 588: OK
-	line 592: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 593: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 594: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 595: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 597: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 598: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 599: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 600: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 602: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 603: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 604: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 605: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 606: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 607: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 608: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 609: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 592: OK
+	line 593: OK
+	line 594: OK
+	line 595: OK
+	line 597: OK
+	line 598: OK
+	line 599: OK
+	line 600: OK
+	line 602: OK
+	line 603: OK
+	line 604: OK
+	line 605: OK
+	line 606: OK
+	line 607: OK
+	line 608: OK
+	line 609: OK
 	line 612: OK
 	line 613: OK
 	line 614: OK
@@ -15956,7 +15956,7 @@ OK
 	line 334: OK
 	line 335: OK
 	line 336: OK
-	line 338: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 338: OK
 	line 339: OK
 	line 340: OK
 	line 341: OK
@@ -16890,22 +16890,22 @@ select.wast
 	line 186: OK
 	line 187: OK
 	line 188: OK
-	line 190: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 191: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
+	line 190: OK
+	line 191: OK
 	line 192: OK
 	line 193: OK
 	line 194: OK
 	line 195: OK
-	line 196: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 197: expected != found. Expected: [F32(NaN)], Found: [F32(NaN)]
-	line 199: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 200: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 196: OK
+	line 197: OK
+	line 199: OK
+	line 200: OK
 	line 201: OK
 	line 202: OK
 	line 203: OK
 	line 204: OK
-	line 205: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
-	line 206: expected != found. Expected: [F64(NaN)], Found: [F64(NaN)]
+	line 205: OK
+	line 206: OK
 	line 213: OK
 	line 214: OK
 	line 215: OK
@@ -17108,20 +17108,14 @@ utf8-custom-section-id.wast
 utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
-testsuite/address.wast: [542, 592]
 testsuite/conversions.wast: [1]
-testsuite/f32.wast: [51, 52, 53, 54, 55, 56, 57, 58, 91, 92, 93, 94, 95, 96, 97, 98, 131, 132, 133, 134, 135, 136, 137, 138, 171, 172, 173, 174, 175, 176, 177, 178, 211, 212, 213, 214, 215, 216, 217, 218, 251, 252, 253, 254, 255, 256, 257, 258, 291, 292, 293, 294, 295, 296, 297, 298, 328, 329, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 451, 452, 453, 454, 455, 456, 457, 458, 491, 492, 493, 494, 495, 496, 497, 498, 531, 532, 533, 534, 535, 536, 537, 538, 571, 572, 573, 574, 575, 576, 577, 578, 611, 612, 613, 614, 615, 616, 617, 618, 651, 652, 653, 654, 655, 656, 657, 658, 691, 692, 693, 694, 695, 696, 697, 698, 727, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 891, 892, 893, 894, 895, 896, 897, 898, 931, 932, 933, 934, 935, 936, 937, 938, 971, 972, 973, 974, 975, 976, 977, 978, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1141, 1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1170, 1171, 1172, 1173, 1174, 1175, 1176, 1177, 1178, 1179, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 1188, 1189, 1190, 1191, 1192, 1193, 1194, 1195, 1196, 1197, 1198, 1199, 1200, 1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1298, 1331, 1332, 1333, 1334, 1335, 1336, 1337, 1338, 1371, 1372, 1373, 1374, 1375, 1376, 1377, 1378, 1411, 1412, 1413, 1414, 1415, 1416, 1417, 1418, 1451, 1452, 1453, 1454, 1455, 1456, 1457, 1458, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498, 1527, 1528, 1529, 1530, 1531, 1532, 1533, 1534, 1535, 1536, 1537, 1538, 1539, 1540, 1541, 1542, 1543, 1544, 1545, 1546, 1547, 1548, 1549, 1550, 1551, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1562, 1563, 1564, 1565, 1566, 1567, 1568, 1569, 1570, 1571, 1572, 1573, 1574, 1575, 1576, 1577, 1578, 1579, 1580, 1581, 1582, 1583, 1584, 1585, 1586, 1587, 1588, 1589, 1590, 1591, 1592, 1593, 1594, 1595, 1596, 1597, 1598, 1599, 1600, 1601, 1602, 1603, 1604, 1605, 1606, 1607, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1616, 1617, 1618, 1651, 1652, 1653, 1654, 1655, 1656, 1657, 1658, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1891, 1892, 1893, 1894, 1895, 1896, 1897, 1898, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2421, 2423, 2425, 2427, 2429, 2431, 2433, 2435, 2436, 2437, 2438, 2455, 2456, 2457, 2458, 2475, 2476, 2477, 2478, 2495, 2496, 2497, 2498, 2515, 2516, 2517, 2518]
-testsuite/f32_bitwise.wast: [298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 350, 351, 368, 369]
-testsuite/f64.wast: [51, 52, 53, 54, 55, 56, 57, 58, 91, 92, 93, 94, 95, 96, 97, 98, 131, 132, 133, 134, 135, 136, 137, 138, 171, 172, 173, 174, 175, 176, 177, 178, 211, 212, 213, 214, 215, 216, 217, 218, 251, 252, 253, 254, 255, 256, 257, 258, 291, 292, 293, 294, 295, 296, 297, 298, 328, 329, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 451, 452, 453, 454, 455, 456, 457, 458, 491, 492, 493, 494, 495, 496, 497, 498, 531, 532, 533, 534, 535, 536, 537, 538, 571, 572, 573, 574, 575, 576, 577, 578, 611, 612, 613, 614, 615, 616, 617, 618, 651, 652, 653, 654, 655, 656, 657, 658, 691, 692, 693, 694, 695, 696, 697, 698, 727, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 891, 892, 893, 894, 895, 896, 897, 898, 931, 932, 933, 934, 935, 936, 937, 938, 971, 972, 973, 974, 975, 976, 977, 978, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1141, 1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1170, 1171, 1172, 1173, 1174, 1175, 1176, 1177, 1178, 1179, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 1188, 1189, 1190, 1191, 1192, 1193, 1194, 1195, 1196, 1197, 1198, 1199, 1200, 1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1298, 1331, 1332, 1333, 1334, 1335, 1336, 1337, 1338, 1371, 1372, 1373, 1374, 1375, 1376, 1377, 1378, 1411, 1412, 1413, 1414, 1415, 1416, 1417, 1418, 1451, 1452, 1453, 1454, 1455, 1456, 1457, 1458, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498, 1527, 1528, 1529, 1530, 1531, 1532, 1533, 1534, 1535, 1536, 1537, 1538, 1539, 1540, 1541, 1542, 1543, 1544, 1545, 1546, 1547, 1548, 1549, 1550, 1551, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1562, 1563, 1564, 1565, 1566, 1567, 1568, 1569, 1570, 1571, 1572, 1573, 1574, 1575, 1576, 1577, 1578, 1579, 1580, 1581, 1582, 1583, 1584, 1585, 1586, 1587, 1588, 1589, 1590, 1591, 1592, 1593, 1594, 1595, 1596, 1597, 1598, 1599, 1600, 1601, 1602, 1603, 1604, 1605, 1606, 1607, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1616, 1617, 1618, 1651, 1652, 1653, 1654, 1655, 1656, 1657, 1658, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1891, 1892, 1893, 1894, 1895, 1896, 1897, 1898, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2421, 2423, 2425, 2427, 2429, 2431, 2433, 2435, 2436, 2437, 2438, 2455, 2456, 2457, 2458, 2475, 2476, 2477, 2478, 2495, 2496, 2497, 2498, 2515, 2516, 2517, 2518]
-testsuite/f64_bitwise.wast: [298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 350, 351, 368, 369]
-testsuite/float_exprs.wast: [49, 50, 63, 64, 75, 76, 90, 94, 106, 107, 118, 119, 120, 121, 122, 123, 124, 125, 136, 137, 148, 149, 160, 161, 172, 173, 208, 209, 210, 211, 222, 223, 224, 225, 226, 227, 228, 229, 384, 385, 386, 387, 392, 393, 394, 395, 410, 411, 412, 413, 418, 419, 420, 421, 511, 519, 624, 625, 626, 627, 628, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 661, 662, 663, 664, 665, 667, 668, 669, 670, 671, 680, 681, 682, 683, 684, 728, 746, 755, 894, 898, 902, 906, 910, 914, 918, 922, 973, 977, 981, 985, 989, 993, 997, 1001, 1020, 1021, 1024, 1025, 1028, 1029, 1032, 1033, 1036, 1037, 1040, 1041, 1044, 1045, 1048, 1049, 1099, 1100, 1103, 1104, 1107, 1108, 1111, 1112, 1115, 1116, 1119, 1120, 1123, 1124, 1127, 1128, 1656, 1657, 1661, 1662, 1793, 1799, 1815, 1821, 1905]
-testsuite/float_memory.wast: [16, 22, 28, 41, 47, 53, 68, 74, 80, 93, 99, 105, 120, 126, 132, 145, 151, 157]
-testsuite/float_misc.wast: [572, 592, 593, 594, 595, 597, 598, 599, 600, 602, 603, 604, 605, 606, 607, 608, 609]
+testsuite/f32.wast: [1651, 1652, 1653, 1654, 1655, 1656, 1657, 1658, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1891, 1892, 1893, 1894, 1895, 1896, 1897, 1898, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402]
+testsuite/f64.wast: [1651, 1652, 1653, 1654, 1655, 1656, 1657, 1658, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1891, 1892, 1893, 1894, 1895, 1896, 1897, 1898, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402]
+testsuite/float_exprs.wast: [511, 519, 624, 625, 626, 627, 628, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 661, 662, 663, 664, 665, 667, 668, 669, 670, 671, 680, 681, 682, 683, 684, 728, 746, 755, 1905]
 testsuite/i32.wast: [270, 271, 272, 273, 274, 275, 276, 278, 279, 280, 281, 282, 283, 284]
 testsuite/i64.wast: [271, 272, 273, 274, 275, 276, 277, 279, 280, 281, 282, 283, 284, 285, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296]
 testsuite/linking.wast: [387, 388]
 testsuite/local_get.wast: [139]
 testsuite/local_set.wast: [137]
-testsuite/local_tee.wast: [338, 354, 361]
+testsuite/local_tee.wast: [354, 361]
 testsuite/memory.wast: [202, 217]
-testsuite/select.wast: [190, 191, 196, 197, 199, 200, 205, 206]

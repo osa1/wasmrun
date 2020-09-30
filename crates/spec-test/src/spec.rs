@@ -51,6 +51,18 @@ pub enum Value {
     F64(f64),
 }
 
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::I32(i1), Value::I32(i2)) => i1 == i2,
+            (Value::I64(i1), Value::I64(i2)) => i1 == i2,
+            (Value::F32(f1), Value::F32(f2)) => (f1.is_nan() && f2.is_nan()) || f1 == f2,
+            (Value::F64(f1), Value::F64(f2)) => (f1.is_nan() && f2.is_nan()) || f1 == f2,
+            _ => false,
+        }
+    }
+}
+
 pub fn parse_test_spec(file: &str) -> TestSpec {
     let file_contents = read_to_string(file).unwrap();
     let TestSpecDe {

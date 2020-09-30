@@ -324,34 +324,18 @@ fn run_spec_cmd(
                 return;
             }
 
-            // println!("rt after execution:");
-            // println!("stack={:?}, frames={:?}", rt.stack, rt.frames);
-
-            let mut expected_ = Vec::with_capacity(expected.len());
-            for val in expected.into_iter() {
-                match val {
-                    spec::Value::I32(i) => {
-                        expected_.push(Value::I32(i));
-                    }
-                    spec::Value::I64(i) => {
-                        expected_.push(Value::I64(i));
-                    }
-                    spec::Value::F32(f) => {
-                        expected_.push(Value::F32(f));
-                    }
-                    spec::Value::F64(f) => {
-                        expected_.push(Value::F64(f));
-                    }
-                }
-            }
-
-            let n_expected = expected_.len();
+            let n_expected = expected.len();
             let mut found = Vec::with_capacity(n_expected);
 
             for i in 0..n_expected {
                 match rt.pop_value() {
                     Some(val) => {
-                        found.push(val);
+                        found.push(match val {
+                            Value::I32(i) => spec::Value::I32(i),
+                            Value::I64(i) => spec::Value::I64(i),
+                            Value::F32(f) => spec::Value::F32(f),
+                            Value::F64(f) => spec::Value::F64(f),
+                        });
                     }
                     None => {
                         writeln!(out, "Can't pop return value {}", i + 1).unwrap();
@@ -363,13 +347,13 @@ fn run_spec_cmd(
 
             found.reverse();
 
-            if expected_ == found {
+            if expected == found {
                 writeln!(out, "OK").unwrap();
             } else {
                 writeln!(
                     out,
                     "expected != found. Expected: {:?}, Found: {:?}",
-                    expected_, found
+                    expected, found
                 )
                 .unwrap();
                 failing_lines.push(line);
