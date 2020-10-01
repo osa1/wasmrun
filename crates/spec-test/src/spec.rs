@@ -82,7 +82,7 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                 name: command_de.name,
                 filename: command_de.filename.unwrap(),
             }),
-            "assert_return" | "assert_trap" => {
+            "assert_return" /* | "assert_trap" */ => {
                 let action = command_de.action.unwrap();
                 let action_kind = match action.typ.as_str() {
                     "invoke" => {
@@ -138,7 +138,7 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     register_as: command_de.as_.unwrap(),
                 });
             }
-            "assert_exhaustion" => {
+            "assert_exhaustion" | "assert_trap" => {
                 // TODO We probably want to test this
             }
             "assert_invalid"

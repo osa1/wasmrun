@@ -37,7 +37,7 @@ impl Mem {
         if value.len() == 0 {
             return Ok(());
         }
-        self.check_range((offset + (value.len() as u32)) - 1)?;
+        self.check_range(offset, value.len() as u32)?;
         let offset = offset as usize;
         (&mut self.mem[offset..offset + value.len()]).copy_from_slice(value);
         Ok(())
@@ -57,8 +57,8 @@ impl Mem {
             .resize((self.size_pages() + n) as usize * PAGE_SIZE, 0);
     }
 
-    pub fn check_range(&self, idx: u32) -> Result<()> {
-        if idx as usize >= self.mem.len() {
+    pub fn check_range(&self, addr: u32, len: u32) -> Result<()> {
+        if addr.checked_add(len).ok_or(ExecError::Trap)? as usize > self.mem.len() {
             Err(ExecError::Trap)
         } else {
             Ok(())

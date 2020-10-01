@@ -17,7 +17,7 @@ impl FrameStack {
 
 #[derive(Debug)]
 pub struct Frame {
-    pub fun_idx: u32,
+    pub fun_addr: u32,
     pub locals: Vec<Value>, // includes args
 }
 
@@ -46,7 +46,7 @@ impl FrameStack {
 
     pub(super) fn push(&mut self, fun: &WasmFunc, arg_tys: &[wasm::ValueType]) {
         self.0.push(Frame {
-            fun_idx: fun.fun_idx as u32,
+            fun_addr: fun.fun_addr,
             locals: arg_tys
                 .iter()
                 .map(|ty| Value::default(*ty))

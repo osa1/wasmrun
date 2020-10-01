@@ -21,15 +21,31 @@ pub struct Store {
 }
 
 impl Store {
-    pub fn allocate_fun(&mut self, fun: WasmFunc) -> u32 {
+    pub fn allocate_fun(
+        &mut self,
+        module_idx: ModuleIdx,
+        ty_idx: u32,
+        fun_addr: u32,
+        fun: wasm::FuncBody,
+    ) -> Result<u32> {
         let ret = self.funcs.len() as u32;
-        self.funcs.push(Func::Wasm(fun));
-        ret
+        self.funcs
+            .push(Func::new(module_idx, ty_idx, fun_addr, fun)?);
+        Ok(ret)
     }
 
-    pub fn allocate_host_fun(&mut self, fun: Rc<dyn Fn(&mut Runtime)>) -> u32 {
+    pub fn allocate_host_fun(
+        &mut self,
+        module_idx: ModuleIdx,
+        ty_idx: u32,
+        fun: Rc<dyn Fn(&mut Runtime)>,
+    ) -> u32 {
         let ret = self.funcs.len() as u32;
-        self.funcs.push(Func::Host(fun));
+        self.funcs.push(Func::Host(HostFunc {
+            module_idx,
+            ty_idx,
+            fun,
+        }));
         ret
     }
 
@@ -60,7 +76,7 @@ pub struct Global {
 
 pub enum Func {
     Wasm(WasmFunc),
-    Host(Rc<dyn Fn(&mut Runtime)>),
+    Host(HostFunc),
 }
 
 impl fmt::Debug for Func {
@@ -69,16 +85,27 @@ impl fmt::Debug for Func {
     }
 }
 
+pub struct HostFunc {
+    /// Index of the function's module
+    pub module_idx: ModuleIdx,
+    /// Index of the function's type in its module
+    pub ty_idx: u32,
+    /// Function code
+    pub fun: Rc<dyn Fn(&mut Runtime)>,
+}
+
 #[derive(Debug)]
 pub struct WasmFunc {
+    /// Index of the function's module
     pub module_idx: ModuleIdx,
-    pub fun_idx: usize,
+    /// Type index of the function in its module
+    pub ty_idx: u32,
+    /// Address of the function in the heap
+    pub fun_addr: u32,
+    /// Function code
     pub fun: wasm::FuncBody,
-    pub fun_ty_idx: u32,
-
     /// Maps `block` and `if instructions to their `end` instructions
     pub block_to_end: FxHashMap<u32, u32>,
-
     /// Maps if instructions to their else instructions
     pub if_to_else: FxHashMap<u32, u32>,
 }
@@ -86,19 +113,33 @@ pub struct WasmFunc {
 impl Func {
     pub fn new(
         module_idx: ModuleIdx,
-        fun_idx: usize,
+        ty_idx: u32,
+        fun_addr: u32,
         fun: wasm::FuncBody,
-        fun_ty_idx: u32,
     ) -> Result<Func> {
         let (block_to_end, if_to_else) = gen_block_bounds(fun.code().elements())?;
         Ok(Func::Wasm(WasmFunc {
             module_idx,
-            fun_idx,
+            ty_idx,
+            fun_addr,
             fun,
-            fun_ty_idx,
             block_to_end,
             if_to_else,
         }))
+    }
+
+    pub fn ty_idx(&self) -> u32 {
+        match self {
+            Func::Wasm(fun) => fun.ty_idx,
+            Func::Host(fun) => fun.ty_idx,
+        }
+    }
+
+    pub fn module_idx(&self) -> ModuleIdx {
+        match self {
+            Func::Wasm(fun) => fun.module_idx,
+            Func::Host(fun) => fun.module_idx,
+        }
     }
 }
 
