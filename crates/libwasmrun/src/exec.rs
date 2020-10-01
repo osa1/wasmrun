@@ -793,7 +793,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.modules[module_idx].mem_addrs[0];
             let mem = &mut rt.store.mems[mem_addr as usize];
-            mem.check_range(addr, 1)?;
+            mem.check_range(addr, 2)?;
 
             let [b1, b2] = (c as u16).to_le_bytes();
             mem[addr] = b1;
@@ -1249,7 +1249,13 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32DivS => {
-            op2::<i32, i32, _>(rt, i32::wrapping_div)?;
+            op2_trap::<i32, i32, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    i32::checked_div(a, b).ok_or(ExecError::Trap)
+                }
+            })?;
         }
 
         Instruction::F32Div => {
@@ -1257,7 +1263,13 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64DivS => {
-            op2::<i64, i64, _>(rt, i64::wrapping_div)?;
+            op2_trap::<i64, i64, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    i64::checked_div(a, b).ok_or(ExecError::Trap)
+                }
+            })?;
         }
 
         Instruction::F64Div => {
@@ -1265,11 +1277,23 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32DivU => {
-            op2::<u32, u32, _>(rt, u32::wrapping_div)?;
+            op2_trap::<u32, u32, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    Ok(u32::wrapping_div(a, b))
+                }
+            })?;
         }
 
         Instruction::I64DivU => {
-            op2::<u64, u64, _>(rt, u64::wrapping_div)?;
+            op2_trap::<u64, u64, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    Ok(u64::wrapping_div(a, b))
+                }
+            })?;
         }
 
         Instruction::I32Ctz => {
@@ -1373,19 +1397,43 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32RemS => {
-            op2::<i32, i32, _>(rt, |a, b| a.wrapping_rem(b))?;
+            op2_trap::<i32, i32, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    Ok(a.wrapping_rem(b))
+                }
+            })?;
         }
 
         Instruction::I64RemS => {
-            op2::<i64, i64, _>(rt, |a, b| a.wrapping_rem(b))?;
+            op2_trap::<i64, i64, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    Ok(a.wrapping_rem(b))
+                }
+            })?;
         }
 
         Instruction::I32RemU => {
-            op2::<u32, u32, _>(rt, |a, b| a.wrapping_rem(b))?;
+            op2_trap::<u32, u32, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    Ok(a.wrapping_rem(b))
+                }
+            })?;
         }
 
         Instruction::I64RemU => {
-            op2::<u64, u64, _>(rt, |a, b| a.wrapping_rem(b))?;
+            op2_trap::<u64, u64, _>(rt, |a, b| {
+                if b == 0 {
+                    Err(ExecError::Trap)
+                } else {
+                    Ok(a.wrapping_rem(b))
+                }
+            })?;
         }
 
         Instruction::I32ShrU => {
@@ -2035,10 +2083,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             if call_instr_ty.params() != actual_ty.params()
                 || call_instr_ty.results() != actual_ty.results()
             {
-                println!(
-                    "call instr ty={:?}, actual_ty={:?}",
-                    call_instr_ty, actual_ty
-                );
                 return Err(ExecError::Trap);
             }
 
@@ -2224,6 +2268,18 @@ fn op2<A: StackValue, B: StackValue, F: Fn(A, A) -> B>(rt: &mut Runtime, op: F) 
     let val2 = A::pop(&mut rt.stack)?;
     let val1 = A::pop(&mut rt.stack)?;
     let ret = op(val1, val2);
+    ret.push(&mut rt.stack);
+    rt.ip += 1;
+    Ok(())
+}
+
+fn op2_trap<A: StackValue, B: StackValue, F: Fn(A, A) -> Result<B>>(
+    rt: &mut Runtime,
+    op: F,
+) -> Result<()> {
+    let val2 = A::pop(&mut rt.stack)?;
+    let val1 = A::pop(&mut rt.stack)?;
+    let ret = op(val1, val2)?;
     ret.push(&mut rt.stack);
     rt.ip += 1;
     Ok(())

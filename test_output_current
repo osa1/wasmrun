@@ -74,6 +74,23 @@ address.wast
 	line 189: OK
 	line 190: OK
 	line 191: OK
+	line 192: OK
+	line 194: OK
+	line 195: OK
+	line 196: OK
+	line 197: OK
+	line 198: OK
+	line 199: OK
+	line 201: OK
+	line 202: OK
+	line 203: OK
+	line 204: OK
+	line 205: OK
+	line 207: OK
+	line 208: OK
+	line 209: OK
+	line 210: OK
+	line 211: OK
 	line 223: OK
 	line 362: OK
 	line 363: OK
@@ -179,6 +196,28 @@ address.wast
 	line 483: OK
 	line 484: OK
 	line 485: OK
+	line 486: OK
+	line 488: OK
+	line 489: OK
+	line 490: OK
+	line 491: OK
+	line 492: OK
+	line 493: OK
+	line 494: OK
+	line 496: OK
+	line 497: OK
+	line 498: OK
+	line 499: OK
+	line 500: OK
+	line 501: OK
+	line 502: OK
+	line 504: OK
+	line 505: OK
+	line 506: OK
+	line 507: OK
+	line 508: OK
+	line 509: OK
+	line 510: OK
 	line 514: OK
 	line 538: OK
 	line 539: OK
@@ -194,6 +233,11 @@ address.wast
 	line 551: OK
 	line 552: OK
 	line 553: OK
+	line 554: OK
+	line 556: OK
+	line 557: OK
+	line 559: OK
+	line 560: OK
 	line 564: OK
 	line 588: OK
 	line 589: OK
@@ -209,6 +253,11 @@ address.wast
 	line 601: OK
 	line 602: OK
 	line 603: OK
+	line 604: OK
+	line 606: OK
+	line 607: OK
+	line 609: OK
+	line 610: OK
 align.wast
 	line 3: OK
 	line 4: OK
@@ -281,6 +330,7 @@ align.wast
 	line 849: OK
 	line 850: OK
 	line 854: OK
+	line 864: OK
 	line 866: OK
 binary-leb128.wast
 	line 2: OK
@@ -749,6 +799,7 @@ call.wast
 	line 350: OK
 	line 352: OK
 	line 353: OK
+	line 354: OK
 	line 356: OK
 	line 357: OK
 	line 359: OK
@@ -791,22 +842,35 @@ call_indirect.wast
 	line 495: OK
 	line 496: OK
 	line 497: OK
+	line 498: OK
+	line 499: OK
+	line 500: OK
+	line 501: OK
+	line 502: OK
 	line 504: OK
 	line 505: OK
 	line 506: OK
 	line 507: OK
+	line 508: OK
+	line 509: OK
 	line 511: OK
 	line 512: OK
 	line 513: OK
 	line 514: OK
+	line 515: OK
+	line 516: OK
 	line 518: OK
 	line 519: OK
 	line 520: OK
 	line 521: OK
+	line 522: OK
+	line 523: OK
 	line 525: OK
 	line 526: OK
 	line 527: OK
 	line 528: OK
+	line 529: OK
+	line 530: OK
 	line 532: OK
 	line 533: OK
 	line 534: OK
@@ -1624,6 +1688,14 @@ conversions.wast
 	line 75: module not available; skipping
 	line 76: module not available; skipping
 	line 77: module not available; skipping
+	line 78: module not available; skipping
+	line 79: module not available; skipping
+	line 80: module not available; skipping
+	line 81: module not available; skipping
+	line 82: module not available; skipping
+	line 83: module not available; skipping
+	line 84: module not available; skipping
+	line 85: module not available; skipping
 	line 87: module not available; skipping
 	line 88: module not available; skipping
 	line 89: module not available; skipping
@@ -1637,6 +1709,14 @@ conversions.wast
 	line 97: module not available; skipping
 	line 98: module not available; skipping
 	line 99: module not available; skipping
+	line 100: module not available; skipping
+	line 101: module not available; skipping
+	line 102: module not available; skipping
+	line 103: module not available; skipping
+	line 104: module not available; skipping
+	line 105: module not available; skipping
+	line 106: module not available; skipping
+	line 107: module not available; skipping
 	line 109: module not available; skipping
 	line 110: module not available; skipping
 	line 111: module not available; skipping
@@ -1653,6 +1733,14 @@ conversions.wast
 	line 122: module not available; skipping
 	line 123: module not available; skipping
 	line 124: module not available; skipping
+	line 125: module not available; skipping
+	line 126: module not available; skipping
+	line 127: module not available; skipping
+	line 128: module not available; skipping
+	line 129: module not available; skipping
+	line 130: module not available; skipping
+	line 131: module not available; skipping
+	line 132: module not available; skipping
 	line 134: module not available; skipping
 	line 135: module not available; skipping
 	line 136: module not available; skipping
@@ -1669,6 +1757,17 @@ conversions.wast
 	line 147: module not available; skipping
 	line 148: module not available; skipping
 	line 149: module not available; skipping
+	line 150: module not available; skipping
+	line 151: module not available; skipping
+	line 152: module not available; skipping
+	line 153: module not available; skipping
+	line 154: module not available; skipping
+	line 155: module not available; skipping
+	line 156: module not available; skipping
+	line 157: module not available; skipping
+	line 158: module not available; skipping
+	line 159: module not available; skipping
+	line 160: module not available; skipping
 	line 162: module not available; skipping
 	line 163: module not available; skipping
 	line 164: module not available; skipping
@@ -1685,6 +1784,14 @@ conversions.wast
 	line 175: module not available; skipping
 	line 176: module not available; skipping
 	line 177: module not available; skipping
+	line 178: module not available; skipping
+	line 179: module not available; skipping
+	line 180: module not available; skipping
+	line 181: module not available; skipping
+	line 182: module not available; skipping
+	line 183: module not available; skipping
+	line 184: module not available; skipping
+	line 185: module not available; skipping
 	line 187: module not available; skipping
 	line 188: module not available; skipping
 	line 189: module not available; skipping
@@ -1696,6 +1803,14 @@ conversions.wast
 	line 195: module not available; skipping
 	line 196: module not available; skipping
 	line 197: module not available; skipping
+	line 198: module not available; skipping
+	line 199: module not available; skipping
+	line 200: module not available; skipping
+	line 201: module not available; skipping
+	line 202: module not available; skipping
+	line 203: module not available; skipping
+	line 204: module not available; skipping
+	line 205: module not available; skipping
 	line 207: module not available; skipping
 	line 208: module not available; skipping
 	line 209: module not available; skipping
@@ -1712,6 +1827,14 @@ conversions.wast
 	line 220: module not available; skipping
 	line 221: module not available; skipping
 	line 222: module not available; skipping
+	line 223: module not available; skipping
+	line 224: module not available; skipping
+	line 225: module not available; skipping
+	line 226: module not available; skipping
+	line 227: module not available; skipping
+	line 228: module not available; skipping
+	line 229: module not available; skipping
+	line 230: module not available; skipping
 	line 232: module not available; skipping
 	line 233: module not available; skipping
 	line 234: module not available; skipping
@@ -1727,6 +1850,14 @@ conversions.wast
 	line 244: module not available; skipping
 	line 245: module not available; skipping
 	line 246: module not available; skipping
+	line 247: module not available; skipping
+	line 248: module not available; skipping
+	line 249: module not available; skipping
+	line 250: module not available; skipping
+	line 251: module not available; skipping
+	line 252: module not available; skipping
+	line 253: module not available; skipping
+	line 254: module not available; skipping
 	line 256: module not available; skipping
 	line 257: module not available; skipping
 	line 258: module not available; skipping
@@ -2169,6 +2300,7 @@ elem.wast
 	line 329: OK
 	line 333: OK
 	line 351: OK
+	line 353: OK
 	line 354: OK
 	line 355: OK
 	line 357: OK
@@ -14487,6 +14619,9 @@ func_ptrs.wast
 	line 75: OK
 	line 76: OK
 	line 77: OK
+	line 78: OK
+	line 79: OK
+	line 80: OK
 	line 82: OK
 	line 83: OK
 	line 84: OK
@@ -14494,6 +14629,9 @@ func_ptrs.wast
 	line 86: OK
 	line 87: OK
 	line 88: OK
+	line 89: OK
+	line 90: OK
+	line 91: OK
 	line 93: OK
 	line 105: OK
 	line 106: OK
@@ -14530,6 +14668,7 @@ global.wast
 	line 217: OK
 	line 219: OK
 	line 220: OK
+	line 221: OK
 	line 223: OK
 	line 224: OK
 	line 225: OK
@@ -14574,6 +14713,10 @@ i32.wast
 	line 60: OK
 	line 61: OK
 	line 62: OK
+	line 64: OK
+	line 65: OK
+	line 66: OK
+	line 67: OK
 	line 68: OK
 	line 69: OK
 	line 70: OK
@@ -14590,6 +14733,8 @@ i32.wast
 	line 81: OK
 	line 82: OK
 	line 83: OK
+	line 85: OK
+	line 86: OK
 	line 87: OK
 	line 88: OK
 	line 89: OK
@@ -14604,6 +14749,8 @@ i32.wast
 	line 98: OK
 	line 99: OK
 	line 100: OK
+	line 102: OK
+	line 103: OK
 	line 104: OK
 	line 105: OK
 	line 106: OK
@@ -14622,6 +14769,8 @@ i32.wast
 	line 119: OK
 	line 120: OK
 	line 121: OK
+	line 123: OK
+	line 124: OK
 	line 125: OK
 	line 126: OK
 	line 127: OK
@@ -14940,6 +15089,10 @@ i64.wast
 	line 61: OK
 	line 62: OK
 	line 63: OK
+	line 65: OK
+	line 66: OK
+	line 67: OK
+	line 68: OK
 	line 69: OK
 	line 70: OK
 	line 71: OK
@@ -14956,6 +15109,8 @@ i64.wast
 	line 82: OK
 	line 83: OK
 	line 84: OK
+	line 86: OK
+	line 87: OK
 	line 88: OK
 	line 89: OK
 	line 90: OK
@@ -14970,6 +15125,8 @@ i64.wast
 	line 99: OK
 	line 100: OK
 	line 101: OK
+	line 103: OK
+	line 104: OK
 	line 105: OK
 	line 106: OK
 	line 107: OK
@@ -14988,6 +15145,8 @@ i64.wast
 	line 120: OK
 	line 121: OK
 	line 122: OK
+	line 124: OK
+	line 125: OK
 	line 126: OK
 	line 127: OK
 	line 128: OK
@@ -15339,6 +15498,7 @@ if.wast
 	line 582: OK
 	line 583: OK
 	line 584: OK
+	line 585: OK
 	line 587: OK
 	line 588: OK
 	line 589: OK
@@ -15435,11 +15595,17 @@ imports.wast
 	line 231: OK
 	line 232: OK
 	line 271: OK
+	line 283: OK
 	line 284: OK
 	line 285: OK
+	line 286: OK
+	line 287: OK
 	line 290: OK
+	line 302: OK
 	line 303: OK
 	line 304: OK
+	line 305: OK
+	line 306: OK
 	line 322: OK
 	line 323: OK
 	line 324: OK
@@ -15455,10 +15621,12 @@ imports.wast
 	line 388: OK
 	line 389: OK
 	line 390: OK
+	line 391: OK
 	line 393: OK
 	line 399: OK
 	line 400: OK
 	line 401: OK
+	line 402: OK
 	line 417: OK
 	line 418: OK
 	line 419: OK
@@ -15505,7 +15673,15 @@ int_exprs.wast
 	line 96: OK
 	line 97: OK
 	line 101: OK
+	line 113: OK
+	line 114: OK
+	line 115: OK
+	line 116: OK
 	line 120: OK
+	line 132: OK
+	line 133: OK
+	line 134: OK
+	line 135: OK
 	line 139: OK
 	line 151: OK
 	line 152: OK
@@ -15518,6 +15694,10 @@ int_exprs.wast
 	line 179: OK
 	line 180: OK
 	line 184: OK
+	line 196: OK
+	line 197: OK
+	line 198: OK
+	line 199: OK
 	line 203: OK
 	line 215: OK
 	line 216: OK
@@ -15573,6 +15753,8 @@ int_exprs.wast
 	line 336: OK
 	line 337: OK
 	line 341: OK
+	line 349: OK
+	line 350: OK
 int_literals.wast
 	line 1: OK
 	line 37: OK
@@ -15764,9 +15946,20 @@ linking.wast
 	line 132: OK
 	line 133: OK
 	line 134: OK
+	line 136: OK
+	line 137: OK
 	line 138: OK
+	line 139: OK
+	line 141: OK
+	line 142: OK
 	line 143: OK
+	line 144: OK
+	line 146: OK
+	line 147: OK
+	line 148: OK
+	line 149: OK
 	line 151: OK
+	line 152: OK
 	line 154: OK
 	line 167: OK
 	line 168: OK
@@ -15782,12 +15975,20 @@ linking.wast
 	line 180: OK
 	line 181: OK
 	line 182: OK
+	line 184: OK
+	line 185: OK
 	line 186: OK
+	line 187: OK
+	line 188: OK
+	line 190: OK
 	line 192: OK
 	line 198: OK
 	line 199: OK
 	line 200: OK
 	line 204: OK
+	line 225: OK
+	line 236: OK
+	line 248: OK
 	line 253: OK
 	line 261: OK
 	line 263: OK
@@ -16092,11 +16293,17 @@ memory.wast
 memory_grow.wast
 	line 1: OK
 	line 14: OK
+	line 15: OK
+	line 16: OK
+	line 17: OK
+	line 18: OK
 	line 19: OK
 	line 20: OK
 	line 21: OK
 	line 22: OK
 	line 23: OK
+	line 24: OK
+	line 25: OK
 	line 26: OK
 	line 27: OK
 	line 28: OK
@@ -16156,6 +16363,7 @@ memory_grow.wast
 	line 283: OK
 	line 284: OK
 	line 285: OK
+	line 286: OK
 	line 288: OK
 	line 289: OK
 	line 290: OK
@@ -16226,8 +16434,174 @@ memory_trap.wast
 	line 1: OK
 	line 21: OK
 	line 22: OK
+	line 23: OK
+	line 24: OK
+	line 25: OK
+	line 26: OK
+	line 27: OK
+	line 28: OK
+	line 29: OK
+	line 30: OK
+	line 31: OK
+	line 32: OK
 	line 33: OK
 	line 35: OK
+	line 111: OK
+	line 112: OK
+	line 113: OK
+	line 114: OK
+	line 115: OK
+	line 116: OK
+	line 117: OK
+	line 118: OK
+	line 119: OK
+	line 120: OK
+	line 121: OK
+	line 122: OK
+	line 123: OK
+	line 124: OK
+	line 125: OK
+	line 126: OK
+	line 127: OK
+	line 128: OK
+	line 129: OK
+	line 130: OK
+	line 131: OK
+	line 132: OK
+	line 133: OK
+	line 134: OK
+	line 135: OK
+	line 136: OK
+	line 137: OK
+	line 138: OK
+	line 139: OK
+	line 140: OK
+	line 141: OK
+	line 142: OK
+	line 143: OK
+	line 144: OK
+	line 145: OK
+	line 146: OK
+	line 147: OK
+	line 148: OK
+	line 149: OK
+	line 150: OK
+	line 151: OK
+	line 152: OK
+	line 153: OK
+	line 154: OK
+	line 155: OK
+	line 156: OK
+	line 157: OK
+	line 158: OK
+	line 159: OK
+	line 160: OK
+	line 161: OK
+	line 162: OK
+	line 163: OK
+	line 164: OK
+	line 165: OK
+	line 166: OK
+	line 167: OK
+	line 168: OK
+	line 169: OK
+	line 170: OK
+	line 171: OK
+	line 172: OK
+	line 173: OK
+	line 174: OK
+	line 175: OK
+	line 176: OK
+	line 177: OK
+	line 178: OK
+	line 179: OK
+	line 180: OK
+	line 181: OK
+	line 182: OK
+	line 183: OK
+	line 184: OK
+	line 185: OK
+	line 186: OK
+	line 187: OK
+	line 188: OK
+	line 189: OK
+	line 190: OK
+	line 191: OK
+	line 192: OK
+	line 193: OK
+	line 194: OK
+	line 195: OK
+	line 196: OK
+	line 197: OK
+	line 198: OK
+	line 199: OK
+	line 200: OK
+	line 201: OK
+	line 202: OK
+	line 203: OK
+	line 204: OK
+	line 205: OK
+	line 206: OK
+	line 207: OK
+	line 208: OK
+	line 209: OK
+	line 210: OK
+	line 211: OK
+	line 212: OK
+	line 213: OK
+	line 214: OK
+	line 215: OK
+	line 216: OK
+	line 217: OK
+	line 218: OK
+	line 219: OK
+	line 220: OK
+	line 221: OK
+	line 222: OK
+	line 223: OK
+	line 224: OK
+	line 225: OK
+	line 226: OK
+	line 227: OK
+	line 228: OK
+	line 229: OK
+	line 230: OK
+	line 231: OK
+	line 232: OK
+	line 233: OK
+	line 234: OK
+	line 235: OK
+	line 236: OK
+	line 237: OK
+	line 238: OK
+	line 239: OK
+	line 240: OK
+	line 241: OK
+	line 242: OK
+	line 243: OK
+	line 244: OK
+	line 245: OK
+	line 246: OK
+	line 247: OK
+	line 248: OK
+	line 249: OK
+	line 250: OK
+	line 251: OK
+	line 252: OK
+	line 253: OK
+	line 254: OK
+	line 255: OK
+	line 256: OK
+	line 257: OK
+	line 258: OK
+	line 259: OK
+	line 260: OK
+	line 261: OK
+	line 262: OK
+	line 263: OK
+	line 264: OK
+	line 265: OK
+	line 266: OK
 	line 269: OK
 	line 270: OK
 names.wast
@@ -16893,6 +17267,10 @@ select.wast
 	line 204: OK
 	line 205: OK
 	line 206: OK
+	line 208: OK
+	line 209: OK
+	line 210: OK
+	line 211: OK
 	line 213: OK
 	line 214: OK
 	line 215: OK
@@ -16923,6 +17301,8 @@ select.wast
 	line 245: OK
 	line 246: OK
 	line 247: OK
+	line 248: OK
+	line 249: OK
 	line 251: OK
 	line 252: OK
 	line 253: OK
@@ -17033,21 +17413,112 @@ table.wast
 token.wast
 traps.wast
 	line 5: OK
+	line 16: OK
+	line 17: OK
+	line 18: OK
+	line 19: OK
+	line 20: OK
+	line 21: OK
 	line 23: OK
+	line 34: OK
+	line 35: OK
+	line 36: OK
+	line 37: OK
 	line 39: OK
+	line 50: OK
+	line 51: OK
+	line 52: OK
+	line 53: OK
+	line 54: OK
+	line 55: OK
+	line 56: OK
+	line 57: OK
 	line 59: OK
+	line 78: OK
+	line 79: OK
+	line 80: OK
+	line 81: OK
+	line 82: OK
+	line 83: OK
+	line 84: OK
+	line 85: OK
+	line 86: OK
+	line 87: OK
+	line 88: OK
+	line 89: OK
+	line 90: OK
+	line 91: OK
 type.wast
 	line 3: OK
 unreachable.wast
 	line 3: OK
+	line 221: OK
+	line 222: OK
+	line 223: OK
+	line 224: OK
+	line 226: OK
+	line 227: OK
+	line 228: OK
+	line 229: OK
+	line 231: OK
+	line 232: OK
+	line 233: OK
+	line 234: OK
 	line 235: OK
+	line 237: OK
+	line 238: OK
+	line 239: OK
 	line 240: OK
+	line 242: OK
+	line 244: OK
+	line 245: OK
+	line 246: OK
+	line 248: OK
+	line 249: OK
+	line 250: OK
+	line 251: OK
+	line 252: OK
+	line 254: OK
+	line 256: OK
+	line 257: OK
 	line 258: OK
+	line 259: OK
 	line 260: OK
+	line 261: OK
 	line 262: OK
+	line 264: OK
+	line 265: OK
+	line 266: OK
+	line 267: OK
+	line 268: OK
+	line 270: OK
+	line 271: OK
+	line 272: OK
+	line 274: OK
+	line 275: OK
+	line 276: OK
+	line 277: OK
+	line 279: OK
+	line 280: OK
+	line 281: OK
+	line 283: OK
+	line 284: OK
+	line 286: OK
+	line 287: OK
+	line 288: OK
+	line 289: OK
+	line 291: OK
+	line 293: OK
+	line 294: OK
+	line 296: OK
+	line 298: OK
+	line 299: OK
+	line 301: OK
+	line 303: OK
 unreached-invalid.wast
 unwind.wast
 	line 3: OK
+	line 212: OK
 	line 213: OK
 	line 214: OK
 	line 215: OK
@@ -17055,6 +17526,7 @@ unwind.wast
 	line 217: OK
 	line 218: OK
 	line 219: OK
+	line 221: OK
 	line 222: OK
 	line 223: OK
 	line 224: OK
@@ -17062,6 +17534,7 @@ unwind.wast
 	line 226: OK
 	line 227: OK
 	line 228: OK
+	line 230: OK
 	line 231: OK
 	line 232: OK
 	line 233: OK
@@ -17069,22 +17542,27 @@ unwind.wast
 	line 235: OK
 	line 236: OK
 	line 237: OK
+	line 239: OK
 	line 240: OK
 	line 241: OK
 	line 242: OK
 	line 243: OK
+	line 245: OK
 	line 246: OK
 	line 247: OK
 	line 248: OK
 	line 249: OK
+	line 251: OK
 	line 252: OK
 	line 253: OK
 	line 254: OK
 	line 255: OK
+	line 257: OK
 	line 258: OK
 	line 259: OK
 	line 260: OK
 	line 261: OK
+	line 263: OK
 	line 264: OK
 	line 265: OK
 	line 266: OK
