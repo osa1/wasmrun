@@ -138,13 +138,10 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     register_as: command_de.as_.unwrap(),
                 });
             }
-            "assert_exhaustion" => {
+            "assert_exhaustion" | "assert_uninstantiable" | "assert_unlinkable" => {
                 // TODO We probably want to test this
             }
-            "assert_invalid"
-            | "assert_malformed"
-            | "assert_unlinkable"
-            | "assert_uninstantiable" => {
+            "assert_invalid" | "assert_malformed" => {
                 // We don't want to test this stuff, skip
             }
             other => todo!("Unknown command type: {}", other),
