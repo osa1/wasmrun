@@ -26,6 +26,8 @@ pub enum Command {
         func: String,
         args: Vec<Value>,
         expected: Vec<Value>,
+        /// Expected error message. Only available when kind is `ActionKind::Trap`.
+        err_msg: Option<String>,
     },
 
     Register {
@@ -35,10 +37,12 @@ pub enum Command {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ActionKind {
     /// Call a function
     Invoke,
+    /// Call a function, expect it to trap
+    Trap,
     /// Get a global
     GetGlobal,
 }
@@ -78,10 +82,17 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                 name: command_de.name,
                 filename: command_de.filename.unwrap(),
             }),
-            "assert_return" => {
+            "assert_return" | "assert_trap" => {
                 let action = command_de.action.unwrap();
                 let action_kind = match action.typ.as_str() {
-                    "invoke" => ActionKind::Invoke,
+                    "invoke" => {
+                        if command_de.typ == "assert_return" {
+                            ActionKind::Invoke
+                        } else {
+                            assert_eq!(command_de.typ, "assert_trap");
+                            ActionKind::Trap
+                        }
+                    }
                     "get" => ActionKind::GetGlobal,
                     other => panic!("Unknown action type: {}", other),
                 };
@@ -91,12 +102,17 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     module: action.module,
                     func: action.field,
                     args: action.args.into_iter().map(parse_value).collect(),
-                    expected: command_de
-                        .expected
-                        .unwrap()
-                        .into_iter()
-                        .map(parse_value)
-                        .collect(),
+                    expected: if action_kind != ActionKind::Trap {
+                        command_de
+                            .expected
+                            .unwrap()
+                            .into_iter()
+                            .map(parse_value)
+                            .collect()
+                    } else {
+                        vec![]
+                    },
+                    err_msg: command_de.text,
                 });
             }
             "action" => {
@@ -112,6 +128,7 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     func: action.field,
                     args: action.args.into_iter().map(parse_value).collect(),
                     expected: vec![],
+                    err_msg: command_de.text,
                 });
             }
             "register" => {
@@ -121,8 +138,8 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     register_as: command_de.as_.unwrap(),
                 });
             }
-            "assert_trap" | "assert_exhaustion" => {
-                // TODO We probably want to test these
+            "assert_exhaustion" => {
+                // TODO We probably want to test this
             }
             "assert_invalid"
             | "assert_malformed"
@@ -141,7 +158,10 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
 }
 
 fn parse_value(value_de: ValueDe) -> Value {
-    let str = &value_de.value.unwrap();
+    let str = match &value_de.value {
+        Some(str) => str,
+        None => panic!("{:?}", value_de),
+    };
     match value_de.typ.as_ref() {
         "i32" => Value::I32(parse_str::<ParseIntError, u32>(str) as i32),
         "i64" => Value::I64(parse_str::<ParseIntError, u64>(str) as i64),
@@ -195,6 +215,7 @@ struct CommandDe {
     name: Option<String>,
     #[serde(rename = "as")]
     as_: Option<String>,
+    text: Option<String>, // error message in assert_trap
 }
 
 #[derive(Debug, Deserialize)]

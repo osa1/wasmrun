@@ -265,99 +265,12 @@ fn run_spec_cmd(
 
         spec::Command::AssertReturn {
             line,
-            kind: spec::ActionKind::Invoke,
-            module,
-            func,
-            args,
-            expected,
-        } => {
-            // println!("invoke module={:?}, func={}", module, func);
-
-            write!(out, "\tline {}: ", line).unwrap();
-
-            let module_idx = match module {
-                Some(module_name) => match modules.get(&module_name) {
-                    Some(module_idx) => *module_idx,
-                    None => {
-                        writeln!(out, "can't find registered module {}", module_name).unwrap();
-                        failing_lines.push(line);
-                        return;
-                    }
-                },
-                None => match module_idx {
-                    Some(module_idx) => *module_idx,
-                    None => {
-                        writeln!(out, "module not available; skipping").unwrap();
-                        return;
-                    }
-                },
-            };
-
-            rt.clear_stack();
-            for arg in args {
-                let val = match arg {
-                    spec::Value::I32(i) => Value::I32(i),
-                    spec::Value::I64(i) => Value::I64(i),
-                    spec::Value::F32(f) => Value::F32(f),
-                    spec::Value::F64(f) => Value::F64(f),
-                };
-                rt.push_value(val);
-            }
-
-            if let Err(err) = exec::invoke_by_name(rt, module_idx, &func) {
-                writeln!(out, "Error while calling function {}: {}", func, err).unwrap();
-                failing_lines.push(line);
-                return;
-            }
-            if let Err(err) = exec::finish(rt) {
-                writeln!(out, "Error while running function {}: {}", func, err).unwrap();
-                failing_lines.push(line);
-                return;
-            }
-
-            let n_expected = expected.len();
-            let mut found = Vec::with_capacity(n_expected);
-
-            for i in 0..n_expected {
-                match rt.pop_value() {
-                    Some(val) => {
-                        found.push(match val {
-                            Value::I32(i) => spec::Value::I32(i),
-                            Value::I64(i) => spec::Value::I64(i),
-                            Value::F32(f) => spec::Value::F32(f),
-                            Value::F64(f) => spec::Value::F64(f),
-                        });
-                    }
-                    None => {
-                        writeln!(out, "Can't pop return value {}", i + 1).unwrap();
-                        failing_lines.push(line);
-                        return;
-                    }
-                }
-            }
-
-            found.reverse();
-
-            if expected == found {
-                writeln!(out, "OK").unwrap();
-            } else {
-                writeln!(
-                    out,
-                    "expected != found. Expected: {:?}, Found: {:?}",
-                    expected, found
-                )
-                .unwrap();
-                failing_lines.push(line);
-            }
-        }
-
-        spec::Command::AssertReturn {
-            line,
             kind: spec::ActionKind::GetGlobal,
             module,
             func,
             args,
             expected,
+            err_msg: _,
         } => {
             assert!(args.is_empty());
 
@@ -407,6 +320,117 @@ fn run_spec_cmd(
                         failing_lines.push(line);
                     }
                 }
+            }
+        }
+
+        spec::Command::AssertReturn {
+            line,
+            kind,
+            module,
+            func,
+            args,
+            expected,
+            err_msg,
+        } => {
+            // println!("invoke module={:?}, func={}", module, func);
+
+            write!(out, "\tline {}: ", line).unwrap();
+
+            let module_idx = match module {
+                Some(module_name) => match modules.get(&module_name) {
+                    Some(module_idx) => *module_idx,
+                    None => {
+                        writeln!(out, "can't find registered module {}", module_name).unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+                },
+                None => match module_idx {
+                    Some(module_idx) => *module_idx,
+                    None => {
+                        writeln!(out, "module not available; skipping").unwrap();
+                        return;
+                    }
+                },
+            };
+
+            rt.clear_stack();
+            for arg in args {
+                let val = match arg {
+                    spec::Value::I32(i) => Value::I32(i),
+                    spec::Value::I64(i) => Value::I64(i),
+                    spec::Value::F32(f) => Value::F32(f),
+                    spec::Value::F64(f) => Value::F64(f),
+                };
+                rt.push_value(val);
+            }
+
+            if let Err(err) = exec::invoke_by_name(rt, module_idx, &func) {
+                writeln!(out, "Error while calling function {}: {}", func, err).unwrap();
+                failing_lines.push(line);
+                return;
+            }
+
+            let exec_ret = exec::finish(rt);
+
+            match kind {
+                spec::ActionKind::Invoke => {
+                    if let Err(err) = exec_ret {
+                        writeln!(out, "Error while running function {}: {}", func, err).unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+
+                    let n_expected = expected.len();
+                    let mut found = Vec::with_capacity(n_expected);
+
+                    for i in 0..n_expected {
+                        match rt.pop_value() {
+                            Some(val) => {
+                                found.push(match val {
+                                    Value::I32(i) => spec::Value::I32(i),
+                                    Value::I64(i) => spec::Value::I64(i),
+                                    Value::F32(f) => spec::Value::F32(f),
+                                    Value::F64(f) => spec::Value::F64(f),
+                                });
+                            }
+                            None => {
+                                writeln!(out, "Can't pop return value {}", i + 1).unwrap();
+                                failing_lines.push(line);
+                                return;
+                            }
+                        }
+                    }
+
+                    found.reverse();
+
+                    if expected == found {
+                        writeln!(out, "OK").unwrap();
+                    } else {
+                        writeln!(
+                            out,
+                            "expected != found. Expected: {:?}, Found: {:?}",
+                            expected, found
+                        )
+                        .unwrap();
+                        failing_lines.push(line);
+                    }
+                }
+                spec::ActionKind::Trap => {
+                    if let Ok(()) = exec_ret {
+                        writeln!(
+                            out,
+                            "assert_trap function succeeded: {}. Expected error: {:?}",
+                            func, err_msg
+                        )
+                        .unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+
+                    writeln!(out, "OK").unwrap();
+                }
+                spec::ActionKind::GetGlobal => panic!(), // already handled
             }
         }
     }
