@@ -1687,8 +1687,8 @@ conversions.wast
 	line 74: OK
 	line 75: OK
 	line 76: OK
-	line 77: Error while running function i32.trunc_f32_s: Wasm module trapped
-	line 78: assert_trap function succeeded: i32.trunc_f32_s. Expected error: Some("integer overflow")
+	line 77: OK
+	line 78: OK
 	line 79: OK
 	line 80: OK
 	line 81: OK
@@ -17573,4 +17573,4 @@ utf8-custom-section-id.wast
 utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
-testsuite/conversions.wast: [77, 78, 126, 151, 199]
+testsuite/conversions.wast: [126, 151, 199]

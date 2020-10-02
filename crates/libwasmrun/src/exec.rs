@@ -1729,7 +1729,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            if f >= (-(i32::MIN as f32) * 2f32) || f <= (i32::MIN as f32) {
+            if f >= -(i32::MIN as f32) || f < (i32::MIN as f32) {
                 return Err(ExecError::Trap);
             }
 
