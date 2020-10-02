@@ -5,7 +5,7 @@ use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg
 pub struct Args {
     /// Spec test file or directory. When this is a directory we assume run all .wast files in the
     /// directory and compare the output with the expected output (if a reference file exists).
-    pub file: String,
+    pub file: Option<String>,
 }
 
 /// Parses command line arguments.
@@ -22,13 +22,13 @@ pub fn parse() -> Args {
         .author(crate_authors!())
         .arg(
             Arg::with_name("file")
-                .required(true)
+                .required(false)
                 .multiple(false)
                 .help("File to run"),
         )
         .get_matches();
 
     Args {
-        file: m.value_of("file").unwrap().to_string(),
+        file: m.value_of("file").map(str::to_string),
     }
 }

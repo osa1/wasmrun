@@ -15,6 +15,7 @@ use parity_wasm::elements as wasm;
 
 fn main() {
     let Args { file } = cli::parse();
+    let file = file.as_ref().map(|s| s.as_str()).unwrap_or("testsuite");
 
     let exit_code = match fs::read_dir(&file) {
         Ok(dir_contents) => {
