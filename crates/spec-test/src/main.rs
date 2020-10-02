@@ -1,6 +1,3 @@
-// TODO: implement 'spectest' module:
-// https://github.com/WebAssembly/spec/blob/7526564b56c30250b66504fe795e9c1e88a938af/interpreter/host/spectest.ml#L33-L48
-
 mod cli;
 mod spec;
 
