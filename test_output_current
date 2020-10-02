@@ -16015,8 +16015,9 @@ linking.wast
 	line 354: OK
 	line 357: OK
 	line 368: OK
-	line 387: expected != found. Expected: [I32(104)], Found: [I32(0)]
-	line 388: Error while running function get table[0]: Interpreter panicked: Table index not initialized
+	line 371: OK
+	line 387: OK
+	line 388: OK
 load.wast
 	line 3: OK
 	line 161: OK
@@ -17363,6 +17364,7 @@ start.wast
 	line 80: OK
 	line 86: OK
 	line 92: OK
+	line 98: OK
 store.wast
 	line 3: OK
 	line 44: OK
@@ -17572,4 +17574,3 @@ utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
 testsuite/conversions.wast: [1]
-testsuite/linking.wast: [387, 388]

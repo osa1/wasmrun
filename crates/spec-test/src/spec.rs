@@ -30,6 +30,12 @@ pub enum Command {
         err_msg: Option<String>,
     },
 
+    AssertUninstantiable {
+        line: usize,
+        filename: String,
+        text: String,
+    },
+
     Register {
         line: usize,
         name: Option<String>,
@@ -115,6 +121,13 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     err_msg: command_de.text,
                 });
             }
+            "assert_uninstantiable" => {
+                commands_.push(Command::AssertUninstantiable {
+                    line: command_de.line,
+                    filename: command_de.filename.unwrap(),
+                    text: command_de.text.unwrap(),
+                });
+            }
             "action" => {
                 let action = command_de.action.unwrap();
                 if action.typ != "invoke" {
@@ -138,7 +151,7 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     register_as: command_de.as_.unwrap(),
                 });
             }
-            "assert_exhaustion" | "assert_uninstantiable" | "assert_unlinkable" => {
+            "assert_exhaustion" | "assert_unlinkable" => {
                 // TODO We probably want to test this
             }
             "assert_invalid" | "assert_malformed" => {

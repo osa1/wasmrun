@@ -218,7 +218,6 @@ fn run_spec_cmd(
                     writeln!(out, "Error while parsing module: {}", err).unwrap();
                     *module_idx = None;
                     failing_lines.push(line);
-                    return;
                 }
                 Ok(module) => match exec::allocate_module(rt, module) {
                     Ok(module_idx_) => {
@@ -231,6 +230,32 @@ fn run_spec_cmd(
                     Err(err) => {
                         writeln!(out, "Unable to allocate module: {}", err).unwrap();
                         *module_idx = None;
+                    }
+                },
+            }
+        }
+
+        spec::Command::AssertUninstantiable {
+            line,
+            filename,
+            text: _,
+        } => {
+            write!(out, "\tline {}: ", line).unwrap();
+            out.flush().unwrap();
+
+            let file_path = format!("{}/{}", dir_path, filename);
+            match wasm::deserialize_file(file_path) {
+                Err(err) => {
+                    writeln!(out, "Error while parsing module: {}", err).unwrap();
+                    failing_lines.push(line);
+                }
+                Ok(module) => match exec::allocate_module(rt, module) {
+                    Ok(_) => {
+                        writeln!(out, "Successfully allocated module").unwrap();
+                        failing_lines.push(line);
+                    }
+                    Err(_err) => {
+                        writeln!(out, "OK").unwrap();
                     }
                 },
             }
