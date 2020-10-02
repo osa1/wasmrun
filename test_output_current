@@ -1758,7 +1758,7 @@ conversions.wast
 	line 148: OK
 	line 149: OK
 	line 150: OK
-	line 151: assert_trap function succeeded: i32.trunc_f64_u. Expected error: Some("integer overflow")
+	line 151: OK
 	line 152: OK
 	line 153: OK
 	line 154: OK
@@ -17573,4 +17573,4 @@ utf8-custom-section-id.wast
 utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
-testsuite/conversions.wast: [151, 199]
+testsuite/conversions.wast: [199]

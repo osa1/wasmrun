@@ -1779,7 +1779,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 return Err(ExecError::Trap);
             }
 
-            if f >= -(i32::MIN as f64) * 2f64 || f < -1f64 {
+            if f >= -(i32::MIN as f64) * 2f64 || f <= -1f64 {
                 return Err(ExecError::Trap);
             }
 
