@@ -1649,600 +1649,600 @@ const.wast
 	line 1060: OK
 	line 1061: OK
 conversions.wast
-	line 1: Error while parsing module: Unknown opcode 0
-	line 37: module not available; skipping
-	line 38: module not available; skipping
-	line 39: module not available; skipping
-	line 40: module not available; skipping
-	line 41: module not available; skipping
-	line 42: module not available; skipping
-	line 44: module not available; skipping
-	line 45: module not available; skipping
-	line 46: module not available; skipping
-	line 47: module not available; skipping
-	line 48: module not available; skipping
-	line 49: module not available; skipping
-	line 51: module not available; skipping
-	line 52: module not available; skipping
-	line 53: module not available; skipping
-	line 54: module not available; skipping
-	line 55: module not available; skipping
-	line 56: module not available; skipping
-	line 57: module not available; skipping
-	line 58: module not available; skipping
-	line 59: module not available; skipping
-	line 60: module not available; skipping
-	line 61: module not available; skipping
-	line 62: module not available; skipping
-	line 64: module not available; skipping
-	line 65: module not available; skipping
-	line 66: module not available; skipping
-	line 67: module not available; skipping
-	line 68: module not available; skipping
-	line 69: module not available; skipping
-	line 70: module not available; skipping
-	line 71: module not available; skipping
-	line 72: module not available; skipping
-	line 73: module not available; skipping
-	line 74: module not available; skipping
-	line 75: module not available; skipping
-	line 76: module not available; skipping
-	line 77: module not available; skipping
-	line 78: module not available; skipping
-	line 79: module not available; skipping
-	line 80: module not available; skipping
-	line 81: module not available; skipping
-	line 82: module not available; skipping
-	line 83: module not available; skipping
-	line 84: module not available; skipping
-	line 85: module not available; skipping
-	line 87: module not available; skipping
-	line 88: module not available; skipping
-	line 89: module not available; skipping
-	line 90: module not available; skipping
-	line 91: module not available; skipping
-	line 92: module not available; skipping
-	line 93: module not available; skipping
-	line 94: module not available; skipping
-	line 95: module not available; skipping
-	line 96: module not available; skipping
-	line 97: module not available; skipping
-	line 98: module not available; skipping
-	line 99: module not available; skipping
-	line 100: module not available; skipping
-	line 101: module not available; skipping
-	line 102: module not available; skipping
-	line 103: module not available; skipping
-	line 104: module not available; skipping
-	line 105: module not available; skipping
-	line 106: module not available; skipping
-	line 107: module not available; skipping
-	line 109: module not available; skipping
-	line 110: module not available; skipping
-	line 111: module not available; skipping
-	line 112: module not available; skipping
-	line 113: module not available; skipping
-	line 114: module not available; skipping
-	line 115: module not available; skipping
-	line 116: module not available; skipping
-	line 117: module not available; skipping
-	line 118: module not available; skipping
-	line 119: module not available; skipping
-	line 120: module not available; skipping
-	line 121: module not available; skipping
-	line 122: module not available; skipping
-	line 123: module not available; skipping
-	line 124: module not available; skipping
-	line 125: module not available; skipping
-	line 126: module not available; skipping
-	line 127: module not available; skipping
-	line 128: module not available; skipping
-	line 129: module not available; skipping
-	line 130: module not available; skipping
-	line 131: module not available; skipping
-	line 132: module not available; skipping
-	line 134: module not available; skipping
-	line 135: module not available; skipping
-	line 136: module not available; skipping
-	line 137: module not available; skipping
-	line 138: module not available; skipping
-	line 139: module not available; skipping
-	line 140: module not available; skipping
-	line 141: module not available; skipping
-	line 142: module not available; skipping
-	line 143: module not available; skipping
-	line 144: module not available; skipping
-	line 145: module not available; skipping
-	line 146: module not available; skipping
-	line 147: module not available; skipping
-	line 148: module not available; skipping
-	line 149: module not available; skipping
-	line 150: module not available; skipping
-	line 151: module not available; skipping
-	line 152: module not available; skipping
-	line 153: module not available; skipping
-	line 154: module not available; skipping
-	line 155: module not available; skipping
-	line 156: module not available; skipping
-	line 157: module not available; skipping
-	line 158: module not available; skipping
-	line 159: module not available; skipping
-	line 160: module not available; skipping
-	line 162: module not available; skipping
-	line 163: module not available; skipping
-	line 164: module not available; skipping
-	line 165: module not available; skipping
-	line 166: module not available; skipping
-	line 167: module not available; skipping
-	line 168: module not available; skipping
-	line 169: module not available; skipping
-	line 170: module not available; skipping
-	line 171: module not available; skipping
-	line 172: module not available; skipping
-	line 173: module not available; skipping
-	line 174: module not available; skipping
-	line 175: module not available; skipping
-	line 176: module not available; skipping
-	line 177: module not available; skipping
-	line 178: module not available; skipping
-	line 179: module not available; skipping
-	line 180: module not available; skipping
-	line 181: module not available; skipping
-	line 182: module not available; skipping
-	line 183: module not available; skipping
-	line 184: module not available; skipping
-	line 185: module not available; skipping
-	line 187: module not available; skipping
-	line 188: module not available; skipping
-	line 189: module not available; skipping
-	line 190: module not available; skipping
-	line 191: module not available; skipping
-	line 192: module not available; skipping
-	line 193: module not available; skipping
-	line 194: module not available; skipping
-	line 195: module not available; skipping
-	line 196: module not available; skipping
-	line 197: module not available; skipping
-	line 198: module not available; skipping
-	line 199: module not available; skipping
-	line 200: module not available; skipping
-	line 201: module not available; skipping
-	line 202: module not available; skipping
-	line 203: module not available; skipping
-	line 204: module not available; skipping
-	line 205: module not available; skipping
-	line 207: module not available; skipping
-	line 208: module not available; skipping
-	line 209: module not available; skipping
-	line 210: module not available; skipping
-	line 211: module not available; skipping
-	line 212: module not available; skipping
-	line 213: module not available; skipping
-	line 214: module not available; skipping
-	line 215: module not available; skipping
-	line 216: module not available; skipping
-	line 217: module not available; skipping
-	line 218: module not available; skipping
-	line 219: module not available; skipping
-	line 220: module not available; skipping
-	line 221: module not available; skipping
-	line 222: module not available; skipping
-	line 223: module not available; skipping
-	line 224: module not available; skipping
-	line 225: module not available; skipping
-	line 226: module not available; skipping
-	line 227: module not available; skipping
-	line 228: module not available; skipping
-	line 229: module not available; skipping
-	line 230: module not available; skipping
-	line 232: module not available; skipping
-	line 233: module not available; skipping
-	line 234: module not available; skipping
-	line 235: module not available; skipping
-	line 236: module not available; skipping
-	line 237: module not available; skipping
-	line 238: module not available; skipping
-	line 239: module not available; skipping
-	line 240: module not available; skipping
-	line 241: module not available; skipping
-	line 242: module not available; skipping
-	line 243: module not available; skipping
-	line 244: module not available; skipping
-	line 245: module not available; skipping
-	line 246: module not available; skipping
-	line 247: module not available; skipping
-	line 248: module not available; skipping
-	line 249: module not available; skipping
-	line 250: module not available; skipping
-	line 251: module not available; skipping
-	line 252: module not available; skipping
-	line 253: module not available; skipping
-	line 254: module not available; skipping
-	line 256: module not available; skipping
-	line 257: module not available; skipping
-	line 258: module not available; skipping
-	line 259: module not available; skipping
-	line 260: module not available; skipping
-	line 261: module not available; skipping
-	line 265: module not available; skipping
-	line 266: module not available; skipping
-	line 267: module not available; skipping
-	line 268: module not available; skipping
-	line 269: module not available; skipping
-	line 270: module not available; skipping
-	line 271: module not available; skipping
-	line 272: module not available; skipping
-	line 273: module not available; skipping
-	line 274: module not available; skipping
-	line 275: module not available; skipping
-	line 276: module not available; skipping
-	line 277: module not available; skipping
-	line 278: module not available; skipping
-	line 279: module not available; skipping
-	line 280: module not available; skipping
-	line 281: module not available; skipping
-	line 282: module not available; skipping
-	line 283: module not available; skipping
-	line 284: module not available; skipping
-	line 285: module not available; skipping
-	line 286: module not available; skipping
-	line 288: module not available; skipping
-	line 289: module not available; skipping
-	line 290: module not available; skipping
-	line 291: module not available; skipping
-	line 292: module not available; skipping
-	line 293: module not available; skipping
-	line 294: module not available; skipping
-	line 295: module not available; skipping
-	line 296: module not available; skipping
-	line 297: module not available; skipping
-	line 298: module not available; skipping
-	line 299: module not available; skipping
-	line 300: module not available; skipping
-	line 301: module not available; skipping
-	line 302: module not available; skipping
-	line 303: module not available; skipping
-	line 304: module not available; skipping
-	line 305: module not available; skipping
-	line 306: module not available; skipping
-	line 307: module not available; skipping
-	line 308: module not available; skipping
-	line 310: module not available; skipping
-	line 311: module not available; skipping
-	line 312: module not available; skipping
-	line 313: module not available; skipping
-	line 314: module not available; skipping
-	line 315: module not available; skipping
-	line 316: module not available; skipping
-	line 317: module not available; skipping
-	line 318: module not available; skipping
-	line 319: module not available; skipping
-	line 320: module not available; skipping
-	line 321: module not available; skipping
-	line 322: module not available; skipping
-	line 323: module not available; skipping
-	line 324: module not available; skipping
-	line 325: module not available; skipping
-	line 326: module not available; skipping
-	line 327: module not available; skipping
-	line 328: module not available; skipping
-	line 329: module not available; skipping
-	line 330: module not available; skipping
-	line 331: module not available; skipping
-	line 333: module not available; skipping
-	line 334: module not available; skipping
-	line 335: module not available; skipping
-	line 336: module not available; skipping
-	line 337: module not available; skipping
-	line 338: module not available; skipping
-	line 339: module not available; skipping
-	line 340: module not available; skipping
-	line 341: module not available; skipping
-	line 342: module not available; skipping
-	line 343: module not available; skipping
-	line 344: module not available; skipping
-	line 345: module not available; skipping
-	line 346: module not available; skipping
-	line 347: module not available; skipping
-	line 348: module not available; skipping
-	line 349: module not available; skipping
-	line 350: module not available; skipping
-	line 351: module not available; skipping
-	line 352: module not available; skipping
-	line 353: module not available; skipping
-	line 354: module not available; skipping
-	line 355: module not available; skipping
-	line 356: module not available; skipping
-	line 357: module not available; skipping
-	line 359: module not available; skipping
-	line 360: module not available; skipping
-	line 361: module not available; skipping
-	line 362: module not available; skipping
-	line 363: module not available; skipping
-	line 364: module not available; skipping
-	line 365: module not available; skipping
-	line 366: module not available; skipping
-	line 367: module not available; skipping
-	line 368: module not available; skipping
-	line 369: module not available; skipping
-	line 370: module not available; skipping
-	line 371: module not available; skipping
-	line 372: module not available; skipping
-	line 373: module not available; skipping
-	line 374: module not available; skipping
-	line 375: module not available; skipping
-	line 376: module not available; skipping
-	line 377: module not available; skipping
-	line 378: module not available; skipping
-	line 379: module not available; skipping
-	line 380: module not available; skipping
-	line 381: module not available; skipping
-	line 382: module not available; skipping
-	line 384: module not available; skipping
-	line 385: module not available; skipping
-	line 386: module not available; skipping
-	line 387: module not available; skipping
-	line 388: module not available; skipping
-	line 389: module not available; skipping
-	line 390: module not available; skipping
-	line 391: module not available; skipping
-	line 392: module not available; skipping
-	line 393: module not available; skipping
-	line 394: module not available; skipping
-	line 395: module not available; skipping
-	line 396: module not available; skipping
-	line 397: module not available; skipping
-	line 398: module not available; skipping
-	line 399: module not available; skipping
-	line 400: module not available; skipping
-	line 401: module not available; skipping
-	line 402: module not available; skipping
-	line 404: module not available; skipping
-	line 405: module not available; skipping
-	line 406: module not available; skipping
-	line 407: module not available; skipping
-	line 408: module not available; skipping
-	line 409: module not available; skipping
-	line 410: module not available; skipping
-	line 411: module not available; skipping
-	line 412: module not available; skipping
-	line 413: module not available; skipping
-	line 414: module not available; skipping
-	line 415: module not available; skipping
-	line 416: module not available; skipping
-	line 417: module not available; skipping
-	line 418: module not available; skipping
-	line 419: module not available; skipping
-	line 420: module not available; skipping
-	line 421: module not available; skipping
-	line 422: module not available; skipping
-	line 423: module not available; skipping
-	line 424: module not available; skipping
-	line 425: module not available; skipping
-	line 426: module not available; skipping
-	line 427: module not available; skipping
-	line 429: module not available; skipping
-	line 430: module not available; skipping
-	line 431: module not available; skipping
-	line 432: module not available; skipping
-	line 433: module not available; skipping
-	line 434: module not available; skipping
-	line 435: module not available; skipping
-	line 436: module not available; skipping
-	line 437: module not available; skipping
-	line 438: module not available; skipping
-	line 439: module not available; skipping
-	line 440: module not available; skipping
-	line 441: module not available; skipping
-	line 442: module not available; skipping
-	line 443: module not available; skipping
-	line 444: module not available; skipping
-	line 445: module not available; skipping
-	line 446: module not available; skipping
-	line 447: module not available; skipping
-	line 448: module not available; skipping
-	line 449: module not available; skipping
-	line 450: module not available; skipping
-	line 451: module not available; skipping
-	line 454: module not available; skipping
-	line 455: module not available; skipping
-	line 456: module not available; skipping
-	line 457: module not available; skipping
-	line 459: module not available; skipping
-	line 460: module not available; skipping
-	line 461: module not available; skipping
-	line 462: module not available; skipping
-	line 463: module not available; skipping
-	line 464: module not available; skipping
-	line 466: module not available; skipping
-	line 467: module not available; skipping
-	line 468: module not available; skipping
-	line 469: module not available; skipping
-	line 471: module not available; skipping
-	line 472: module not available; skipping
-	line 473: module not available; skipping
-	line 474: module not available; skipping
-	line 476: module not available; skipping
-	line 477: module not available; skipping
-	line 478: module not available; skipping
-	line 479: module not available; skipping
-	line 480: module not available; skipping
-	line 481: module not available; skipping
-	line 483: module not available; skipping
-	line 484: module not available; skipping
-	line 485: module not available; skipping
-	line 486: module not available; skipping
-	line 487: module not available; skipping
-	line 488: module not available; skipping
-	line 490: module not available; skipping
-	line 491: module not available; skipping
-	line 492: module not available; skipping
-	line 493: module not available; skipping
-	line 495: module not available; skipping
-	line 496: module not available; skipping
-	line 497: module not available; skipping
-	line 498: module not available; skipping
-	line 499: module not available; skipping
-	line 500: module not available; skipping
-	line 501: module not available; skipping
-	line 502: module not available; skipping
-	line 503: module not available; skipping
-	line 504: module not available; skipping
-	line 505: module not available; skipping
-	line 506: module not available; skipping
-	line 508: module not available; skipping
-	line 509: module not available; skipping
-	line 511: module not available; skipping
-	line 512: module not available; skipping
-	line 513: module not available; skipping
-	line 514: module not available; skipping
-	line 515: module not available; skipping
-	line 517: module not available; skipping
-	line 518: module not available; skipping
-	line 520: module not available; skipping
-	line 521: module not available; skipping
-	line 522: module not available; skipping
-	line 523: module not available; skipping
-	line 525: module not available; skipping
-	line 526: module not available; skipping
-	line 527: module not available; skipping
-	line 528: module not available; skipping
-	line 529: module not available; skipping
-	line 531: module not available; skipping
-	line 532: module not available; skipping
-	line 533: module not available; skipping
-	line 534: module not available; skipping
-	line 535: module not available; skipping
-	line 536: module not available; skipping
-	line 537: module not available; skipping
-	line 538: module not available; skipping
-	line 539: module not available; skipping
-	line 540: module not available; skipping
-	line 541: module not available; skipping
-	line 543: module not available; skipping
-	line 544: module not available; skipping
-	line 546: module not available; skipping
-	line 547: module not available; skipping
-	line 548: module not available; skipping
-	line 549: module not available; skipping
-	line 550: module not available; skipping
-	line 551: module not available; skipping
-	line 552: module not available; skipping
-	line 553: module not available; skipping
-	line 555: module not available; skipping
-	line 557: module not available; skipping
-	line 558: module not available; skipping
-	line 559: module not available; skipping
-	line 560: module not available; skipping
-	line 561: module not available; skipping
-	line 562: module not available; skipping
-	line 563: module not available; skipping
-	line 565: module not available; skipping
-	line 566: module not available; skipping
-	line 567: module not available; skipping
-	line 568: module not available; skipping
-	line 569: module not available; skipping
-	line 570: module not available; skipping
-	line 571: module not available; skipping
-	line 572: module not available; skipping
-	line 573: module not available; skipping
-	line 574: module not available; skipping
-	line 575: module not available; skipping
-	line 576: module not available; skipping
-	line 577: module not available; skipping
-	line 578: module not available; skipping
-	line 579: module not available; skipping
-	line 580: module not available; skipping
-	line 581: module not available; skipping
-	line 582: module not available; skipping
-	line 583: module not available; skipping
-	line 584: module not available; skipping
-	line 585: module not available; skipping
-	line 586: module not available; skipping
-	line 587: module not available; skipping
-	line 588: module not available; skipping
-	line 589: module not available; skipping
-	line 590: module not available; skipping
-	line 591: module not available; skipping
-	line 592: module not available; skipping
-	line 593: module not available; skipping
-	line 594: module not available; skipping
-	line 595: module not available; skipping
-	line 596: module not available; skipping
-	line 597: module not available; skipping
-	line 598: module not available; skipping
-	line 599: module not available; skipping
-	line 600: module not available; skipping
-	line 601: module not available; skipping
-	line 602: module not available; skipping
-	line 603: module not available; skipping
-	line 604: module not available; skipping
-	line 605: module not available; skipping
-	line 606: module not available; skipping
-	line 607: module not available; skipping
-	line 608: module not available; skipping
-	line 609: module not available; skipping
-	line 610: module not available; skipping
-	line 611: module not available; skipping
-	line 612: module not available; skipping
-	line 613: module not available; skipping
-	line 614: module not available; skipping
-	line 615: module not available; skipping
-	line 616: module not available; skipping
-	line 618: module not available; skipping
-	line 619: module not available; skipping
-	line 620: module not available; skipping
-	line 621: module not available; skipping
-	line 622: module not available; skipping
-	line 623: module not available; skipping
-	line 624: module not available; skipping
-	line 625: module not available; skipping
-	line 626: module not available; skipping
-	line 627: module not available; skipping
-	line 628: module not available; skipping
-	line 629: module not available; skipping
-	line 631: module not available; skipping
-	line 632: module not available; skipping
-	line 633: module not available; skipping
-	line 634: module not available; skipping
-	line 635: module not available; skipping
-	line 636: module not available; skipping
-	line 637: module not available; skipping
-	line 638: module not available; skipping
-	line 639: module not available; skipping
-	line 640: module not available; skipping
-	line 641: module not available; skipping
-	line 642: module not available; skipping
-	line 644: module not available; skipping
-	line 645: module not available; skipping
-	line 646: module not available; skipping
-	line 647: module not available; skipping
-	line 648: module not available; skipping
-	line 649: module not available; skipping
-	line 650: module not available; skipping
-	line 651: module not available; skipping
-	line 652: module not available; skipping
-	line 653: module not available; skipping
-	line 654: module not available; skipping
-	line 655: module not available; skipping
-	line 656: module not available; skipping
-	line 657: module not available; skipping
-	line 658: module not available; skipping
-	line 660: module not available; skipping
-	line 661: module not available; skipping
-	line 662: module not available; skipping
-	line 663: module not available; skipping
-	line 664: module not available; skipping
-	line 665: module not available; skipping
-	line 666: module not available; skipping
-	line 667: module not available; skipping
-	line 668: module not available; skipping
-	line 669: module not available; skipping
-	line 670: module not available; skipping
-	line 671: module not available; skipping
-	line 672: module not available; skipping
-	line 673: module not available; skipping
-	line 674: module not available; skipping
+	line 1: OK
+	line 37: OK
+	line 38: OK
+	line 39: OK
+	line 40: OK
+	line 41: OK
+	line 42: OK
+	line 44: OK
+	line 45: OK
+	line 46: OK
+	line 47: OK
+	line 48: OK
+	line 49: OK
+	line 51: OK
+	line 52: OK
+	line 53: OK
+	line 54: OK
+	line 55: OK
+	line 56: OK
+	line 57: OK
+	line 58: OK
+	line 59: OK
+	line 60: OK
+	line 61: OK
+	line 62: OK
+	line 64: OK
+	line 65: OK
+	line 66: OK
+	line 67: OK
+	line 68: OK
+	line 69: OK
+	line 70: OK
+	line 71: OK
+	line 72: OK
+	line 73: OK
+	line 74: OK
+	line 75: OK
+	line 76: OK
+	line 77: Error while running function i32.trunc_f32_s: Wasm module trapped
+	line 78: assert_trap function succeeded: i32.trunc_f32_s. Expected error: Some("integer overflow")
+	line 79: OK
+	line 80: OK
+	line 81: OK
+	line 82: OK
+	line 83: OK
+	line 84: OK
+	line 85: OK
+	line 87: OK
+	line 88: OK
+	line 89: OK
+	line 90: OK
+	line 91: OK
+	line 92: OK
+	line 93: OK
+	line 94: OK
+	line 95: OK
+	line 96: OK
+	line 97: OK
+	line 98: OK
+	line 99: OK
+	line 100: OK
+	line 101: OK
+	line 102: OK
+	line 103: OK
+	line 104: OK
+	line 105: OK
+	line 106: OK
+	line 107: OK
+	line 109: OK
+	line 110: OK
+	line 111: OK
+	line 112: OK
+	line 113: OK
+	line 114: OK
+	line 115: OK
+	line 116: OK
+	line 117: OK
+	line 118: OK
+	line 119: OK
+	line 120: OK
+	line 121: OK
+	line 122: OK
+	line 123: OK
+	line 124: OK
+	line 125: OK
+	line 126: assert_trap function succeeded: i32.trunc_f64_s. Expected error: Some("integer overflow")
+	line 127: OK
+	line 128: OK
+	line 129: OK
+	line 130: OK
+	line 131: OK
+	line 132: OK
+	line 134: OK
+	line 135: OK
+	line 136: OK
+	line 137: OK
+	line 138: OK
+	line 139: OK
+	line 140: OK
+	line 141: OK
+	line 142: OK
+	line 143: OK
+	line 144: OK
+	line 145: OK
+	line 146: OK
+	line 147: OK
+	line 148: OK
+	line 149: OK
+	line 150: OK
+	line 151: assert_trap function succeeded: i32.trunc_f64_u. Expected error: Some("integer overflow")
+	line 152: OK
+	line 153: OK
+	line 154: OK
+	line 155: OK
+	line 156: OK
+	line 157: OK
+	line 158: OK
+	line 159: OK
+	line 160: OK
+	line 162: OK
+	line 163: OK
+	line 164: OK
+	line 165: OK
+	line 166: OK
+	line 167: OK
+	line 168: OK
+	line 169: OK
+	line 170: OK
+	line 171: OK
+	line 172: OK
+	line 173: OK
+	line 174: OK
+	line 175: OK
+	line 176: OK
+	line 177: OK
+	line 178: OK
+	line 179: OK
+	line 180: OK
+	line 181: OK
+	line 182: OK
+	line 183: OK
+	line 184: OK
+	line 185: OK
+	line 187: OK
+	line 188: OK
+	line 189: OK
+	line 190: OK
+	line 191: OK
+	line 192: OK
+	line 193: OK
+	line 194: OK
+	line 195: OK
+	line 196: OK
+	line 197: OK
+	line 198: OK
+	line 199: assert_trap function succeeded: i64.trunc_f32_u. Expected error: Some("integer overflow")
+	line 200: OK
+	line 201: OK
+	line 202: OK
+	line 203: OK
+	line 204: OK
+	line 205: OK
+	line 207: OK
+	line 208: OK
+	line 209: OK
+	line 210: OK
+	line 211: OK
+	line 212: OK
+	line 213: OK
+	line 214: OK
+	line 215: OK
+	line 216: OK
+	line 217: OK
+	line 218: OK
+	line 219: OK
+	line 220: OK
+	line 221: OK
+	line 222: OK
+	line 223: OK
+	line 224: OK
+	line 225: OK
+	line 226: OK
+	line 227: OK
+	line 228: OK
+	line 229: OK
+	line 230: OK
+	line 232: OK
+	line 233: OK
+	line 234: OK
+	line 235: OK
+	line 236: OK
+	line 237: OK
+	line 238: OK
+	line 239: OK
+	line 240: OK
+	line 241: OK
+	line 242: OK
+	line 243: OK
+	line 244: OK
+	line 245: OK
+	line 246: OK
+	line 247: OK
+	line 248: OK
+	line 249: OK
+	line 250: OK
+	line 251: OK
+	line 252: OK
+	line 253: OK
+	line 254: OK
+	line 256: OK
+	line 257: OK
+	line 258: OK
+	line 259: OK
+	line 260: OK
+	line 261: OK
+	line 265: OK
+	line 266: OK
+	line 267: OK
+	line 268: OK
+	line 269: OK
+	line 270: OK
+	line 271: OK
+	line 272: OK
+	line 273: OK
+	line 274: OK
+	line 275: OK
+	line 276: OK
+	line 277: OK
+	line 278: OK
+	line 279: OK
+	line 280: OK
+	line 281: OK
+	line 282: OK
+	line 283: OK
+	line 284: OK
+	line 285: OK
+	line 286: OK
+	line 288: OK
+	line 289: OK
+	line 290: OK
+	line 291: OK
+	line 292: OK
+	line 293: OK
+	line 294: OK
+	line 295: OK
+	line 296: OK
+	line 297: OK
+	line 298: OK
+	line 299: OK
+	line 300: OK
+	line 301: OK
+	line 302: OK
+	line 303: OK
+	line 304: OK
+	line 305: OK
+	line 306: OK
+	line 307: OK
+	line 308: OK
+	line 310: OK
+	line 311: OK
+	line 312: OK
+	line 313: OK
+	line 314: OK
+	line 315: OK
+	line 316: OK
+	line 317: OK
+	line 318: OK
+	line 319: OK
+	line 320: OK
+	line 321: OK
+	line 322: OK
+	line 323: OK
+	line 324: OK
+	line 325: OK
+	line 326: OK
+	line 327: OK
+	line 328: OK
+	line 329: OK
+	line 330: OK
+	line 331: OK
+	line 333: OK
+	line 334: OK
+	line 335: OK
+	line 336: OK
+	line 337: OK
+	line 338: OK
+	line 339: OK
+	line 340: OK
+	line 341: OK
+	line 342: OK
+	line 343: OK
+	line 344: OK
+	line 345: OK
+	line 346: OK
+	line 347: OK
+	line 348: OK
+	line 349: OK
+	line 350: OK
+	line 351: OK
+	line 352: OK
+	line 353: OK
+	line 354: OK
+	line 355: OK
+	line 356: OK
+	line 357: OK
+	line 359: OK
+	line 360: OK
+	line 361: OK
+	line 362: OK
+	line 363: OK
+	line 364: OK
+	line 365: OK
+	line 366: OK
+	line 367: OK
+	line 368: OK
+	line 369: OK
+	line 370: OK
+	line 371: OK
+	line 372: OK
+	line 373: OK
+	line 374: OK
+	line 375: OK
+	line 376: OK
+	line 377: OK
+	line 378: OK
+	line 379: OK
+	line 380: OK
+	line 381: OK
+	line 382: OK
+	line 384: OK
+	line 385: OK
+	line 386: OK
+	line 387: OK
+	line 388: OK
+	line 389: OK
+	line 390: OK
+	line 391: OK
+	line 392: OK
+	line 393: OK
+	line 394: OK
+	line 395: OK
+	line 396: OK
+	line 397: OK
+	line 398: OK
+	line 399: OK
+	line 400: OK
+	line 401: OK
+	line 402: OK
+	line 404: OK
+	line 405: OK
+	line 406: OK
+	line 407: OK
+	line 408: OK
+	line 409: OK
+	line 410: OK
+	line 411: OK
+	line 412: OK
+	line 413: OK
+	line 414: OK
+	line 415: OK
+	line 416: OK
+	line 417: OK
+	line 418: OK
+	line 419: OK
+	line 420: OK
+	line 421: OK
+	line 422: OK
+	line 423: OK
+	line 424: OK
+	line 425: OK
+	line 426: OK
+	line 427: OK
+	line 429: OK
+	line 430: OK
+	line 431: OK
+	line 432: OK
+	line 433: OK
+	line 434: OK
+	line 435: OK
+	line 436: OK
+	line 437: OK
+	line 438: OK
+	line 439: OK
+	line 440: OK
+	line 441: OK
+	line 442: OK
+	line 443: OK
+	line 444: OK
+	line 445: OK
+	line 446: OK
+	line 447: OK
+	line 448: OK
+	line 449: OK
+	line 450: OK
+	line 451: OK
+	line 454: OK
+	line 455: OK
+	line 456: OK
+	line 457: OK
+	line 459: OK
+	line 460: OK
+	line 461: OK
+	line 462: OK
+	line 463: OK
+	line 464: OK
+	line 466: OK
+	line 467: OK
+	line 468: OK
+	line 469: OK
+	line 471: OK
+	line 472: OK
+	line 473: OK
+	line 474: OK
+	line 476: OK
+	line 477: OK
+	line 478: OK
+	line 479: OK
+	line 480: OK
+	line 481: OK
+	line 483: OK
+	line 484: OK
+	line 485: OK
+	line 486: OK
+	line 487: OK
+	line 488: OK
+	line 490: OK
+	line 491: OK
+	line 492: OK
+	line 493: OK
+	line 495: OK
+	line 496: OK
+	line 497: OK
+	line 498: OK
+	line 499: OK
+	line 500: OK
+	line 501: OK
+	line 502: OK
+	line 503: OK
+	line 504: OK
+	line 505: OK
+	line 506: OK
+	line 508: OK
+	line 509: OK
+	line 511: OK
+	line 512: OK
+	line 513: OK
+	line 514: OK
+	line 515: OK
+	line 517: OK
+	line 518: OK
+	line 520: OK
+	line 521: OK
+	line 522: OK
+	line 523: OK
+	line 525: OK
+	line 526: OK
+	line 527: OK
+	line 528: OK
+	line 529: OK
+	line 531: OK
+	line 532: OK
+	line 533: OK
+	line 534: OK
+	line 535: OK
+	line 536: OK
+	line 537: OK
+	line 538: OK
+	line 539: OK
+	line 540: OK
+	line 541: OK
+	line 543: OK
+	line 544: OK
+	line 546: OK
+	line 547: OK
+	line 548: OK
+	line 549: OK
+	line 550: OK
+	line 551: OK
+	line 552: OK
+	line 553: OK
+	line 555: OK
+	line 557: OK
+	line 558: OK
+	line 559: OK
+	line 560: OK
+	line 561: OK
+	line 562: OK
+	line 563: OK
+	line 565: OK
+	line 566: OK
+	line 567: OK
+	line 568: OK
+	line 569: OK
+	line 570: OK
+	line 571: OK
+	line 572: OK
+	line 573: OK
+	line 574: OK
+	line 575: OK
+	line 576: OK
+	line 577: OK
+	line 578: OK
+	line 579: OK
+	line 580: OK
+	line 581: OK
+	line 582: OK
+	line 583: OK
+	line 584: OK
+	line 585: OK
+	line 586: OK
+	line 587: OK
+	line 588: OK
+	line 589: OK
+	line 590: OK
+	line 591: OK
+	line 592: OK
+	line 593: OK
+	line 594: OK
+	line 595: OK
+	line 596: OK
+	line 597: OK
+	line 598: OK
+	line 599: OK
+	line 600: OK
+	line 601: OK
+	line 602: OK
+	line 603: OK
+	line 604: OK
+	line 605: OK
+	line 606: OK
+	line 607: OK
+	line 608: OK
+	line 609: OK
+	line 610: OK
+	line 611: OK
+	line 612: OK
+	line 613: OK
+	line 614: OK
+	line 615: OK
+	line 616: OK
+	line 618: OK
+	line 619: OK
+	line 620: OK
+	line 621: OK
+	line 622: OK
+	line 623: OK
+	line 624: OK
+	line 625: OK
+	line 626: OK
+	line 627: OK
+	line 628: OK
+	line 629: OK
+	line 631: OK
+	line 632: OK
+	line 633: OK
+	line 634: OK
+	line 635: OK
+	line 636: OK
+	line 637: OK
+	line 638: OK
+	line 639: OK
+	line 640: OK
+	line 641: OK
+	line 642: OK
+	line 644: OK
+	line 645: OK
+	line 646: OK
+	line 647: OK
+	line 648: OK
+	line 649: OK
+	line 650: OK
+	line 651: OK
+	line 652: OK
+	line 653: OK
+	line 654: OK
+	line 655: OK
+	line 656: OK
+	line 657: OK
+	line 658: OK
+	line 660: OK
+	line 661: OK
+	line 662: OK
+	line 663: OK
+	line 664: OK
+	line 665: OK
+	line 666: OK
+	line 667: OK
+	line 668: OK
+	line 669: OK
+	line 670: OK
+	line 671: OK
+	line 672: OK
+	line 673: OK
+	line 674: OK
 custom.wast
 	line 1: OK
 	line 14: OK
@@ -17573,4 +17573,4 @@ utf8-custom-section-id.wast
 utf8-import-field.wast
 utf8-import-module.wast
 utf8-invalid-encoding.wast
-testsuite/conversions.wast: [1]
+testsuite/conversions.wast: [77, 78, 126, 151, 199]

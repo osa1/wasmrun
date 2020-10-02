@@ -8,4 +8,8 @@ license = "MIT"
 [dependencies]
 fxhash = "0.2"
 ieee754 = "0.2.6"
-parity-wasm = { git = "https://github.com/osa1/parity-wasm", branch = "block_multi_return", features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"] }
+
+[dependencies.parity-wasm]
+git = "https://github.com/osa1/parity-wasm"
+branch = "wasmrun"
+features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]

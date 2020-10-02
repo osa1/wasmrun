@@ -9,9 +9,13 @@ license = "MIT"
 clap = "2.33"
 fxhash = "0.2"
 libwasmrun = { path = "../libwasmrun" }
-parity-wasm = { git = "https://github.com/osa1/parity-wasm", branch = "block_multi_return", features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[dependencies.parity-wasm]
+git = "https://github.com/osa1/parity-wasm"
+branch = "wasmrun"
+features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]
 
 [build-dependencies]
 rustc_tools_util = "0.2.0"

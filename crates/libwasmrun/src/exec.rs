@@ -1939,7 +1939,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::F32ConvertSI64 => {
             op1::<i64, f32, _>(rt, |i| {
-                if i.abs() < 0x10_0000_0000_0000 {
+                if i != i64::MIN && i.abs() < 0x10_0000_0000_0000 {
                     i as f32
                 } else {
                     let r = if i & 0xfff == 0 { 0 } else { 1 };
@@ -2052,6 +2052,225 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             }
         },
 
+        Instruction::I32TruncSatSF32 => {
+            op1::<f32, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f < i32::MIN as f32 {
+                    i32::MIN
+                } else if f >= -(i32::MIN as f32) {
+                    i32::MAX
+                } else {
+                    f as i32
+                }
+            })?;
+
+            // let trunc_sat_f32_s x =
+            //   if F32.ne x x then
+            //     0l
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf < Int32.(to_float min_int) then
+            //       Int32.min_int
+            //     else if xf >= -.Int32.(to_float min_int) then
+            //       Int32.max_int
+            //     else
+            //       Int32.of_float xf
+        }
+
+        Instruction::I32TruncSatUF32 => {
+            op1::<f32, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f <= -1.0 {
+                    0
+                } else if f >= -(i32::MIN as f32) * 2.0f32 {
+                    -1
+                } else {
+                    (f as i64) as i32
+                }
+            })?;
+
+            // let trunc_sat_f32_u x =
+            //   if F32.ne x x then
+            //     0l
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf <= -1.0 then
+            //       0l
+            //     else if xf >= -.Int32.(to_float min_int) *. 2.0 then
+            //       -1l
+            //     else
+            //       Int64.(to_int32 (of_float xf))
+        }
+
+        Instruction::I32TruncSatSF64 => {
+            op1::<f64, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f < i32::MIN as f64 {
+                    i32::MIN
+                } else if f >= -(i32::MIN as f64) {
+                    i32::MAX
+                } else {
+                    f as i32
+                }
+            })?;
+
+            // let trunc_sat_f64_s x =
+            //   if F64.ne x x then
+            //     0l
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf < Int32.(to_float min_int) then
+            //       Int32.min_int
+            //     else if xf >= -.Int32.(to_float min_int) then
+            //       Int32.max_int
+            //     else
+            //       Int32.of_float xf
+        }
+
+        Instruction::I32TruncSatUF64 => {
+            op1::<f64, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f <= -1.0f64 {
+                    0
+                } else if f >= -(i32::MIN as f64) * 2.0f64 {
+                    -1
+                } else {
+                    (f as i64) as i32
+                }
+            })?;
+
+            // let trunc_sat_f64_u x =
+            //   if F64.ne x x then
+            //     0l
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf <= -1.0 then
+            //       0l
+            //     else if xf >= -.Int32.(to_float min_int) *. 2.0 then
+            //       -1l
+            //     else
+            //       Int64.(to_int32 (of_float xf))
+        }
+
+        Instruction::I64TruncSatSF32 => {
+            op1::<f32, i64, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f < (i64::MIN as f32) {
+                    i64::MIN
+                } else if f >= -(i64::MIN as f32) {
+                    i64::MAX
+                } else {
+                    f as i64
+                }
+            })?;
+
+            // let trunc_sat_f32_s x =
+            //   if F32.ne x x then
+            //     0L
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf < Int64.(to_float min_int) then
+            //       Int64.min_int
+            //     else if xf >= -.Int64.(to_float min_int) then
+            //       Int64.max_int
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::I64TruncSatUF32 => {
+            op1::<f32, i64, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f <= -1.0f32 {
+                    0
+                } else if f >= -(i64::MIN as f32) * 2.0f32 {
+                    -1
+                } else if f >= -(i64::MIN as f32) {
+                    (f - 9223372036854775808.0f32) as i64 | i64::MIN
+                } else {
+                    f as i64
+                }
+            })?;
+
+            // let trunc_sat_f32_u x =
+            //   if F32.ne x x then
+            //     0L
+            //   else
+            //     let xf = F32.to_float x in
+            //     if xf <= -1.0 then
+            //       0L
+            //     else if xf >= -.Int64.(to_float min_int) *. 2.0 then
+            //       -1L
+            //     else if xf >= -.Int64.(to_float min_int) then
+            //       Int64.(logxor (of_float (xf -. 9223372036854775808.0)) min_int)
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::I64TruncSatSF64 => {
+            op1::<f64, i64, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f < i64::MIN as f64 {
+                    i64::MIN
+                } else if f >= -(i64::MIN as f64) {
+                    i64::MAX
+                } else {
+                    f as i64
+                }
+            })?;
+
+            // let trunc_sat_f64_s x =
+            //   if F64.ne x x then
+            //     0L
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf < Int64.(to_float min_int) then
+            //       Int64.min_int
+            //     else if xf >= -.Int64.(to_float min_int) then
+            //       Int64.max_int
+            //     else
+            //       Int64.of_float xf
+        }
+
+        Instruction::I64TruncSatUF64 => {
+            op1::<f64, i64, _>(rt, |f| {
+                if f.is_nan() {
+                    0
+                } else if f <= -1.0f64 {
+                    0
+                } else if f >= -(i64::MIN as f64) * 2.0f64 {
+                    -1
+                } else if f >= -(i64::MIN as f64) {
+                    (f - 9223372036854775808.0f64) as i64 | i64::MIN
+                } else {
+                    f as i64
+                }
+            })?;
+
+            // let trunc_sat_f64_u x =
+            //   if F64.ne x x then
+            //     0L
+            //   else
+            //     let xf = F64.to_float x in
+            //     if xf <= -1.0 then
+            //       0L
+            //     else if xf >= -.Int64.(to_float min_int) *. 2.0 then
+            //       -1L
+            //     else if xf >= -.Int64.(to_float min_int) then
+            //       Int64.(logxor (of_float (xf -. 9223372036854775808.0)) min_int)
+            //     else
+            //       Int64.of_float xf
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        //                          Control flow instructions                                     //
+        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Call(func_idx) => {
             // NB. invoke updates the ip
             invoke(rt, module_idx, func_idx)?;
@@ -2098,9 +2317,6 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             return Err(ExecError::Trap);
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        //                          Control flow instructions                                     //
-        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Block(block_ty) => {
             let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
             let mut args = Vec::with_capacity(n_args as usize);
