@@ -68,6 +68,24 @@ fn main() {
     exit(exit_code)
 }
 
+fn test_eq_val(v1: Value, v2: Value) -> bool {
+    match (v1, v2) {
+        (Value::I32(i1), Value::I32(i2)) => i1 == i2,
+        (Value::I64(i1), Value::I64(i2)) => i1 == i2,
+        (Value::F32(f1), Value::F32(f2)) => f1.to_bits() == f2.to_bits(),
+        (Value::F64(f1), Value::F64(f2)) => f1.to_bits() == f2.to_bits(),
+        _ => false,
+    }
+}
+
+fn test_eq_vals(vs1: &[Value], vs2: &[Value]) -> bool {
+    vs1.len() == vs2.len()
+        && vs1
+            .iter()
+            .zip(vs2.iter())
+            .all(|(v1, v2)| test_eq_val(*v1, *v2))
+}
+
 struct Output {
     file: Option<fs::File>,
 }
@@ -324,14 +342,10 @@ fn run_spec_cmd(
                     return;
                 }
                 Some(val) => {
-                    let expected = match expected[0] {
-                        spec::Value::I32(i) => Value::I32(i),
-                        spec::Value::I64(i) => Value::I64(i),
-                        spec::Value::F32(f) => Value::F32(f),
-                        spec::Value::F64(f) => Value::F64(f),
-                    };
+                    assert_eq!(expected.len(), 1);
+                    let expected = expected[0];
 
-                    if expected == val {
+                    if test_eq_val(expected, val) {
                         writeln!(out, "OK").unwrap();
                     } else {
                         writeln!(
@@ -379,13 +393,7 @@ fn run_spec_cmd(
 
             rt.clear_stack();
             for arg in args {
-                let val = match arg {
-                    spec::Value::I32(i) => Value::I32(i),
-                    spec::Value::I64(i) => Value::I64(i),
-                    spec::Value::F32(f) => Value::F32(f),
-                    spec::Value::F64(f) => Value::F64(f),
-                };
-                rt.push_value(val);
+                rt.push_value(arg);
             }
 
             if let Err(err) = exec::invoke_by_name(rt, module_idx, &func) {
@@ -410,12 +418,7 @@ fn run_spec_cmd(
                     for i in 0..n_expected {
                         match rt.pop_value() {
                             Some(val) => {
-                                found.push(match val {
-                                    Value::I32(i) => spec::Value::I32(i),
-                                    Value::I64(i) => spec::Value::I64(i),
-                                    Value::F32(f) => spec::Value::F32(f),
-                                    Value::F64(f) => spec::Value::F64(f),
-                                });
+                                found.push(val.into());
                             }
                             None => {
                                 writeln!(out, "Can't pop return value {}", i + 1).unwrap();
@@ -427,7 +430,7 @@ fn run_spec_cmd(
 
                     found.reverse();
 
-                    if expected == found {
+                    if test_eq_vals(&expected, &found) {
                         writeln!(out, "OK").unwrap();
                     } else {
                         writeln!(

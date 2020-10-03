@@ -3,7 +3,7 @@ use crate::mem::Mem;
 use crate::spectest;
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{Func, Global, ModuleIdx, Store};
-pub use crate::value::Value;
+pub use crate::value::{self, Value};
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
@@ -1205,7 +1205,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Add => {
-            op2::<f32, f32, _>(rt, ::std::ops::Add::add)?;
+            op2::<f32, f32, _>(rt, |a, b| value::canonicalize_f32_nan(a + b))?;
         }
 
         Instruction::I64Add => {
@@ -1213,7 +1213,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64Add => {
-            op2::<f64, f64, _>(rt, ::std::ops::Add::add)?;
+            op2::<f64, f64, _>(rt, |a, b| value::canonicalize_f64_nan(a + b))?;
         }
 
         Instruction::I32Sub => {
@@ -1221,7 +1221,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Sub => {
-            op2::<f32, f32, _>(rt, ::std::ops::Sub::sub)?;
+            op2::<f32, f32, _>(rt, |a, b| value::canonicalize_f32_nan(a - b))?;
         }
 
         Instruction::I64Sub => {
@@ -1229,7 +1229,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64Sub => {
-            op2::<f64, f64, _>(rt, ::std::ops::Sub::sub)?;
+            op2::<f64, f64, _>(rt, |a, b| value::canonicalize_f64_nan(a - b))?;
         }
 
         Instruction::I32Mul => {
@@ -1237,7 +1237,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Mul => {
-            op2::<f32, f32, _>(rt, ::std::ops::Mul::mul)?;
+            op2::<f32, f32, _>(rt, |a, b| value::canonicalize_f32_nan(a * b))?;
         }
 
         Instruction::I64Mul => {
@@ -1245,7 +1245,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64Mul => {
-            op2::<f64, f64, _>(rt, ::std::ops::Mul::mul)?;
+            op2::<f64, f64, _>(rt, |a, b| value::canonicalize_f64_nan(a * b))?;
         }
 
         Instruction::I32DivS => {
@@ -1259,7 +1259,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Div => {
-            op2::<f32, f32, _>(rt, ::std::ops::Div::div)?;
+            op2::<f32, f32, _>(rt, |a, b| value::canonicalize_f32_nan(a / b))?;
         }
 
         Instruction::I64DivS => {
@@ -1273,7 +1273,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64Div => {
-            op2::<f64, f64, _>(rt, ::std::ops::Div::div)?;
+            op2::<f64, f64, _>(rt, |a, b| value::canonicalize_f64_nan(a / b))?;
         }
 
         Instruction::I32DivU => {
@@ -1495,13 +1495,13 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::F32Max => {
             op2::<f32, f32, _>(rt, |a, b| {
                 if a == b {
-                    f32::from_bits(a.to_bits() | b.to_bits())
+                    f32::from_bits(a.to_bits() & b.to_bits())
                 } else if a > b {
                     a
                 } else if a < b {
                     b
                 } else {
-                    f32::NAN // TODO: canonicalize?
+                    value::canonical_f32_nan()
                 }
             })?;
 
@@ -1518,13 +1518,13 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::F64Max => {
             op2::<f64, f64, _>(rt, |a, b| {
                 if a == b {
-                    f64::from_bits(a.to_bits() | b.to_bits())
+                    f64::from_bits(a.to_bits() & b.to_bits())
                 } else if a > b {
                     a
                 } else if a < b {
                     b
                 } else {
-                    f64::NAN // TODO: canonicalize?
+                    value::canonical_f64_nan()
                 }
             })?;
         }
@@ -1538,7 +1538,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 } else if a > b {
                     b
                 } else {
-                    f32::NAN // TODO: canonicalize?
+                    value::canonical_f32_nan()
                 }
             })?;
 
@@ -1561,7 +1561,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                 } else if a > b {
                     b
                 } else {
-                    f64::NAN // TODO: canonicalize?
+                    value::canonical_f64_nan()
                 }
             })?;
         }
@@ -1581,11 +1581,11 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Sqrt => {
-            op1::<f32, f32, _>(rt, f32::sqrt)?;
+            op1::<f32, f32, _>(rt, |a| value::canonicalize_f32_nan(a.sqrt()))?;
         }
 
         Instruction::F64Sqrt => {
-            op1::<f64, f64, _>(rt, f64::sqrt)?;
+            op1::<f64, f64, _>(rt, |a| value::canonicalize_f64_nan(a.sqrt()))?;
         }
 
         Instruction::F32Abs => {
@@ -1603,27 +1603,27 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Ceil => {
-            op1::<f32, f32, _>(rt, f32::ceil)?;
+            op1::<f32, f32, _>(rt, |a| value::canonicalize_f32_nan(a.ceil()))?;
         }
 
         Instruction::F64Ceil => {
-            op1::<f64, f64, _>(rt, f64::ceil)?;
+            op1::<f64, f64, _>(rt, |a| value::canonicalize_f64_nan(a.ceil()))?;
         }
 
         Instruction::F32Floor => {
-            op1::<f32, f32, _>(rt, f32::floor)?;
+            op1::<f32, f32, _>(rt, |a| value::canonicalize_f32_nan(a.floor()))?;
         }
 
         Instruction::F64Floor => {
-            op1::<f64, f64, _>(rt, f64::floor)?;
+            op1::<f64, f64, _>(rt, |a| value::canonicalize_f64_nan(a.floor()))?;
         }
 
         Instruction::F32Trunc => {
-            op1::<f32, f32, _>(rt, f32::trunc)?;
+            op1::<f32, f32, _>(rt, |a| value::canonicalize_f32_nan(a.trunc()))?;
         }
 
         Instruction::F64Trunc => {
-            op1::<f64, f64, _>(rt, f64::trunc)?;
+            op1::<f64, f64, _>(rt, |a| value::canonicalize_f64_nan(a.trunc()))?;
         }
 
         Instruction::I32ReinterpretF32 => {
@@ -1654,8 +1654,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                     let ud = (f - d).abs();
                     let u_or_d = um < ud || (um == ud && (u / 2f32).floor() == u / 2f32);
                     let f = if u_or_d { u } else { d };
-                    // TODO: canonicalize nan?
-                    f
+                    value::canonicalize_f32_nan(f)
                 })?;
         }
 
@@ -1671,8 +1670,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
                     let ud = (f - d).abs();
                     let u_or_d = um < ud || (um == ud && (u / 2f64).floor() == u / 2f64);
                     let f = if u_or_d { u } else { d };
-                    // TODO: canonicalize nan?
-                    f
+                    value::canonicalize_f64_nan(f)
                 })?;
         }
 
@@ -2006,7 +2004,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32DemoteF64 => {
-            op1::<f64, f32, _>(rt, |f| f as f32)?;
+            op1::<f64, f32, _>(rt, |f| value::canonicalize_f32_nan(f as f32))?;
 
             // let demote_f64 x =
             //   let xf = F64.to_float x in
@@ -2020,7 +2018,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64PromoteF32 => {
-            op1::<f32, f64, _>(rt, |f| f as f64)?;
+            op1::<f32, f64, _>(rt, |f| value::canonicalize_f64_nan(f as f64))?;
 
             // let extend_i32_u x = Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
             // let promote_f32 x =
