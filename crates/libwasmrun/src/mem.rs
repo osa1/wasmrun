@@ -4,9 +4,9 @@ use crate::{ExecError, Result};
 use std::ops::{Index, IndexMut};
 
 #[derive(Debug)]
-pub struct Mem {
-    pub mem: Vec<u8>,
-    pub limit: Option<u32>,
+pub(crate) struct Mem {
+    mem: Vec<u8>,
+    limit: Option<u32>,
 }
 
 impl Index<u32> for Mem {
@@ -26,14 +26,14 @@ impl IndexMut<u32> for Mem {
 impl Mem {
     /// `initial`: Initial number of pages
     /// `limit`: Max num. of pages
-    pub fn new(initial: u32, limit: Option<u32>) -> Self {
+    pub(crate) fn new(initial: u32, limit: Option<u32>) -> Self {
         Mem {
             mem: vec![0; initial as usize * PAGE_SIZE],
             limit,
         }
     }
 
-    pub fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
+    pub(crate) fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
         if value.is_empty() {
             return Ok(());
         }
@@ -43,21 +43,21 @@ impl Mem {
         Ok(())
     }
 
-    pub fn max_pages(&self) -> Option<u32> {
+    pub(crate) fn max_pages(&self) -> Option<u32> {
         self.limit
     }
 
-    pub fn size_pages(&self) -> u32 {
+    pub(crate) fn size_pages(&self) -> u32 {
         debug_assert_eq!(self.mem.len() % PAGE_SIZE, 0);
         (self.mem.len() / PAGE_SIZE) as u32
     }
 
-    pub fn add_pages(&mut self, n: u32) {
+    pub(crate) fn add_pages(&mut self, n: u32) {
         self.mem
             .resize((self.size_pages() + n) as usize * PAGE_SIZE, 0);
     }
 
-    pub fn check_range(&self, addr: u32, len: u32) -> Result<()> {
+    pub(crate) fn check_range(&self, addr: u32, len: u32) -> Result<()> {
         if addr.checked_add(len).ok_or(ExecError::Trap)? as usize > self.mem.len() {
             Err(ExecError::Trap)
         } else {
