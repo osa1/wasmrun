@@ -1,3 +1,5 @@
+#![allow(clippy::inconsistent_digit_grouping)]
+
 use std::fmt;
 
 use parity_wasm::elements as wasm;
@@ -11,15 +13,15 @@ pub enum Value {
 }
 
 // TODO: Make this a const once from_bits is a const fn
-pub fn canonical_f32_nan() -> f32 {
+pub(crate) fn canonical_f32_nan() -> f32 {
     f32::from_bits(0b0_11111111_10000000000000000000000)
 }
 
-pub fn canonical_f64_nan() -> f64 {
+pub(crate) fn canonical_f64_nan() -> f64 {
     f64::from_bits(0b0_11111111111_1000000000000000000000000000000000000000000000000000)
 }
 
-pub fn canonicalize_f32_nan(f: f32) -> f32 {
+pub(crate) fn canonicalize_f32_nan(f: f32) -> f32 {
     if f.is_nan() {
         canonical_f32_nan()
     } else {
@@ -27,7 +29,7 @@ pub fn canonicalize_f32_nan(f: f32) -> f32 {
     }
 }
 
-pub fn canonicalize_f64_nan(f: f64) -> f64 {
+pub(crate) fn canonicalize_f64_nan(f: f64) -> f64 {
     if f.is_nan() {
         canonical_f64_nan()
     } else {
@@ -36,32 +38,23 @@ pub fn canonicalize_f64_nan(f: f64) -> f64 {
 }
 
 impl Value {
-    pub fn canonical_f32_nan() -> Self {
-        Value::F32(canonical_f32_nan())
-    }
-
-    // TODO: Make this a const once from_bits is a const fn
-    pub fn canonical_f64_nan() -> Self {
-        Value::F64(canonical_f64_nan())
-    }
-
-    pub fn default_i32() -> Self {
+    pub(crate) fn default_i32() -> Self {
         Value::I32(0)
     }
 
-    pub fn default_i64() -> Self {
+    pub(crate) fn default_i64() -> Self {
         Value::I64(0)
     }
 
-    pub fn default_f32() -> Self {
+    pub(crate) fn default_f32() -> Self {
         Value::F32(0f32)
     }
 
-    pub fn default_f64() -> Self {
+    pub(crate) fn default_f64() -> Self {
         Value::F64(0f64)
     }
 
-    pub fn default(ty: wasm::ValueType) -> Self {
+    pub(crate) fn default(ty: wasm::ValueType) -> Self {
         match ty {
             wasm::ValueType::I32 => Value::default_i32(),
             wasm::ValueType::I64 => Value::default_i64(),
@@ -119,14 +112,14 @@ fn fmt_float(
 
     for _ in 0..signi_digits {
         s.push(char::from(b'0' + (signi & 0b1) as u8));
-        signi = signi >> 1;
+        signi >>= 1;
     }
 
     s.push('_');
 
     for _ in 0..exp_digits {
         s.push(char::from(b'0' + (exp & 0b1) as u8));
-        exp = exp >> 1;
+        exp >>= 1;
     }
 
     s.push('_');

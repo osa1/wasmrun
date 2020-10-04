@@ -34,7 +34,7 @@ impl Mem {
     }
 
     pub fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
-        if value.len() == 0 {
+        if value.is_empty() {
             return Ok(());
         }
         self.check_range(offset, value.len() as u32)?;

@@ -99,15 +99,12 @@ impl Stack {
     }
 
     pub fn push_value(&mut self, val: Value) -> Result<()> {
-        Ok(self.current_block_mut()?.values.push(val))
+        self.current_block_mut()?.values.push(val);
+        Ok(())
     }
 
     pub fn push_i32(&mut self, i: i32) -> Result<()> {
         self.push_value(Value::I32(i))
-    }
-
-    pub fn push_u32(&mut self, i: u32) -> Result<()> {
-        self.push_value(Value::I32(i as i32))
     }
 
     pub fn push_i64(&mut self, i: i64) -> Result<()> {
@@ -120,10 +117,6 @@ impl Stack {
 
     pub fn push_f64(&mut self, f: f64) -> Result<()> {
         self.push_value(Value::F64(f))
-    }
-
-    pub fn push_bool(&mut self, bool: bool) -> Result<()> {
-        self.push_u32(if bool { 1 } else { 0 })
     }
 
     pub fn push_block(&mut self, cont: u32, n_args: u32, n_rets: u32) {
@@ -204,10 +197,6 @@ impl Stack {
                 },
             },
         }
-    }
-
-    pub fn is_fun_block(&mut self) -> bool {
-        self.0.first().unwrap().kind == BlockKind::Fun
     }
 }
 

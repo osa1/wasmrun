@@ -1,9 +1,11 @@
+use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::mem::Mem;
+use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::spectest;
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{Func, Global, ModuleIdx, Store};
-pub use crate::value::{self, Value};
+use crate::store::{FunAddr, Func, Global, ModuleAddr, Store};
+pub(crate) use crate::value::{self, Value};
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
@@ -11,127 +13,31 @@ use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
 use wasm::{Instruction, SignExtInstruction};
 
-use std::mem::{replace, transmute};
+use std::mem::{replace, take};
 use std::rc::Rc;
 
-type Addr = u32;
-
-type FuncIdx = u32;
-
-pub const PAGE_SIZE: usize = 65536;
-pub const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
-
-#[derive(Debug, Default)]
-pub struct Module {
-    pub types: Vec<wasm::FunctionType>,
-    pub func_addrs: Vec<Addr>,
-    pub table_addrs: Vec<Addr>,
-    pub mem_addrs: Vec<Addr>,
-    pub global_addrs: Vec<Addr>,
-    pub exports: Vec<wasm::ExportEntry>,
-    pub start: Option<FuncIdx>,
-    /// Maps function names to their indices in `func_addrs`
-    pub name_to_func: FxHashMap<String, u32>,
-}
-
-impl Module {
-    fn add_fun(&mut self, fun_addr: u32) -> u32 {
-        let ret = self.func_addrs.len();
-        self.func_addrs.push(fun_addr);
-        ret as u32
-    }
-
-    fn add_table(&mut self, table_addr: u32) -> u32 {
-        let ret = self.table_addrs.len();
-        self.table_addrs.push(table_addr);
-        ret as u32
-    }
-
-    fn add_mem(&mut self, mem_addr: u32) -> u32 {
-        let ret = self.mem_addrs.len();
-        self.mem_addrs.push(mem_addr);
-        ret as u32
-    }
-
-    fn add_global(&mut self, global_addr: u32) -> u32 {
-        let ret = self.global_addrs.len();
-        self.global_addrs.push(global_addr);
-        ret as u32
-    }
-
-    fn add_type(&mut self, ty: wasm::FunctionType) -> u32 {
-        let ret = self.types.len();
-        self.types.push(ty);
-        ret as u32
-    }
-
-    fn get_exported_fun(&self, fun: &str) -> Option<Addr> {
-        for export in &self.exports {
-            if export.field() == fun {
-                if let wasm::Internal::Function(fun_idx) = export.internal() {
-                    return Some(self.func_addrs[*fun_idx as usize]);
-                }
-            }
-        }
-        None
-    }
-
-    fn get_exported_table(&self, table: &str) -> Option<Addr> {
-        for export in &self.exports {
-            if export.field() == table {
-                if let wasm::Internal::Table(tbl_idx) = export.internal() {
-                    return Some(self.table_addrs[*tbl_idx as usize]);
-                }
-            }
-        }
-        None
-    }
-
-    fn get_exported_mem(&self, mem: &str) -> Option<Addr> {
-        for export in &self.exports {
-            if export.field() == mem {
-                if let wasm::Internal::Memory(mem_idx) = export.internal() {
-                    return Some(self.mem_addrs[*mem_idx as usize]);
-                }
-            }
-        }
-        None
-    }
-
-    fn get_exported_global(&self, global: &str) -> Option<Addr> {
-        for export in &self.exports {
-            if export.field() == global {
-                if let wasm::Internal::Global(global_idx) = export.internal() {
-                    return Some(self.global_addrs[*global_idx as usize]);
-                }
-            }
-        }
-        None
-    }
-}
+pub(crate) const PAGE_SIZE: usize = 65536;
+pub(crate) const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
 pub struct Runtime {
     /// The heap
     store: Store,
     /// Value stack
-    pub stack: Stack,
+    pub(crate) stack: Stack,
     /// Call stack
-    pub frames: FrameStack,
-    /// Allocated modules
-    pub modules: Vec<Module>,
+    pub(crate) frames: FrameStack,
     /// Maps registered modules to their indices in `modules`
-    module_names: FxHashMap<String, usize>,
+    module_names: FxHashMap<String, ModuleAddr>,
     /// Instruction pointer
     ip: u32,
 }
 
 impl Runtime {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Runtime {
             store: Default::default(),
             stack: Default::default(),
             frames: Default::default(),
-            modules: Default::default(),
             module_names: Default::default(),
             ip: Default::default(),
         }
@@ -148,12 +54,8 @@ impl Runtime {
         self.frames.clear();
     }
 
-    pub fn get_module(&self, idx: ModuleIdx) -> &Module {
-        &self.modules[idx]
-    }
-
-    pub fn get_module_start(&self, idx: ModuleIdx) -> Option<FuncIdx> {
-        self.modules[idx].start
+    pub(crate) fn get_module(&self, addr: ModuleAddr) -> &Module {
+        self.store.get_module(addr)
     }
 
     pub fn pop_value(&mut self) -> Option<Value> {
@@ -164,95 +66,74 @@ impl Runtime {
         self.stack.push_value(value).unwrap()
     }
 
-    pub fn register_module(&mut self, name: String, module_addr: usize) {
+    pub fn register_module(&mut self, name: String, module_addr: ModuleAddr) {
         self.module_names.insert(name, module_addr);
     }
 
-    pub fn get_global(&mut self, module_idx: ModuleIdx, name: &str) -> Option<Value> {
-        let global_addr = self.modules[module_idx].get_exported_global(name)?;
-        Some(self.store.globals[global_addr as usize].value)
+    pub fn get_global(&mut self, module_addr: ModuleAddr, name: &str) -> Option<Value> {
+        let global_addr = self
+            .store
+            .get_module(module_addr)
+            .get_exported_global(name)?;
+        Some(self.store.get_global(global_addr).value)
     }
 }
 
-pub fn allocate_spectest(rt: &mut Runtime) {
+pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     // https://github.com/WebAssembly/spec/blob/7526564b56c30250b66504fe795e9c1e88a938af/interpreter/host/spectest.ml
 
-    let module_idx = rt.modules.len();
+    let module_idx = rt.store.next_module_addr();
     let mut module: Module = Default::default();
 
     let table_addr = rt.store.allocate_table(vec![None; 10]);
     let table_idx = module.add_table(table_addr);
-    module.exports.push(wasm::ExportEntry::new(
-        "table".to_string(),
-        wasm::Internal::Table(table_idx),
-    ));
+    module.add_export(Export::new_table("table".to_owned(), table_idx));
 
     let mem_addr = rt.store.allocate_mem(Mem::new(1, Some(2)));
     let mem_idx = module.add_mem(mem_addr);
-    module.exports.push(wasm::ExportEntry::new(
-        "memory".to_string(),
-        wasm::Internal::Memory(mem_idx),
-    ));
+    module.add_export(Export::new_mem("memory".to_owned(), mem_idx));
 
     let global_i32_addr = rt.store.allocate_global(Global {
         value: Value::I32(666),
         mutable: false,
     });
     let global_i32_idx = module.add_global(global_i32_addr);
-    module.exports.push(wasm::ExportEntry::new(
-        "global_i32".to_string(),
-        wasm::Internal::Global(global_i32_idx),
-    ));
+    module.add_export(Export::new_global("global_i32".to_owned(), global_i32_idx));
 
     let global_i64_addr = rt.store.allocate_global(Global {
         value: Value::I64(666),
         mutable: false,
     });
     let global_i64_idx = module.add_global(global_i64_addr);
-    module.exports.push(wasm::ExportEntry::new(
-        "global_i64".to_string(),
-        wasm::Internal::Global(global_i64_idx),
-    ));
+    module.add_export(Export::new_global("global_i64".to_owned(), global_i64_idx));
 
     let global_f32_addr = rt.store.allocate_global(Global {
         value: Value::F32(666.6f32),
         mutable: false,
     });
     let global_f32_idx = module.add_global(global_f32_addr);
-    module.exports.push(wasm::ExportEntry::new(
-        "global_f32".to_string(),
-        wasm::Internal::Global(global_f32_idx),
-    ));
+    module.add_export(Export::new_global("global_f32".to_owned(), global_f32_idx));
 
     let global_f64_addr = rt.store.allocate_global(Global {
         value: Value::F64(666.6f64),
         mutable: false,
     });
     let global_f64_idx = module.add_global(global_f64_addr);
-    module.exports.push(wasm::ExportEntry::new(
-        "global_f64".to_string(),
-        wasm::Internal::Global(global_f64_idx),
-    ));
+    module.add_export(Export::new_global("global_f64".to_owned(), global_f64_idx));
 
     let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
     let print_addr = rt
         .store
         .allocate_host_fun(module_idx, print_ty, Rc::new(spectest::print));
-    let print_idx = module.add_fun(print_addr as u32);
-    module.exports.push(wasm::ExportEntry::new(
-        "print".to_string(),
-        wasm::Internal::Function(print_idx),
-    ));
+    let print_idx = module.add_fun(print_addr);
+    module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
     let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
     let print_i32_addr =
         rt.store
             .allocate_host_fun(module_idx, print_i32_ty, Rc::new(spectest::print_i32));
-    let print_i32_idx = module.add_fun(print_i32_addr as u32);
-    module.exports.push(wasm::ExportEntry::new(
-        "print_i32".to_string(),
-        wasm::Internal::Function(print_i32_idx),
-    ));
+    let print_i32_idx = module.add_fun(print_i32_addr);
+    module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
     let print_i32_f32_ty = module.add_type(wasm::FunctionType::new(
         vec![wasm::ValueType::I32, wasm::ValueType::F32],
@@ -263,10 +144,10 @@ pub fn allocate_spectest(rt: &mut Runtime) {
         print_i32_f32_ty,
         Rc::new(spectest::print_i32_f32),
     );
-    let print_i32_f32_idx = module.add_fun(print_i32_f32_addr as u32);
-    module.exports.push(wasm::ExportEntry::new(
-        "print_i32_f32".to_string(),
-        wasm::Internal::Function(print_i32_f32_idx),
+    let print_i32_f32_idx = module.add_fun(print_i32_f32_addr);
+    module.add_export(Export::new_fun(
+        "print_i32_f32".to_owned(),
+        print_i32_f32_idx,
     ));
 
     let print_f64_f64_ty = module.add_type(wasm::FunctionType::new(
@@ -278,55 +159,46 @@ pub fn allocate_spectest(rt: &mut Runtime) {
         print_f64_f64_ty,
         Rc::new(spectest::print_f64_f64),
     );
-    let print_f64_f64_idx = module.add_fun(print_f64_f64_addr as u32);
-    module.exports.push(wasm::ExportEntry::new(
-        "print_f64_f64".to_string(),
-        wasm::Internal::Function(print_f64_f64_idx),
+    let print_f64_f64_idx = module.add_fun(print_f64_f64_addr);
+    module.add_export(Export::new_fun(
+        "print_f64_f64".to_owned(),
+        print_f64_f64_idx,
     ));
 
     let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
     let print_f32_addr =
         rt.store
             .allocate_host_fun(module_idx, print_f32_ty, Rc::new(spectest::print_f32));
-    let print_f32_idx = module.add_fun(print_f32_addr as u32);
-    module.exports.push(wasm::ExportEntry::new(
-        "print_f32".to_string(),
-        wasm::Internal::Function(print_f32_idx),
-    ));
+    let print_f32_idx = module.add_fun(print_f32_addr);
+    module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
     let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
     let print_f64_addr =
         rt.store
             .allocate_host_fun(module_idx, print_f64_ty, Rc::new(spectest::print_f64));
-    let print_f64_idx = module.add_fun(print_f64_addr as u32);
-    module.exports.push(wasm::ExportEntry::new(
-        "print_f64".to_string(),
-        wasm::Internal::Function(print_f64_idx),
-    ));
+    let print_f64_idx = module.add_fun(print_f64_addr);
+    module.add_export(Export::new_fun("print_f64".to_owned(), print_f64_idx));
 
-    rt.modules.push(module);
+    rt.store.allocate_module(module);
     rt.module_names.insert("spectest".to_string(), module_idx);
 }
 
-pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Result<ModuleIdx> {
+pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Result<ModuleAddr> {
     // https://webassembly.github.io/spec/core/exec/modules.html
 
-    let module_idx = rt.modules.len();
+    let module_addr = rt.store.next_module_addr();
 
     let mut inst = Module::default();
 
-    inst.types = parsed_module
-        .type_section_mut()
-        .map(|section| {
-            section
-                .types_mut()
-                .drain(..)
-                .map(|ty| match ty {
-                    wasm::Type::Function(fun_ty) => fun_ty,
-                })
-                .collect()
-        })
-        .unwrap_or(vec![]);
+    if let Some(type_section) = parsed_module.type_section_mut() {
+        for ty in type_section.types_mut().drain(..) {
+            match ty {
+                wasm::Type::Function(fun_ty) => {
+                    inst.add_type(fun_ty);
+                }
+            }
+        }
+    }
 
     // Add imported stuff to the module
     if let Some(import_section) = parsed_module.import_section_mut() {
@@ -334,8 +206,8 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
             let module_name = import.module();
             let field_name = import.field();
 
-            let module_idx = match rt.module_names.get(module_name) {
-                Some(module_idx) => *module_idx,
+            let imported_module_addr = match rt.module_names.get(module_name) {
+                Some(module_addr) => *module_addr,
                 None => {
                     return Err(ExecError::Panic(format!(
                         "Can't find imported module {:?}",
@@ -343,12 +215,12 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                     )));
                 }
             };
-            let imported_module = &rt.modules[module_idx];
+            let imported_module = rt.store.get_module(imported_module_addr);
 
             match import.external() {
                 wasm::External::Function(_fun_ty_idx) => {
                     let fun_addr = imported_module.get_exported_fun(field_name).unwrap();
-                    inst.func_addrs.push(fun_addr);
+                    inst.add_fun(fun_addr);
                 }
                 wasm::External::Table(_tbl_ty) => {
                     // FIXME: should we copy the table or share it?
@@ -360,15 +232,15 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
 
                     // Share the table:
                     let tbl_addr = imported_module.get_exported_table(field_name).unwrap();
-                    inst.table_addrs.push(tbl_addr);
+                    inst.add_table(tbl_addr);
                 }
                 wasm::External::Memory(_mem_ty) => {
                     let mem_addr = imported_module.get_exported_mem(field_name).unwrap();
-                    inst.mem_addrs.push(mem_addr);
+                    inst.add_mem(mem_addr);
                 }
                 wasm::External::Global(_gbl_ty) => {
                     let global_addr = imported_module.get_exported_global(field_name).unwrap();
-                    inst.global_addrs.push(global_addr);
+                    inst.add_global(global_addr);
                 }
             }
         }
@@ -380,37 +252,37 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
             .into_iter()
             .enumerate()
         {
-            let fun_addr = rt.store.funcs.len();
+            let fun_addr = rt.store.next_fun_addr();
 
             let function_section = parsed_module.function_section().ok_or_else(|| {
                 ExecError::Panic("Module has a code section but no function section".to_string())
             })?;
 
             rt.store.allocate_fun(
-                module_idx,
-                function_section.entries()[fun_idx].type_ref(),
-                fun_addr as u32,
+                module_addr,
+                TypeIdx(function_section.entries()[fun_idx].type_ref()),
+                fun_addr,
                 fun,
             )?;
-            inst.func_addrs.push(fun_addr as u32);
+
+            inst.add_fun(fun_addr);
         }
     }
 
     // Allocate tables
     if let Some(table_section) = parsed_module.table_section_mut() {
         for table in table_section.entries_mut().drain(..) {
-            let table_idx = rt.store.tables.len();
-            rt.store
-                .tables
-                .push(vec![None; table.limits().initial() as usize]);
-            inst.table_addrs.push(table_idx as u32);
+            let table_addr = rt
+                .store
+                .allocate_table(vec![None; table.limits().initial() as usize]);
+            inst.add_table(table_addr);
         }
     }
 
     // Allocate table elements
     if let Some(element_section) = parsed_module.elements_section() {
         for elements in element_section.entries() {
-            let table_idx = elements.index();
+            let table_idx = TableIdx(elements.index());
             let offset = elements
                 .offset()
                 .as_ref()
@@ -427,7 +299,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 None => 0,
             };
 
-            let table = &mut rt.store.tables[inst.table_addrs[table_idx as usize] as usize];
+            let table = rt.store.get_table_mut(inst.get_table(table_idx));
 
             for (elem_idx, elem) in elements.members().iter().copied().enumerate() {
                 let elem_idx = offset + elem_idx;
@@ -436,7 +308,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 }
                 *table.get_mut(elem_idx).ok_or_else(|| {
                     ExecError::Panic(format!("Elem index out of bounds: {}", elem_idx))
-                })? = Some(inst.func_addrs[elem as usize]);
+                })? = Some(inst.get_fun(FunIdx(elem)));
             }
         }
     }
@@ -445,24 +317,22 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     if let Some(memory_section) = parsed_module.memory_section_mut() {
         assert!(memory_section.entries().len() <= 1); // No more than 1 currently
         for mem in memory_section.entries_mut().drain(..) {
-            let mem_idx = rt.store.mems.len();
-            rt.store
-                .mems
-                .push(Mem::new(mem.limits().initial(), mem.limits().maximum()));
-            inst.mem_addrs.push(mem_idx as u32);
+            let mem_addr = rt
+                .store
+                .allocate_mem(Mem::new(mem.limits().initial(), mem.limits().maximum()));
+            inst.add_mem(mem_addr);
         }
     }
 
     // Allcoate globals
     if let Some(global_section) = parsed_module.global_section_mut() {
         for global in global_section.entries_mut().drain(..) {
-            let global_idx = rt.store.globals.len();
             let value = get_const_expr_val(rt, &inst, global.init_expr().code())?;
-            rt.store.globals.push(Global {
+            let global_addr = rt.store.allocate_global(Global {
                 value,
                 mutable: global.global_type().is_mutable(),
             });
-            inst.global_addrs.push(global_idx as u32);
+            inst.add_global(global_addr);
         }
     }
 
@@ -471,10 +341,8 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     // already have names in the export section.
     if let Some(names_section) = parsed_module.names_section_mut() {
         if let Some(function_names) = names_section.functions_mut() {
-            for (fun_idx, fun_name) in
-                replace(function_names.names_mut(), Default::default()).into_iter()
-            {
-                inst.name_to_func.insert(fun_name, fun_idx);
+            for (fun_idx, fun_name) in take(function_names.names_mut()).into_iter() {
+                inst.add_fun_name(fun_name, FunIdx(fun_idx));
             }
         }
     }
@@ -482,7 +350,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     // Initialize memories with 'data' section
     if let Some(data_section) = parsed_module.data_section() {
         for data in data_section.entries() {
-            let mem_index: u32 = data.index();
+            let mem_idx = MemIdx(data.index());
             let offset = match data.offset() {
                 None => 0,
                 Some(offset_expr) => match get_const_expr_val(rt, &inst, offset_expr.code())? {
@@ -497,42 +365,49 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
             };
             let values = data.value();
 
-            let mem_addr = inst.mem_addrs[mem_index as usize];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = inst.get_mem(mem_idx);
+            let mem = &mut rt.store.get_mem_mut(mem_addr);
             mem.set_range(offset, values)?;
         }
     }
 
     // Initialize exports
-    inst.exports = parsed_module
-        .export_section_mut()
-        .map(|section| replace(section.entries_mut(), vec![]))
-        .unwrap_or(vec![]);
-
-    // Add exported function names to name_to_func
-    for export in &inst.exports {
-        match export.internal() {
-            wasm::Internal::Function(fun_idx) => {
-                inst.name_to_func
-                    .insert(export.field().to_owned(), *fun_idx);
-            }
-            wasm::Internal::Table(_) | wasm::Internal::Memory(_) | wasm::Internal::Global(_) => {}
+    if let Some(export_section) = parsed_module.export_section_mut() {
+        for mut export in export_section.entries_mut().drain(..) {
+            let export_field = replace(export.field_mut(), String::new());
+            let export = match export.internal() {
+                wasm::Internal::Function(fun_idx) => {
+                    let idx = FunIdx(*fun_idx);
+                    inst.add_fun_name(export_field.clone(), idx);
+                    Export::new_fun(export_field, idx)
+                }
+                wasm::Internal::Table(table_idx) => {
+                    Export::new_table(export_field, TableIdx(*table_idx))
+                }
+                wasm::Internal::Memory(mem_idx) => Export::new_mem(export_field, MemIdx(*mem_idx)),
+                wasm::Internal::Global(global_idx) => {
+                    Export::new_global(export_field, GlobalIdx(*global_idx))
+                }
+            };
+            inst.add_export(export);
         }
     }
 
     // Set start
-    inst.start = parsed_module.start_section();
-    let start = inst.start;
+    if let Some(start_idx) = parsed_module.start_section() {
+        inst.set_start(FunIdx(start_idx));
+    }
+    let start = inst.get_start();
 
     // Done
-    rt.modules.push(inst);
+    rt.store.allocate_module(inst);
 
     if let Some(start_idx) = start {
-        invoke(rt, module_idx, start_idx)?;
+        invoke(rt, module_addr, start_idx)?;
         finish(rt)?;
     }
 
-    Ok(module_idx)
+    Ok(module_addr)
 }
 
 fn get_const_expr_val(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Result<Value> {
@@ -540,52 +415,47 @@ fn get_const_expr_val(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> 
     match instrs {
         [I32Const(value), End] => Ok(Value::I32(*value)),
         [I64Const(value), End] => Ok(Value::I64(*value)),
-        [F32Const(value), End] => Ok(Value::F32(unsafe { transmute(*value) })),
-        [F64Const(value), End] => Ok(Value::F64(unsafe { transmute(*value) })),
-        [GetGlobal(idx), End] => {
-            Ok(rt.store.globals[module.global_addrs[*idx as usize] as usize].value)
-        }
+        [F32Const(value), End] => Ok(Value::F32(f32::from_bits(*value))),
+        [F64Const(value), End] => Ok(Value::F64(f64::from_bits(*value))),
+        [GetGlobal(idx), End] => Ok(rt
+            .store
+            .get_global(module.get_global(GlobalIdx(*idx)))
+            .value),
         other => Err(ExecError::Panic(format!("Global initializer: {:?}", other))),
     }
 }
 
-pub fn invoke_by_name(rt: &mut Runtime, module_idx: ModuleIdx, fun_name: &str) -> Result<()> {
-    match rt.modules[module_idx].name_to_func.get(fun_name) {
+pub fn invoke_by_name(rt: &mut Runtime, module_addr: ModuleAddr, fun_name: &str) -> Result<()> {
+    match rt.store.get_module(module_addr).get_fun_name(fun_name) {
         None => Err(ExecError::Panic(format!("Unknown function: {}", fun_name))),
-        Some(fun_idx) => {
-            let fun_idx = *fun_idx;
-            invoke(rt, module_idx, fun_idx)
-        }
+        Some(fun_idx) => invoke(rt, module_addr, fun_idx),
     }
 }
 
-pub fn invoke(rt: &mut Runtime, module_idx: ModuleIdx, fun_idx: u32) -> Result<()> {
-    let fun_addr = rt.modules[module_idx].func_addrs[fun_idx as usize];
+pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx) -> Result<()> {
+    let fun_addr = rt.store.get_module(module_addr).get_fun(fun_idx);
     invoke_direct(rt, fun_addr)
 }
 
-fn invoke_direct(rt: &mut Runtime, fun_addr: u32) -> Result<()> {
-    let func =
-        match rt.store.funcs.get(fun_addr as usize).ok_or_else(|| {
-            ExecError::Panic(format!("Function address out of bounds: {}", fun_addr))
-        })? {
-            Func::Wasm(fun) => fun,
-            Func::Host(fun) => {
-                let host_func = fun.fun.clone();
-                host_func(rt);
-                rt.ip += 1;
-                return Ok(());
-            }
-        };
+fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
+    let fun = match rt.store.get_fun(fun_addr) {
+        Func::Wasm(fun) => fun,
+        Func::Host(fun) => {
+            let host_func = fun.fun.clone();
+            host_func(rt);
+            rt.ip += 1;
+            return Ok(());
+        }
+    };
 
-    debug_assert!(match func.fun.code().elements().last().unwrap() {
+    debug_assert!(match fun.fun.code().elements().last().unwrap() {
         Instruction::End => true,
         other => panic!("Last instruction of function is not 'end': {:?}", other),
     });
 
-    let fun_ty = &rt.modules[func.module_idx].types[func.ty_idx as usize];
+    let fun_ty = rt.store.get_module(fun.module_addr).get_type(fun.ty_idx);
     let arg_tys = fun_ty.params();
-    rt.frames.push(func, arg_tys);
+    rt.frames.push(fun, arg_tys);
 
     // Set locals for arguments
     let n_args = fun_ty.params().len();
@@ -612,14 +482,14 @@ pub fn finish(rt: &mut Runtime) -> Result<()> {
     Ok(())
 }
 
-pub fn single_step(rt: &mut Runtime) -> Result<()> {
+pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     let current_fun_addr = match rt.frames.current() {
         Ok(current_fun) => current_fun.fun_addr,
         Err(_) => {
             return Ok(());
         }
     };
-    let current_fun = match &rt.store.funcs[current_fun_addr as usize] {
+    let current_fun = match &rt.store.get_fun(current_fun_addr) {
         Func::Wasm(fun) => fun,
         Func::Host { .. } => {
             return Err(ExecError::Panic("single_step: host function".to_string()));
@@ -637,7 +507,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
     // Instruction is just 3 words so clonning here should be fine, and avoid borrowchk issues
     // later on
     let instr = current_fun.fun.code().elements()[rt.ip as usize].clone();
-    let module_idx = current_fun.module_idx;
+    let module_addr = current_fun.module_addr;
 
     // println!(
     //     "ip={}, instruction={:?}, stack={:?}, call stack={:?}",
@@ -648,8 +518,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::GrowMemory(mem_ref) => {
             assert_eq!(mem_ref, 0);
 
-            let mem_addr = rt.modules[module_idx as usize].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
 
             let current_pages = mem.size_pages();
             let new_pages = rt.stack.pop_i32()? as u32;
@@ -668,7 +538,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::CurrentMemory(mem_ref) => {
             // memory.size
             assert_eq!(mem_ref, 0);
-            let mem = &mut rt.store.mems[module_idx];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             rt.stack.push_i32(mem.size_pages() as i32)?;
             rt.ip += 1;
         }
@@ -694,8 +565,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 4)?;
 
             let [b1, b2, b3, b4] = value.to_le_bytes();
@@ -713,8 +584,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 4)?;
 
             let [b1, b2, b3, b4] = value.to_le_bytes();
@@ -731,8 +602,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 8)?;
 
             let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
@@ -753,8 +624,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 8)?;
 
             let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
@@ -775,8 +646,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 1)?;
 
             let val = c as u8;
@@ -791,8 +662,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 2)?;
 
             let [b1, b2] = (c as u16).to_le_bytes();
@@ -808,8 +679,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 4)?;
 
             let [b1, b2, b3, b4] = (c as u32).to_le_bytes();
@@ -826,8 +697,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
             let val = mem[addr];
@@ -840,8 +711,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
             let b1 = mem[addr];
@@ -856,8 +727,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
             let b1 = mem[addr];
@@ -872,8 +743,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
             let b1 = mem[addr];
@@ -893,8 +764,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
             let b1 = mem[addr];
@@ -914,8 +785,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
             let b = mem[addr];
@@ -927,8 +798,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
             let b = mem[addr];
@@ -941,8 +812,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
             let b = mem[addr];
@@ -955,8 +826,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
             let b1 = mem[addr];
@@ -969,8 +840,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
             let b1 = mem[addr];
@@ -984,8 +855,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
             let b1 = mem[addr];
@@ -999,8 +870,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
             let b1 = mem[addr];
@@ -1014,8 +885,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
             let b1 = mem[addr];
@@ -1031,8 +902,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
             let b1 = mem[addr];
@@ -1051,8 +922,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 1)?;
 
             mem[addr] = c as u8;
@@ -1065,8 +936,8 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.modules[module_idx].mem_addrs[0];
-            let mem = &mut rt.store.mems[mem_addr as usize];
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 2)?;
 
             let [b1, b2] = (c as u16).to_le_bytes();
@@ -1095,16 +966,16 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::GetGlobal(idx) => {
-            let global_idx = rt.modules[module_idx].global_addrs[idx as usize];
-            let value = rt.store.globals[global_idx as usize].value;
+            let global_addr = rt.get_module(module_addr).get_global(GlobalIdx(idx));
+            let value = rt.store.get_global(global_addr).value;
             rt.stack.push_value(value)?;
             rt.ip += 1;
         }
 
         Instruction::SetGlobal(idx) => {
-            let global_idx = rt.modules[module_idx].global_addrs[idx as usize];
+            let global_addr = rt.get_module(module_addr).get_global(GlobalIdx(idx));
             let value = rt.stack.pop_value()?;
-            rt.store.globals[global_idx as usize].value = value;
+            rt.store.get_global_mut(global_addr).value = value;
             rt.ip += 1;
         }
 
@@ -1119,12 +990,12 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Const(f) => {
-            rt.stack.push_f32(unsafe { transmute(f) })?;
+            rt.stack.push_f32(f32::from_bits(f))?;
             rt.ip += 1;
         }
 
         Instruction::F64Const(f) => {
-            rt.stack.push_f64(unsafe { transmute(f) })?;
+            rt.stack.push_f64(f64::from_bits(f))?;
             rt.ip += 1;
         }
 
@@ -1627,19 +1498,19 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32ReinterpretF32 => {
-            op1::<f32, i32, _>(rt, |f| unsafe { transmute(f) })?;
+            op1::<f32, u32, _>(rt, f32::to_bits)?;
         }
 
         Instruction::I64ReinterpretF64 => {
-            op1::<f64, i64, _>(rt, |f| unsafe { transmute(f) })?;
+            op1::<f64, u64, _>(rt, f64::to_bits)?;
         }
 
         Instruction::F32ReinterpretI32 => {
-            op1::<i32, f32, _>(rt, |f| unsafe { transmute(f) })?;
+            op1::<u32, f32, _>(rt, f32::from_bits)?;
         }
 
         Instruction::F64ReinterpretI64 => {
-            op1::<i64, f64, _>(rt, |f| unsafe { transmute(f) })?;
+            op1::<u64, f64, _>(rt, f64::from_bits)?;
         }
 
         Instruction::F32Nearest => {
@@ -2269,16 +2140,18 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         //                          Control flow instructions                                     //
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Call(func_idx) => {
+        Instruction::Call(fun_idx) => {
             // NB. invoke updates the ip
-            invoke(rt, module_idx, func_idx)?;
+            invoke(rt, module_addr, FunIdx(fun_idx))?;
         }
 
         Instruction::CallIndirect(sig, table_ref) => {
             let elem_idx = rt.stack.pop_i32()?;
 
-            let table_addr = rt.modules[module_idx].table_addrs[table_ref as usize];
-            let fun_addr = match rt.store.tables[table_addr as usize].get(elem_idx as usize) {
+            let table_addr = rt
+                .get_module(module_addr)
+                .get_table(TableIdx(u32::from(table_ref)));
+            let fun_addr = match rt.store.get_table(table_addr).get(elem_idx as usize) {
                 Some(Some(fun_addr)) => *fun_addr,
                 Some(None) => {
                     // TODO: This should be a trap?
@@ -2291,10 +2164,13 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
             };
 
             // Check function type
-            let call_instr_ty = &rt.modules[module_idx].types[sig as usize];
-            let fun_module_idx = rt.store.funcs[fun_addr as usize].module_idx();
-            let actual_fun_ty_idx = rt.store.funcs[fun_addr as usize].ty_idx();
-            let actual_ty = &rt.modules[fun_module_idx].types[actual_fun_ty_idx as usize];
+            let call_instr_ty = rt.store.get_module(module_addr).get_type(TypeIdx(sig));
+            let fun_module_addr = rt.store.get_fun(fun_addr).module_addr();
+            let actual_fun_ty_idx = rt.store.get_fun(fun_addr).ty_idx();
+            let actual_ty = &rt
+                .store
+                .get_module(fun_module_addr)
+                .get_type(actual_fun_ty_idx);
             // NB. We can't use (==) here because of the 'form' fields of FunctionTypes. TODO:
             // replace parity_wasm.
             if call_instr_ty.params() != actual_ty.params()
@@ -2316,7 +2192,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::Block(block_ty) => {
-            let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
+            let (n_args, n_rets) = block_arity(rt, module_addr, block_ty);
             let mut args = Vec::with_capacity(n_args as usize);
             for _ in 0..n_args {
                 args.push(rt.stack.pop_value()?);
@@ -2341,7 +2217,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::Loop(block_ty) => {
-            let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
+            let (n_args, n_rets) = block_arity(rt, module_addr, block_ty);
             let mut args = Vec::with_capacity(n_args as usize);
             for _ in 0..n_args {
                 args.push(rt.stack.pop_value()?);
@@ -2359,7 +2235,7 @@ pub fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::If(block_ty) => {
             let cond = rt.stack.pop_i32()?;
 
-            let (n_args, n_rets) = block_arity(rt, module_idx, block_ty);
+            let (n_args, n_rets) = block_arity(rt, module_addr, block_ty);
             let mut args = Vec::with_capacity(n_args as usize);
             for _ in 0..n_args {
                 args.push(rt.stack.pop_value()?);
@@ -2499,12 +2375,12 @@ fn op2_trap<A: StackValue, B: StackValue, F: Fn(A, A) -> Result<B>>(
     Ok(())
 }
 
-fn block_arity(rt: &Runtime, module_idx: usize, ty: wasm::BlockType) -> (u32, u32) {
+fn block_arity(rt: &Runtime, module_addr: ModuleAddr, ty: wasm::BlockType) -> (u32, u32) {
     match ty {
         wasm::BlockType::Value(_) => (0, 1),
         wasm::BlockType::NoResult => (0, 0),
         wasm::BlockType::TypeIdx(ty_idx) => {
-            let ty = &rt.modules[module_idx].types[ty_idx as usize];
+            let ty = &rt.store.get_module(module_addr).get_type(TypeIdx(ty_idx));
             (ty.params().len() as u32, ty.results().len() as u32)
         }
     }
@@ -2567,16 +2443,19 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
 
 fn ret(rt: &mut Runtime) -> Result<()> {
     let current_fun_addr = rt.frames.current()?.fun_addr;
-    let current_fun = match &rt.store.funcs[current_fun_addr as usize] {
+    let current_fun = match rt.store.get_fun(current_fun_addr) {
         Func::Wasm(fun) => fun,
         Func::Host { .. } => {
             return Err(ExecError::Panic("ret: host function".to_string()));
         }
     };
-    let module_idx = current_fun.module_idx;
+    let module_addr = current_fun.module_addr;
     let ty_idx = current_fun.ty_idx;
 
-    let fun_return_arity = rt.modules[module_idx].types[ty_idx as usize]
+    let fun_return_arity = rt
+        .store
+        .get_module(module_addr)
+        .get_type(ty_idx)
         .results()
         .len();
 

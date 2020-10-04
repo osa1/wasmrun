@@ -2,8 +2,9 @@ mod cli;
 mod spec;
 
 use cli::Args;
-use libwasmrun::exec::{self, Runtime, Value};
-use libwasmrun::store::ModuleIdx;
+use libwasmrun::exec::{self, Runtime};
+use libwasmrun::store::ModuleAddr;
+use libwasmrun::value::Value;
 
 use std::fs;
 use std::io::{self, Write};
@@ -189,7 +190,7 @@ fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
     let mut failing_lines = vec![];
 
     let mut rt = Runtime::new_test();
-    let mut module_idx: Option<ModuleIdx> = None;
+    let mut module_addr: Option<ModuleAddr> = None;
     let mut modules = Default::default();
 
     for cmd in spec.commands {
@@ -198,7 +199,7 @@ fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
             &dir_path,
             out,
             &mut rt,
-            &mut module_idx,
+            &mut module_addr,
             &mut modules,
             &mut failing_lines,
         );
@@ -212,8 +213,8 @@ fn run_spec_cmd(
     dir_path: &str,
     out: &mut Output,
     rt: &mut Runtime,
-    module_idx: &mut Option<ModuleIdx>,
-    modules: &mut FxHashMap<String, ModuleIdx>,
+    module_addr: &mut Option<ModuleAddr>,
+    modules: &mut FxHashMap<String, ModuleAddr>,
     failing_lines: &mut Vec<usize>,
 ) {
     match cmd {
@@ -232,20 +233,20 @@ fn run_spec_cmd(
             match wasm::deserialize_file(file_path) {
                 Err(err) => {
                     writeln!(out, "Error while parsing module: {}", err).unwrap();
-                    *module_idx = None;
+                    *module_addr = None;
                     failing_lines.push(line);
                 }
                 Ok(module) => match exec::allocate_module(rt, module) {
-                    Ok(module_idx_) => {
+                    Ok(module_addr_) => {
                         writeln!(out, "OK").unwrap();
-                        *module_idx = Some(module_idx_);
+                        *module_addr = Some(module_addr_);
                         if let Some(name) = name {
-                            modules.insert(name, module_idx_);
+                            modules.insert(name, module_addr_);
                         }
                     }
                     Err(err) => {
                         writeln!(out, "Unable to allocate module: {}", err).unwrap();
-                        *module_idx = None;
+                        *module_addr = None;
                     }
                 },
             }
@@ -288,10 +289,10 @@ fn run_spec_cmd(
             // Flush the line number now so that we'll see it in case of a loop or hang
             out.flush().unwrap();
 
-            let module_idx = match name {
+            let module_addr = match name {
                 Some(name) => modules.get(&name).unwrap(),
-                None => match module_idx {
-                    Some(module_idx) => module_idx,
+                None => match module_addr {
+                    Some(module_addr) => module_addr,
                     None => {
                         writeln!(out, "module not available; skipping").unwrap();
                         return;
@@ -299,7 +300,7 @@ fn run_spec_cmd(
                 },
             };
 
-            rt.register_module(register_as, *module_idx);
+            rt.register_module(register_as, *module_addr);
 
             writeln!(out, "OK").unwrap();
         }
@@ -317,17 +318,17 @@ fn run_spec_cmd(
 
             write!(out, "\tline {}: ", line).unwrap();
 
-            let module_idx = match module {
+            let module_addr = match module {
                 Some(module_name) => match modules.get(&module_name) {
-                    Some(module_idx) => *module_idx,
+                    Some(module_addr) => *module_addr,
                     None => {
                         writeln!(out, "can't find registered module {}", module_name).unwrap();
                         failing_lines.push(line);
                         return;
                     }
                 },
-                None => match module_idx {
-                    Some(module_idx) => *module_idx,
+                None => match module_addr {
+                    Some(module_addr) => *module_addr,
                     None => {
                         writeln!(out, "module not available; skipping").unwrap();
                         return;
@@ -335,7 +336,7 @@ fn run_spec_cmd(
                 },
             };
 
-            match rt.get_global(module_idx, &func) {
+            match rt.get_global(module_addr, &func) {
                 None => {
                     writeln!(out, "can't find global {:?}", func).unwrap();
                     failing_lines.push(line);
@@ -373,17 +374,17 @@ fn run_spec_cmd(
 
             write!(out, "\tline {}: ", line).unwrap();
 
-            let module_idx = match module {
+            let module_addr = match module {
                 Some(module_name) => match modules.get(&module_name) {
-                    Some(module_idx) => *module_idx,
+                    Some(module_addr) => *module_addr,
                     None => {
                         writeln!(out, "can't find registered module {}", module_name).unwrap();
                         failing_lines.push(line);
                         return;
                     }
                 },
-                None => match module_idx {
-                    Some(module_idx) => *module_idx,
+                None => match module_addr {
+                    Some(module_addr) => *module_addr,
                     None => {
                         writeln!(out, "module not available; skipping").unwrap();
                         return;
@@ -396,7 +397,7 @@ fn run_spec_cmd(
                 rt.push_value(arg);
             }
 
-            if let Err(err) = exec::invoke_by_name(rt, module_idx, &func) {
+            if let Err(err) = exec::invoke_by_name(rt, module_addr, &func) {
                 writeln!(out, "Error while calling function {}: {}", func, err).unwrap();
                 failing_lines.push(line);
                 return;

@@ -10,16 +10,18 @@
 // TODO: We should introduce newtypes for these.
 
 pub mod exec;
-pub mod frame;
-pub mod mem;
-pub mod spectest;
-pub mod stack;
+mod export;
+mod frame;
+mod mem;
+mod module;
+mod spectest;
+mod stack;
 pub mod store;
 pub mod value;
 
 use std::fmt::Display;
 
-pub use exec::Runtime;
+use exec::Runtime;
 
 use parity_wasm::elements as wasm;
 

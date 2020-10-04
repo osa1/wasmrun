@@ -3,31 +3,19 @@
 use crate::exec::Runtime;
 
 // [] -> []
-pub fn print(_rt: &mut Runtime) {
-    // TODO
-}
+pub(crate) fn print(_rt: &mut Runtime) {}
 
 // [i32] -> []
-pub fn print_i32(_rt: &mut Runtime) {
-    // TODO
-}
+pub(crate) fn print_i32(_rt: &mut Runtime) {}
 
 // [i32, f32] -> []
-pub fn print_i32_f32(_rt: &mut Runtime) {
-    // TODO
-}
+pub(crate) fn print_i32_f32(_rt: &mut Runtime) {}
 
 // [f64, f64] -> []
-pub fn print_f64_f64(_rt: &mut Runtime) {
-    // TODO
-}
+pub(crate) fn print_f64_f64(_rt: &mut Runtime) {}
 
 // [f32] -> []
-pub fn print_f32(_rt: &mut Runtime) {
-    // TODO
-}
+pub(crate) fn print_f32(_rt: &mut Runtime) {}
 
 // [f64] -> []
-pub fn print_f64(_rt: &mut Runtime) {
-    // TODO
-}
+pub(crate) fn print_f64(_rt: &mut Runtime) {}
