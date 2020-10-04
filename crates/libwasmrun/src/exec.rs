@@ -23,9 +23,9 @@ pub struct Runtime {
     /// The heap
     store: Store,
     /// Value stack
-    pub(crate) stack: Stack,
+    stack: Stack,
     /// Call stack
-    pub(crate) frames: FrameStack,
+    frames: FrameStack,
     /// Maps registered modules to their indices in `modules`
     module_names: FxHashMap<String, ModuleAddr>,
     /// Instruction pointer
