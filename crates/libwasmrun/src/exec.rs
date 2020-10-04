@@ -499,12 +499,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
     assert!((rt.ip as usize) < current_fun.fun.code().elements().len());
 
-    // if rt.ip as usize >= current_fun.fun.code().elements().len() {
-    //     // TODO: Why is this branch taken? It think all functions end with an `end`?
-    //     // TODO: Should this really take one step?
-    //     return Ok(());
-    // }
-
     // Instruction is just 3 words so clonning here should be fine, and avoid borrowchk issues
     // later on
     let instr = current_fun.fun.code().elements()[rt.ip as usize].clone();
