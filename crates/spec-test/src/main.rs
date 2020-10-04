@@ -465,6 +465,7 @@ fn run_spec_cmd(
                                 msg, err_msg
                             )
                             .unwrap();
+                            failing_lines.push(line);
                         }
                         Err(ExecError::Trap(trap)) => {
                             let trap_msg = trap_expected_msg(trap);
