@@ -1571,16 +1571,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64ExtendUI32 => {
-            // FIXME: Same, can't use op1
-            let i = rt.stack.pop_i32()? as u32;
-            rt.stack.push_i64((i as u64) as i64)?;
-            rt.ip += 1;
+            op1::<u32, u64, _>(rt, |i| i as u64)?;
         }
 
         Instruction::I64ExtendSI32 => {
-            let i = rt.stack.pop_i32()?;
-            rt.stack.push_i64(i as i64)?;
-            rt.ip += 1;
+            op1::<i32, i64, _>(rt, |i| i as i64)?;
         }
 
         Instruction::I32TruncUF32 => {
