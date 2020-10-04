@@ -18,7 +18,7 @@ use parity_wasm::elements as wasm;
 #[derive(Debug)]
 pub enum ExecError {
     /// Wasm code trapped
-    Trap,
+    Trap(exec::Trap),
     /// Invalid module, unsupported operation, IO error, or a bug
     Panic(String),
 }
@@ -26,7 +26,7 @@ pub enum ExecError {
 impl Display for ExecError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExecError::Trap => write!(f, "Wasm module trapped"),
+            ExecError::Trap(_trap) => write!(f, "Wasm module trapped"),
             ExecError::Panic(msg) => write!(f, "Interpreter panicked: {}", msg),
         }
     }

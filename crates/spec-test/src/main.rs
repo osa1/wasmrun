@@ -2,9 +2,10 @@ mod cli;
 mod spec;
 
 use cli::Args;
-use libwasmrun::exec::{self, Runtime};
+use libwasmrun::exec::{self, Runtime, Trap};
 use libwasmrun::store::ModuleAddr;
 use libwasmrun::value::Value;
+use libwasmrun::ExecError;
 
 use std::fs;
 use std::io::{self, Write};
@@ -443,22 +444,63 @@ fn run_spec_cmd(
                         failing_lines.push(line);
                     }
                 }
-                spec::ActionKind::Trap => {
-                    if let Ok(()) = exec_ret {
-                        writeln!(
-                            out,
-                            "assert_trap function succeeded: {}. Expected error: {:?}",
-                            func, err_msg
-                        )
-                        .unwrap();
-                        failing_lines.push(line);
-                        return;
-                    }
 
-                    writeln!(out, "OK").unwrap();
+                spec::ActionKind::Trap => {
+                    let err_msg = err_msg.unwrap();
+
+                    match exec_ret {
+                        Ok(()) => {
+                            writeln!(
+                                out,
+                                "assert_trap function succeeded: {}. Expected error: {:?}",
+                                func, err_msg
+                            )
+                            .unwrap();
+                            failing_lines.push(line);
+                        }
+                        Err(ExecError::Panic(msg)) => {
+                            writeln!(
+                                out,
+                                "assert_trap function panicked: {}. Expected error: {:?}",
+                                msg, err_msg
+                            )
+                            .unwrap();
+                        }
+                        Err(ExecError::Trap(trap)) => {
+                            let trap_msg = trap_expected_msg(trap);
+
+                            // https://github.com/WebAssembly/spec/blob/7526564b56c30250b66504fe795e9c1e88a938af/interpreter/script/run.ml#L368-L376
+                            if !err_msg.starts_with(trap_msg) {
+                                writeln!(
+                                    out,
+                                    "Unexpected trap: expected {:?}, found {:?}",
+                                    err_msg, trap_msg
+                                )
+                                .unwrap();
+                                failing_lines.push(line);
+                            } else {
+                                writeln!(out, "OK").unwrap();
+                            }
+                        }
+                    }
                 }
+
                 spec::ActionKind::GetGlobal => panic!(), // already handled
             }
         }
+    }
+}
+
+fn trap_expected_msg(trap: Trap) -> &'static str {
+    match trap {
+        Trap::UndefinedElement => "undefined",
+        Trap::UninitializedElement => "uninitialized",
+        Trap::IndirectCallTypeMismatch => "indirect call",
+        Trap::OOBTableElementIdx => "element out of bounds",
+        Trap::OOBMemoryAccess => "out of bounds memory access",
+        Trap::IntDivideByZero => "integer divide by zero",
+        Trap::IntOverflow => "integer overflow",
+        Trap::InvalidConvToInt => "invalid conversion to integer",
+        Trap::Unreachable => "unreachable",
     }
 }

@@ -1,4 +1,4 @@
-use crate::exec::PAGE_SIZE;
+use crate::exec::{Trap, PAGE_SIZE};
 use crate::{ExecError, Result};
 
 use std::ops::{Index, IndexMut};
@@ -58,8 +58,12 @@ impl Mem {
     }
 
     pub(crate) fn check_range(&self, addr: u32, len: u32) -> Result<()> {
-        if addr.checked_add(len).ok_or(ExecError::Trap)? as usize > self.mem.len() {
-            Err(ExecError::Trap)
+        if addr
+            .checked_add(len)
+            .ok_or(ExecError::Trap(Trap::OOBMemoryAccess))? as usize
+            > self.mem.len()
+        {
+            Err(ExecError::Trap(Trap::OOBMemoryAccess))
         } else {
             Ok(())
         }

@@ -20,6 +20,28 @@ use std::rc::Rc;
 pub(crate) const PAGE_SIZE: usize = 65536;
 pub(crate) const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
+#[derive(Debug, Clone, Copy)]
+pub enum Trap {
+    /// Undefined table element called
+    UndefinedElement,
+    /// Uninitialized table element called
+    UninitializedElement,
+    /// Indirect function call target doesn't have expected type
+    IndirectCallTypeMismatch,
+    /// Out of bounds table element index
+    OOBTableElementIdx,
+    /// Out of bounds memory access
+    OOBMemoryAccess,
+    /// Integer divide by zero
+    IntDivideByZero,
+    /// Integer overflow
+    IntOverflow,
+    /// Invalid conversion to integer
+    InvalidConvToInt,
+    /// 'unreachable' instruction executed
+    Unreachable,
+}
+
 pub struct Runtime {
     /// The heap
     store: Store,
@@ -1117,9 +1139,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I32DivS => {
             op2_trap::<i32, i32, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
-                    i32::checked_div(a, b).ok_or(ExecError::Trap)
+                    i32::checked_div(a, b).ok_or(ExecError::Trap(Trap::IntOverflow))
                 }
             })?;
         }
@@ -1131,9 +1153,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64DivS => {
             op2_trap::<i64, i64, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
-                    i64::checked_div(a, b).ok_or(ExecError::Trap)
+                    i64::checked_div(a, b).ok_or(ExecError::Trap(Trap::IntOverflow))
                 }
             })?;
         }
@@ -1145,7 +1167,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I32DivU => {
             op2_trap::<u32, u32, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
                     Ok(u32::wrapping_div(a, b))
                 }
@@ -1155,7 +1177,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64DivU => {
             op2_trap::<u64, u64, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
                     Ok(u64::wrapping_div(a, b))
                 }
@@ -1265,7 +1287,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I32RemS => {
             op2_trap::<i32, i32, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
                     Ok(a.wrapping_rem(b))
                 }
@@ -1275,7 +1297,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64RemS => {
             op2_trap::<i64, i64, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
                     Ok(a.wrapping_rem(b))
                 }
@@ -1285,7 +1307,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I32RemU => {
             op2_trap::<u32, u32, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
                     Ok(a.wrapping_rem(b))
                 }
@@ -1295,7 +1317,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::I64RemU => {
             op2_trap::<u64, u64, _>(rt, |a, b| {
                 if b == 0 {
-                    Err(ExecError::Trap)
+                    Err(ExecError::Trap(Trap::IntDivideByZero))
                 } else {
                     Ok(a.wrapping_rem(b))
                 }
@@ -1565,11 +1587,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f32()?;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= (-(i32::MIN as f32) * 2f32) || f <= -1f32 {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             rt.stack.push_i32((f as i64) as i32)?;
@@ -1590,11 +1612,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f32()?;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i32::MIN as f32) || f < (i32::MIN as f32) {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             rt.stack.push_i32(f as i32)?;
@@ -1615,11 +1637,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f64()?;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i32::MIN as f64) || f <= (i32::MIN as f64 - 1f64) {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             rt.stack.push_i32(f as i32)?;
@@ -1640,11 +1662,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f64()?;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i32::MIN as f64) * 2f64 || f <= -1f64 {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             rt.stack.push_i32((f as i64) as i32)?;
@@ -1665,11 +1687,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f32()? as f64;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             rt.stack.push_i64(f as i64)?;
@@ -1690,11 +1712,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f32()? as f64;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             let val = if f >= -(i64::MIN as f64) {
@@ -1723,11 +1745,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f64()?;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             rt.stack.push_i64(f as i64)?;
@@ -1748,11 +1770,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let f = rt.stack.pop_f64()?;
 
             if f.is_nan() {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::InvalidConvToInt));
             }
 
             if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IntOverflow));
             }
 
             let val = if f >= -(i64::MIN as f64) {
@@ -2149,12 +2171,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let fun_addr = match rt.store.get_table(table_addr).get(elem_idx as usize) {
                 Some(Some(fun_addr)) => *fun_addr,
                 Some(None) => {
-                    // TODO: This should be a trap?
-                    return Err(ExecError::Panic("Table index not initialized".to_string()));
+                    return Err(ExecError::Trap(Trap::UninitializedElement));
                 }
                 None => {
-                    // "undefined element"
-                    return Err(ExecError::Trap);
+                    return Err(ExecError::Trap(Trap::UndefinedElement));
                 }
             };
 
@@ -2171,7 +2191,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             if call_instr_ty.params() != actual_ty.params()
                 || call_instr_ty.results() != actual_ty.results()
             {
-                return Err(ExecError::Trap);
+                return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
             }
 
             invoke_direct(rt, fun_addr)?;
@@ -2183,7 +2203,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::Unreachable => {
-            return Err(ExecError::Trap);
+            return Err(ExecError::Trap(Trap::Unreachable));
         }
 
         Instruction::Block(block_ty) => {
@@ -2338,7 +2358,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 }
 
 fn trapping_add(a: u32, b: u32) -> Result<u32> {
-    a.checked_add(b).ok_or(ExecError::Trap)
+    a.checked_add(b)
+        .ok_or(ExecError::Trap(Trap::OOBMemoryAccess))
 }
 
 fn op1<A: StackValue, B: StackValue, F: Fn(A) -> B>(rt: &mut Runtime, op: F) -> Result<()> {
