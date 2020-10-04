@@ -1,11 +1,12 @@
 use crate::export::Export;
 use crate::frame::FrameStack;
+use crate::fun::Fun;
 use crate::mem::Mem;
 use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::spectest;
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{FunAddr, Func, Global, ModuleAddr, Store};
-pub(crate) use crate::value::{self, Value};
+use crate::store::{FunAddr, Global, ModuleAddr, Store};
+use crate::value::{self, Value};
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
@@ -439,8 +440,8 @@ pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx)
 
 fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun = match rt.store.get_fun(fun_addr) {
-        Func::Wasm(fun) => fun,
-        Func::Host(fun) => {
+        Fun::Wasm(fun) => fun,
+        Fun::Host(fun) => {
             let host_func = fun.fun.clone();
             host_func(rt);
             rt.ip += 1;
@@ -490,8 +491,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
     };
     let current_fun = match &rt.store.get_fun(current_fun_addr) {
-        Func::Wasm(fun) => fun,
-        Func::Host { .. } => {
+        Fun::Wasm(fun) => fun,
+        Fun::Host { .. } => {
             return Err(ExecError::Panic("single_step: host function".to_string()));
         }
     };
@@ -2444,8 +2445,8 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
 fn ret(rt: &mut Runtime) -> Result<()> {
     let current_fun_addr = rt.frames.current()?.fun_addr;
     let current_fun = match rt.store.get_fun(current_fun_addr) {
-        Func::Wasm(fun) => fun,
-        Func::Host { .. } => {
+        Fun::Wasm(fun) => fun,
+        Fun::Host { .. } => {
             return Err(ExecError::Panic("ret: host function".to_string()));
         }
     };

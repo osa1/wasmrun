@@ -1,5 +1,6 @@
-use super::store::{FunAddr, WasmFunc};
-use super::value::Value;
+use crate::fun::WasmFun;
+use crate::store::FunAddr;
+use crate::value::Value;
 use crate::{ExecError, Result};
 
 use parity_wasm::elements as wasm;
@@ -44,7 +45,7 @@ impl FrameStack {
         }
     }
 
-    pub(crate) fn push(&mut self, fun: &WasmFunc, arg_tys: &[wasm::ValueType]) {
+    pub(crate) fn push(&mut self, fun: &WasmFun, arg_tys: &[wasm::ValueType]) {
         self.0.push(Frame {
             fun_addr: fun.fun_addr,
             locals: arg_tys

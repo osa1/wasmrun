@@ -1,17 +1,7 @@
-// NOTE Index vs. address
-// ~~~~~~~~~~~~~~~~~~~~~~
-//
-// Indices are module-local, e.g. "function 5" doesn't make sense in a program, "function 5 in
-// module 10" makes sense.
-//
-// Addresses are indices in heap, rather than module, and global. (i.e. no two function live at the
-// same address, but they may have same indices in their own modules)
-//
-// TODO: We should introduce newtypes for these.
-
 pub mod exec;
 mod export;
 mod frame;
+mod fun;
 mod mem;
 mod module;
 mod spectest;
