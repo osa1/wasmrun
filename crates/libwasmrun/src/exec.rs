@@ -3,7 +3,6 @@ use crate::frame::FrameStack;
 use crate::fun::Fun;
 use crate::mem::Mem;
 use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
-use crate::spectest;
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store};
 use crate::value::{self, Value};
@@ -145,16 +144,16 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     module.add_export(Export::new_global("global_f64".to_owned(), global_f64_idx));
 
     let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
-    let print_addr = rt
-        .store
-        .allocate_host_fun(module_addr, print_ty, Rc::new(spectest::print));
+    let print_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_ty, Rc::new(|_rt: &mut Runtime| {}));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
     let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
     let print_i32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(spectest::print_i32));
+            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_rt: &mut Runtime| {}));
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
@@ -165,7 +164,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_i32_f32_addr = rt.store.allocate_host_fun(
         module_addr,
         print_i32_f32_ty,
-        Rc::new(spectest::print_i32_f32),
+        Rc::new(|_rt: &mut Runtime| {}),
     );
     let print_i32_f32_idx = module.add_fun(print_i32_f32_addr);
     module.add_export(Export::new_fun(
@@ -180,7 +179,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_f64_f64_addr = rt.store.allocate_host_fun(
         module_addr,
         print_f64_f64_ty,
-        Rc::new(spectest::print_f64_f64),
+        Rc::new(|_rt: &mut Runtime| {}),
     );
     let print_f64_f64_idx = module.add_fun(print_f64_f64_addr);
     module.add_export(Export::new_fun(
@@ -191,14 +190,14 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
     let print_f32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(spectest::print_f32));
+            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_rt: &mut Runtime| {}));
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
     let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
     let print_f64_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(spectest::print_f64));
+            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_rt: &mut Runtime| {}));
     let print_f64_idx = module.add_fun(print_f64_addr);
     module.add_export(Export::new_fun("print_f64".to_owned(), print_f64_idx));
 

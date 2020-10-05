@@ -4,7 +4,6 @@ mod frame;
 mod fun;
 mod mem;
 mod module;
-mod spectest;
 mod stack;
 pub mod store;
 pub mod value;
