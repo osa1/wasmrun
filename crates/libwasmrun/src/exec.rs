@@ -45,11 +45,11 @@ pub enum Trap {
 pub struct Runtime {
     /// The heap
     store: Store,
-    /// Value stack
+    /// Value and continuation stack
     stack: Stack,
-    /// Call stack
+    /// Call stack. Frames hold locals.
     frames: FrameStack,
-    /// Maps registered modules to their indices in `modules`
+    /// Maps registered modules to their module addresses
     module_names: FxHashMap<String, ModuleAddr>,
     /// Instruction pointer
     ip: u32,
@@ -1579,18 +1579,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32TruncUF32 => {
-            let f = rt.stack.pop_f32()?;
+            op1_trap::<f32, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f >= (-(i32::MIN as f32) * 2f32) || f <= -1f32 {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            if f >= (-(i32::MIN as f32) * 2f32) || f <= -1f32 {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
-
-            rt.stack.push_i32((f as i64) as i32)?;
-            rt.ip += 1;
+                Ok((f as i64) as i32)
+            })?;
 
             // let trunc_f32_u x =
             //   if F32.ne x x then
@@ -1604,18 +1603,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32TruncSF32 => {
-            let f = rt.stack.pop_f32()?;
+            op1_trap::<f32, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f >= -(i32::MIN as f32) || f < (i32::MIN as f32) {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            if f >= -(i32::MIN as f32) || f < (i32::MIN as f32) {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
-
-            rt.stack.push_i32(f as i32)?;
-            rt.ip += 1;
+                Ok(f as i32)
+            })?;
 
             // let trunc_f32_s x =
             //   if F32.ne x x then
@@ -1629,18 +1627,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32TruncSF64 => {
-            let f = rt.stack.pop_f64()?;
+            op1_trap::<f64, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f >= -(i32::MIN as f64) || f <= (i32::MIN as f64 - 1f64) {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            if f >= -(i32::MIN as f64) || f <= (i32::MIN as f64 - 1f64) {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
-
-            rt.stack.push_i32(f as i32)?;
-            rt.ip += 1;
+                Ok(f as i32)
+            })?;
 
             // let trunc_f64_s x =
             //   if F64.ne x x then
@@ -1654,18 +1651,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32TruncUF64 => {
-            let f = rt.stack.pop_f64()?;
+            op1_trap::<f64, i32, _>(rt, |f| {
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f >= -(i32::MIN as f64) * 2f64 || f <= -1f64 {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            if f >= -(i32::MIN as f64) * 2f64 || f <= -1f64 {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
-
-            rt.stack.push_i32((f as i64) as i32)?;
-            rt.ip += 1;
+                Ok((f as i64) as i32)
+            })?;
 
             // let trunc_f64_u x =
             //   if F64.ne x x then
@@ -1679,18 +1675,19 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64TruncSF32 => {
-            let f = rt.stack.pop_f32()? as f64;
+            op1_trap::<f32, i64, _>(rt, |f| {
+                let f = f as f64;
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
+                if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            rt.stack.push_i64(f as i64)?;
-            rt.ip += 1;
+                Ok(f as i64)
+            })?;
 
             // let trunc_f32_s x =
             //   if F32.ne x x then
@@ -1704,24 +1701,23 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64TruncUF32 => {
-            let f = rt.stack.pop_f32()? as f64;
+            op1_trap::<f32, i64, _>(rt, |f| {
+                let f = f as f64;
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
+                if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            let val = if f >= -(i64::MIN as f64) {
-                ((f - 2f64.powi(63)) as i64) ^ i64::MIN
-            } else {
-                f as i64
-            };
-
-            rt.stack.push_i64(val)?;
-            rt.ip += 1;
+                Ok(if f >= -(i64::MIN as f64) {
+                    ((f - 2f64.powi(63)) as i64) ^ i64::MIN
+                } else {
+                    f as i64
+                })
+            })?;
 
             // let trunc_f32_u x =
             //   if F32.ne x x then
@@ -1737,18 +1733,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64TruncSF64 => {
-            let f = rt.stack.pop_f64()?;
+            op1_trap::<f64, i64, _>(rt, |f| {
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            if f >= -(i64::MIN as f64) || f < (i64::MIN as f64) {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
-
-            rt.stack.push_i64(f as i64)?;
-            rt.ip += 1;
+                Ok(f as i64)
+            })?;
 
             // let trunc_f64_s x =
             //   if F64.ne x x then
@@ -1762,24 +1757,21 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I64TruncUF64 => {
-            let f = rt.stack.pop_f64()?;
+            op1_trap::<f64, i64, _>(rt, |f| {
+                if f.is_nan() {
+                    return Err(ExecError::Trap(Trap::InvalidConvToInt));
+                }
 
-            if f.is_nan() {
-                return Err(ExecError::Trap(Trap::InvalidConvToInt));
-            }
+                if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
+                    return Err(ExecError::Trap(Trap::IntOverflow));
+                }
 
-            if f >= -(i64::MIN as f64) * 2f64 || f <= -1f64 {
-                return Err(ExecError::Trap(Trap::IntOverflow));
-            }
-
-            let val = if f >= -(i64::MIN as f64) {
-                ((f - 2f64.powi(63)) as i64) ^ i64::MIN
-            } else {
-                f as i64
-            };
-
-            rt.stack.push_i64(val)?;
-            rt.ip += 1;
+                Ok(if f >= -(i64::MIN as f64) {
+                    ((f - 2f64.powi(63)) as i64) ^ i64::MIN
+                } else {
+                    f as i64
+                })
+            })?;
 
             // let trunc_f64_u x =
             //   if F64.ne x x then
@@ -2358,20 +2350,22 @@ fn trapping_add(a: u32, b: u32) -> Result<u32> {
 }
 
 fn op1<A: StackValue, B: StackValue, F: Fn(A) -> B>(rt: &mut Runtime, op: F) -> Result<()> {
+    op1_trap(rt, |a| Ok(op(a)))
+}
+
+fn op1_trap<A: StackValue, B: StackValue, F: Fn(A) -> Result<B>>(
+    rt: &mut Runtime,
+    op: F,
+) -> Result<()> {
     let val = A::pop(&mut rt.stack)?;
-    let ret = op(val);
+    let ret = op(val)?;
     ret.push(&mut rt.stack);
     rt.ip += 1;
     Ok(())
 }
 
 fn op2<A: StackValue, B: StackValue, F: Fn(A, A) -> B>(rt: &mut Runtime, op: F) -> Result<()> {
-    let val2 = A::pop(&mut rt.stack)?;
-    let val1 = A::pop(&mut rt.stack)?;
-    let ret = op(val1, val2);
-    ret.push(&mut rt.stack);
-    rt.ip += 1;
-    Ok(())
+    op2_trap(rt, |a, b| Ok(op(a, b)))
 }
 
 fn op2_trap<A: StackValue, B: StackValue, F: Fn(A, A) -> Result<B>>(
