@@ -43,9 +43,9 @@ pub enum Trap {
 
 pub struct Runtime {
     /// The heap
-    store: Store,
+    pub(crate) store: Store,
     /// Value and continuation stack
-    stack: Stack,
+    pub(crate) stack: Stack,
     /// Call stack. Frames hold locals.
     frames: FrameStack,
     /// Maps registered modules to their module addresses
@@ -146,14 +146,16 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
     let print_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_ty, Rc::new(|_rt: &mut Runtime| {}));
+            .allocate_host_fun(module_addr, print_ty, Rc::new(|_rt: &mut Runtime| Ok(())));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
     let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
-    let print_i32_addr =
-        rt.store
-            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_rt: &mut Runtime| {}));
+    let print_i32_addr = rt.store.allocate_host_fun(
+        module_addr,
+        print_i32_ty,
+        Rc::new(|_rt: &mut Runtime| Ok(())),
+    );
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
@@ -164,7 +166,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_i32_f32_addr = rt.store.allocate_host_fun(
         module_addr,
         print_i32_f32_ty,
-        Rc::new(|_rt: &mut Runtime| {}),
+        Rc::new(|_rt: &mut Runtime| Ok(())),
     );
     let print_i32_f32_idx = module.add_fun(print_i32_f32_addr);
     module.add_export(Export::new_fun(
@@ -179,7 +181,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_f64_f64_addr = rt.store.allocate_host_fun(
         module_addr,
         print_f64_f64_ty,
-        Rc::new(|_rt: &mut Runtime| {}),
+        Rc::new(|_rt: &mut Runtime| Ok(())),
     );
     let print_f64_f64_idx = module.add_fun(print_f64_f64_addr);
     module.add_export(Export::new_fun(
@@ -188,16 +190,20 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     ));
 
     let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
-    let print_f32_addr =
-        rt.store
-            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_rt: &mut Runtime| {}));
+    let print_f32_addr = rt.store.allocate_host_fun(
+        module_addr,
+        print_f32_ty,
+        Rc::new(|_rt: &mut Runtime| Ok(())),
+    );
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
     let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
-    let print_f64_addr =
-        rt.store
-            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_rt: &mut Runtime| {}));
+    let print_f64_addr = rt.store.allocate_host_fun(
+        module_addr,
+        print_f64_ty,
+        Rc::new(|_rt: &mut Runtime| Ok(())),
+    );
     let print_f64_idx = module.add_fun(print_f64_addr);
     module.add_export(Export::new_fun("print_f64".to_owned(), print_f64_idx));
 
@@ -464,7 +470,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
         Fun::Wasm(fun) => fun,
         Fun::Host(fun) => {
             let host_func = fun.fun.clone();
-            host_func(rt);
+            host_func(rt)?;
             rt.ip += 1;
             return Ok(());
         }

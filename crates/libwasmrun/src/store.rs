@@ -9,7 +9,7 @@ use parity_wasm::elements as wasm;
 
 use std::rc::Rc;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ModuleAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
@@ -25,7 +25,7 @@ pub(crate) struct MemAddr(u32);
 pub(crate) struct GlobalAddr(u32);
 
 #[derive(Default, Debug)]
-pub(crate) struct Store {
+pub struct Store {
     modules: Vec<Module>,
     funs: Vec<Fun>,
     tables: Vec<Vec<Option<FunAddr>>>, // indexed by table address (table_addrs), returns function address (index into Store.funcs)
@@ -68,7 +68,7 @@ impl Store {
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        fun: Rc<dyn Fn(&mut Runtime)>,
+        fun: Rc<dyn Fn(&mut Runtime) -> Result<()>>,
     ) -> FunAddr {
         let ret = self.funs.len();
         self.funs.push(Fun::Host(HostFun {

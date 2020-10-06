@@ -7,12 +7,15 @@ mod module;
 mod stack;
 pub mod store;
 pub mod value;
+pub mod wasi;
 
 use std::fmt::Display;
 
 use exec::Runtime;
 
 use parity_wasm::elements as wasm;
+
+pub use wasi::allocate_wasi;
 
 #[derive(Debug)]
 pub enum ExecError {
@@ -34,30 +37,27 @@ impl Display for ExecError {
 pub type Result<A> = ::std::result::Result<A, ExecError>;
 
 pub fn run_wasm(file: String) -> Result<()> {
-    let module = wasm::deserialize_file(file).unwrap();
-    // println!("{:#?}", module);
-
-    let mut runtime = Runtime::new();
-    // allocate_module also runs 'start'
-    let _module_idx = exec::allocate_module(&mut runtime, module)?;
-
-    /*
-        // Find exported _start function and call it
-        let mut start_fn = None;
-        for export in &runtime.get_module(module_idx).exports {
-            if export.field() == "_start" {
-                match export.internal() {
-                    wasm::Internal::Function(func_idx) => {
-                        start_fn = Some(*func_idx);
-                        break;
-                    }
-                    wasm::Internal::Table(_)
-                    | wasm::Internal::Memory(_)
-                    | wasm::Internal::Global(_) => {}
-                }
-            }
+    let module = match wasm::deserialize_file(file) {
+        Ok(module) => module,
+        Err(err) => {
+            return Err(ExecError::Panic(format!("Unable to parse module: {}", err)));
         }
-    */
+    };
 
-    Ok(())
+    let mut rt = Runtime::new();
+    let wasi_module_addr = allocate_wasi(&mut rt.store);
+    rt.register_module("wasi_snapshot_preview1".to_owned(), wasi_module_addr);
+
+    // allocate_module also runs 'start'
+    let module_addr = exec::allocate_module(&mut rt, module)?;
+
+    // Find exported _start function and call it
+    match exec::invoke_by_name(&mut rt, module_addr, "_start").and_then(|()| exec::finish(&mut rt))
+    {
+        Ok(()) => Ok(()),
+        Err(err) => Err(ExecError::Panic(format!(
+            "Error while invoking _start: {:?}",
+            err
+        ))),
+    }
 }
