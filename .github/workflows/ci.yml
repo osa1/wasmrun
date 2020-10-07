@@ -19,11 +19,11 @@ jobs:
       - name: Build
         run: cargo build
 
-      - name: Download wast2json
+      - name: Build wast2json
         run: |
-            wget https://github.com/WebAssembly/wabt/releases/download/1.0.19/wabt-1.0.19-ubuntu.tar.gz
-            tar -vxf wabt-1.0.19-ubuntu.tar.gz
-            cp wabt-1.0.19/bin/wast2json .
+            sudo apt-get update
+            sudo apt-get install cmake
+            bash ci/build_wabt.sh
 
       - name: Run tests
         run: |
