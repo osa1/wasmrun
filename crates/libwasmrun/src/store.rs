@@ -28,8 +28,8 @@ pub(crate) struct GlobalAddr(u32);
 pub struct Store {
     modules: Vec<Module>,
     funs: Vec<Fun>,
-    tables: Vec<Vec<Option<FunAddr>>>, // indexed by table address (table_addrs), returns function address (index into Store.funcs)
-    mems: Vec<Mem>,                    // indexed by module idx
+    tables: Vec<Vec<Option<FunAddr>>>,
+    mems: Vec<Mem>,
     globals: Vec<Global>,
 }
 
@@ -68,7 +68,7 @@ impl Store {
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        fun: Rc<dyn Fn(&mut Runtime) -> Result<()>>,
+        fun: Rc<dyn Fn(&mut Runtime, ModuleAddr) -> Result<()>>,
     ) -> FunAddr {
         let ret = self.funs.len();
         self.funs.push(Fun::Host(HostFun {

@@ -27,7 +27,7 @@ pub(crate) struct HostFun {
     /// Index of the function's type in its module
     pub(crate) ty_idx: TypeIdx,
     /// Function code
-    pub(crate) fun: Rc<dyn Fn(&mut Runtime) -> Result<()>>,
+    pub(crate) fun: Rc<dyn Fn(&mut Runtime, ModuleAddr) -> Result<()>>,
 }
 
 #[derive(Debug)]

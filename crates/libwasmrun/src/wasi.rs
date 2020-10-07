@@ -1,6 +1,6 @@
 use crate::exec::Runtime;
 use crate::export::Export;
-use crate::module::Module;
+use crate::module::{MemIdx, Module};
 use crate::store::{ModuleAddr, Store};
 use crate::{ExecError, Result};
 
@@ -87,32 +87,52 @@ pub fn allocate_wasi(store: &mut Store) -> ModuleAddr {
 }
 
 // [i32] -> []
-fn wasi_proc_exit(rt: &mut Runtime) -> Result<()> {
+fn wasi_proc_exit(rt: &mut Runtime, _: ModuleAddr) -> Result<()> {
     let exit_code = rt.stack.pop_i32()?;
     ::std::process::exit(exit_code);
 }
 
 // [i32, i32, i32, i32] -> [i32]
-fn wasi_fd_write(_rt: &mut Runtime) -> Result<()> {
+fn wasi_fd_write(_rt: &mut Runtime, _: ModuleAddr) -> Result<()> {
     Err(ExecError::Panic("wasi_fd_write".to_string()))
 }
 
 // [i32, i32] -> [i32]
-fn wasi_fd_prestat_get(_rt: &mut Runtime) -> Result<()> {
+fn wasi_fd_prestat_get(_rt: &mut Runtime, _: ModuleAddr) -> Result<()> {
     Err(ExecError::Panic("wasi_fd_prestat_get".to_string()))
 }
 
 // [i32, i32, i32] -> [i32]
-fn wasi_fd_prestat_dir_name(_rt: &mut Runtime) -> Result<()> {
+fn wasi_fd_prestat_dir_name(_rt: &mut Runtime, _: ModuleAddr) -> Result<()> {
     Err(ExecError::Panic("wasi_fd_prestat_dir_name".to_string()))
 }
 
 // [i32, i32] -> [i32]
-fn wasi_environ_sizes_get(_rt: &mut Runtime) -> Result<()> {
-    Err(ExecError::Panic("wasi_environ_sizes_get".to_string()))
+fn wasi_environ_sizes_get(rt: &mut Runtime, module_addr: ModuleAddr) -> Result<()> {
+    // The size of the environment variable data.
+    // __wasi_size_t *environ_buf_size
+    let environ_buf_size = rt.stack.pop_i32()? as u32;
+
+    // The number of environment variable arguments.
+    // __wasi_size_t *environc
+    let environc_ptr = rt.stack.pop_i32()? as u32;
+
+    // FIXME: This won't work, we need to use the mem of the caller, not of the current module
+    // (which doesn't even have a mem). See https://github.com/WebAssembly/WASI/issues/327
+    let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+    let mem = rt.store.get_mem_mut(mem_addr);
+    mem.store_32(environc_ptr, 0)?;
+    mem.store_32(environ_buf_size, 0)?;
+
+    Ok(())
+
+    // Err(ExecError::Panic(format!(
+    //     "wasi_environ_sizes_get (environ_buf_size={:#x}, environc_ptr={:#x})",
+    //     environ_buf_size, environc_ptr
+    // )))
 }
 
 // [i32, i32] -> [i32]
-fn wasi_environ_get(_rt: &mut Runtime) -> Result<()> {
+fn wasi_environ_get(_rt: &mut Runtime, _: ModuleAddr) -> Result<()> {
     Err(ExecError::Panic("wasi_environ_get".to_string()))
 }

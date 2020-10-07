@@ -144,18 +144,16 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     module.add_export(Export::new_global("global_f64".to_owned(), global_f64_idx));
 
     let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
-    let print_addr =
-        rt.store
-            .allocate_host_fun(module_addr, print_ty, Rc::new(|_rt: &mut Runtime| Ok(())));
+    let print_addr = rt
+        .store
+        .allocate_host_fun(module_addr, print_ty, Rc::new(|_, _| Ok(())));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
     let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
-    let print_i32_addr = rt.store.allocate_host_fun(
-        module_addr,
-        print_i32_ty,
-        Rc::new(|_rt: &mut Runtime| Ok(())),
-    );
+    let print_i32_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_, _| Ok(())));
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
@@ -163,11 +161,9 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
         vec![wasm::ValueType::I32, wasm::ValueType::F32],
         vec![],
     ));
-    let print_i32_f32_addr = rt.store.allocate_host_fun(
-        module_addr,
-        print_i32_f32_ty,
-        Rc::new(|_rt: &mut Runtime| Ok(())),
-    );
+    let print_i32_f32_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_, _| Ok(())));
     let print_i32_f32_idx = module.add_fun(print_i32_f32_addr);
     module.add_export(Export::new_fun(
         "print_i32_f32".to_owned(),
@@ -178,11 +174,9 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
         vec![wasm::ValueType::F64, wasm::ValueType::F64],
         vec![],
     ));
-    let print_f64_f64_addr = rt.store.allocate_host_fun(
-        module_addr,
-        print_f64_f64_ty,
-        Rc::new(|_rt: &mut Runtime| Ok(())),
-    );
+    let print_f64_f64_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_, _| Ok(())));
     let print_f64_f64_idx = module.add_fun(print_f64_f64_addr);
     module.add_export(Export::new_fun(
         "print_f64_f64".to_owned(),
@@ -190,20 +184,16 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     ));
 
     let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
-    let print_f32_addr = rt.store.allocate_host_fun(
-        module_addr,
-        print_f32_ty,
-        Rc::new(|_rt: &mut Runtime| Ok(())),
-    );
+    let print_f32_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_, _| Ok(())));
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
     let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
-    let print_f64_addr = rt.store.allocate_host_fun(
-        module_addr,
-        print_f64_ty,
-        Rc::new(|_rt: &mut Runtime| Ok(())),
-    );
+    let print_f64_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_, _| Ok(())));
     let print_f64_idx = module.add_fun(print_f64_addr);
     module.add_export(Export::new_fun("print_f64".to_owned(), print_f64_idx));
 
@@ -469,8 +459,9 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun = match rt.store.get_fun(fun_addr) {
         Fun::Wasm(fun) => fun,
         Fun::Host(fun) => {
-            let host_func = fun.fun.clone();
-            host_func(rt)?;
+            let host_fun = fun.fun.clone();
+            let host_fun_module = fun.module_addr;
+            host_fun(rt, host_fun_module)?;
             rt.ip += 1;
             return Ok(());
         }
@@ -589,13 +580,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let [b1, b2, b3, b4] = value.to_le_bytes();
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
-            mem[addr + 2] = b3;
-            mem[addr + 3] = b4;
+            mem.store_32(addr, value as u32)?;
 
             rt.ip += 1;
         }
@@ -608,13 +594,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let [b1, b2, b3, b4] = value.to_le_bytes();
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
-            mem[addr + 2] = b3;
-            mem[addr + 3] = b4;
+            mem.store_32(addr, value.to_bits())?;
 
             rt.ip += 1;
         }
@@ -626,17 +607,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
-            mem[addr + 2] = b3;
-            mem[addr + 3] = b4;
-            mem[addr + 4] = b5;
-            mem[addr + 5] = b6;
-            mem[addr + 6] = b7;
-            mem[addr + 7] = b8;
+            mem.store_64(addr, value as u64)?;
+
             rt.ip += 1;
         }
 
@@ -648,17 +621,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
-            mem[addr + 2] = b3;
-            mem[addr + 3] = b4;
-            mem[addr + 4] = b5;
-            mem[addr + 5] = b6;
-            mem[addr + 6] = b7;
-            mem[addr + 7] = b8;
+            mem.store_64(addr, value.to_bits())?;
+
             rt.ip += 1;
         }
 
@@ -705,12 +670,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 4)?;
 
-            let [b1, b2, b3, b4] = (c as u32).to_le_bytes();
-
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
-            mem[addr + 2] = b3;
-            mem[addr + 3] = b4;
+            mem.store_32(addr, c as u32)?;
 
             rt.ip += 1;
         }

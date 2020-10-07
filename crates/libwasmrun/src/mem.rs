@@ -68,4 +68,32 @@ impl Mem {
             Ok(())
         }
     }
+
+    pub(crate) fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
+        self.check_range(addr, 4)?;
+
+        let [b1, b2, b3, b4] = value.to_le_bytes();
+        self[addr] = b1;
+        self[addr + 1] = b2;
+        self[addr + 2] = b3;
+        self[addr + 3] = b4;
+
+        Ok(())
+    }
+
+    pub(crate) fn store_64(&mut self, addr: u32, value: u64) -> Result<()> {
+        self.check_range(addr, 8)?;
+
+        let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
+        self[addr] = b1;
+        self[addr + 1] = b2;
+        self[addr + 2] = b3;
+        self[addr + 3] = b4;
+        self[addr + 4] = b5;
+        self[addr + 5] = b6;
+        self[addr + 6] = b7;
+        self[addr + 7] = b8;
+
+        Ok(())
+    }
 }
