@@ -358,24 +358,25 @@ binary-leb128.wast
 	line 193: OK
 	line 200: OK
 	line 207: OK
+	line 966: OK
 binary.wast
 	line 1: OK
 	line 2: OK
 	line 3: OK
 	line 4: OK
-	line 350: OK
-	line 406: OK
-	line 412: OK
-	line 418: OK
-	line 446: OK
-	line 498: OK
-	line 514: OK
-	line 530: OK
-	line 558: OK
-	line 612: OK
-	line 661: OK
-	line 723: OK
-	line 762: OK
+	line 357: OK
+	line 413: OK
+	line 419: OK
+	line 425: OK
+	line 453: OK
+	line 570: OK
+	line 617: OK
+	line 670: OK
+	line 698: OK
+	line 752: OK
+	line 801: OK
+	line 863: OK
+	line 902: OK
 block.wast
 	line 3: OK
 	line 353: OK
@@ -14600,11 +14601,15 @@ func.wast
 	line 416: OK
 	line 417: OK
 	line 422: OK
-	line 448: OK
-	line 511: OK
-	line 512: OK
-	line 513: OK
-	line 514: OK
+	line 459: OK
+	line 483: OK
+	line 484: OK
+	line 485: OK
+	line 488: OK
+	line 551: OK
+	line 552: OK
+	line 553: OK
+	line 554: OK
 func_ptrs.wast
 	line 1: OK
 	line 27: OK
