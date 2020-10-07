@@ -47,7 +47,7 @@ pub struct Runtime {
     /// Value and continuation stack
     pub(crate) stack: Stack,
     /// Call stack. Frames hold locals.
-    frames: FrameStack,
+    pub(crate) frames: FrameStack,
     /// Maps registered modules to their module addresses
     module_names: FxHashMap<String, ModuleAddr>,
     /// Instruction pointer
@@ -146,14 +146,14 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
     let print_addr = rt
         .store
-        .allocate_host_fun(module_addr, print_ty, Rc::new(|_, _| Ok(())));
+        .allocate_host_fun(module_addr, print_ty, Rc::new(|_| Ok(vec![])));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
     let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
     let print_i32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_, _| Ok(())));
+            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_| Ok(vec![])));
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
@@ -163,7 +163,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     ));
     let print_i32_f32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_, _| Ok(())));
+            .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_| Ok(vec![])));
     let print_i32_f32_idx = module.add_fun(print_i32_f32_addr);
     module.add_export(Export::new_fun(
         "print_i32_f32".to_owned(),
@@ -176,7 +176,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     ));
     let print_f64_f64_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_, _| Ok(())));
+            .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_| Ok(vec![])));
     let print_f64_f64_idx = module.add_fun(print_f64_f64_addr);
     module.add_export(Export::new_fun(
         "print_f64_f64".to_owned(),
@@ -186,14 +186,14 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
     let print_f32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_, _| Ok(())));
+            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_| Ok(vec![])));
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
     let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
     let print_f64_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_, _| Ok(())));
+            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_| Ok(vec![])));
     let print_f64_idx = module.add_fun(print_f64_addr);
     module.add_export(Export::new_fun("print_f64".to_owned(), print_f64_idx));
 
@@ -270,16 +270,13 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
             .into_iter()
             .enumerate()
         {
-            let fun_addr = rt.store.next_fun_addr();
-
             let function_section = parsed_module.function_section().ok_or_else(|| {
                 ExecError::Panic("Module has a code section but no function section".to_string())
             })?;
 
-            rt.store.allocate_fun(
+            let fun_addr = rt.store.allocate_fun(
                 module_addr,
                 TypeIdx(function_section.entries()[fun_idx].type_ref()),
-                fun_addr,
                 fun,
             )?;
 
@@ -456,29 +453,24 @@ pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx)
 }
 
 fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
-    let fun = match rt.store.get_fun(fun_addr) {
-        Fun::Wasm(fun) => fun,
-        Fun::Host(fun) => {
-            let host_fun = fun.fun.clone();
-            let host_fun_module = fun.module_addr;
-            host_fun(rt, host_fun_module)?;
-            rt.ip += 1;
-            return Ok(());
-        }
+    let fun = rt.store.get_fun(fun_addr);
+
+    let caller = if let Fun::WASI(_) = fun {
+        rt.frames.current().ok().map(|frame| frame.fun_addr)
+    } else {
+        None
     };
 
-    debug_assert!(match fun.fun.code().elements().last().unwrap() {
-        Instruction::End => true,
-        other => panic!("Last instruction of function is not 'end': {:?}", other),
-    });
-
-    let fun_ty = rt.store.get_module(fun.module_addr).get_type(fun.ty_idx);
+    let fun_ty = rt
+        .store
+        .get_module(fun.module_addr())
+        .get_type(fun.ty_idx());
     let arg_tys = fun_ty.params();
-    rt.frames.push(fun, arg_tys);
 
-    // Set locals for arguments
     let n_args = fun_ty.params().len();
     let n_rets = fun_ty.results().len();
+
+    rt.frames.push(fun, arg_tys);
 
     for local_idx in (0..n_args).rev() {
         let arg_val = rt.stack.pop_value()?;
@@ -489,9 +481,55 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
 
     rt.stack
         .push_fun_block(rt.ip + 1, n_args as u32, n_rets as u32);
-    rt.ip = 0;
 
-    Ok(())
+    match fun {
+        Fun::Wasm(fun) => {
+            debug_assert!(match fun.fun.code().elements().last().unwrap() {
+                Instruction::End => true,
+                other => panic!("Last instruction of function is not 'end': {:?}", other),
+            });
+
+            rt.ip = 0;
+
+            Ok(())
+        }
+        Fun::Host(fun) => {
+            let host_fun = fun.fun.clone();
+
+            host_fun(rt)?;
+
+            let mut vals = Vec::with_capacity(n_rets);
+            for _ in 0..n_rets {
+                vals.push(rt.stack.pop_value()?);
+            }
+
+            rt.stack.pop_fun_block()?;
+            rt.frames.pop();
+
+            for val in vals.into_iter().rev() {
+                rt.stack.push_value(val)?;
+            }
+
+            rt.ip += 1;
+
+            Ok(())
+        }
+        Fun::WASI(fun) => {
+            let caller = caller.expect("Caller not available when calling WASI function");
+            let caller_module_addr = rt.store.get_fun(caller).module_addr();
+            let caller_mem_addr = rt.store.get_module(caller_module_addr).get_mem(MemIdx(0));
+
+            let ret = (fun.fun)(rt, caller_mem_addr)?;
+
+            rt.stack.pop_fun_block()?;
+            rt.frames.pop();
+            rt.stack.push_value(ret)?;
+
+            rt.ip += 1;
+
+            Ok(())
+        }
+    }
 }
 
 pub fn finish(rt: &mut Runtime) -> Result<()> {
@@ -512,6 +550,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Fun::Wasm(fun) => fun,
         Fun::Host { .. } => {
             return Err(ExecError::Panic("single_step: host function".to_string()));
+        }
+        Fun::WASI { .. } => {
+            return Err(ExecError::Panic("single_step: WASI function".to_string()));
         }
     };
 
@@ -2417,6 +2458,9 @@ fn ret(rt: &mut Runtime) -> Result<()> {
         Fun::Wasm(fun) => fun,
         Fun::Host { .. } => {
             return Err(ExecError::Panic("ret: host function".to_string()));
+        }
+        Fun::WASI { .. } => {
+            return Err(ExecError::Panic("ret: WASI function".to_string()));
         }
     };
     let module_addr = current_fun.module_addr;

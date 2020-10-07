@@ -63,6 +63,13 @@ impl Value {
             wasm::ValueType::V128 => todo!("Unsupported value type: V128"),
         }
     }
+
+    pub(crate) fn expect_i32(&self) -> i32 {
+        match self {
+            Value::I32(i) => *i,
+            Value::I64(_) | Value::F32(_) | Value::F64(_) => panic!(),
+        }
+    }
 }
 
 impl fmt::Debug for Value {

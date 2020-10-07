@@ -1,4 +1,4 @@
-use crate::fun::WasmFun;
+use crate::fun::Fun;
 use crate::store::FunAddr;
 use crate::value::Value;
 use crate::{ExecError, Result};
@@ -45,13 +45,13 @@ impl FrameStack {
         }
     }
 
-    pub(crate) fn push(&mut self, fun: &WasmFun, arg_tys: &[wasm::ValueType]) {
+    pub(crate) fn push(&mut self, fun: &Fun, arg_tys: &[wasm::ValueType]) {
         self.0.push(Frame {
-            fun_addr: fun.fun_addr,
+            fun_addr: fun.fun_addr(),
             locals: arg_tys
                 .iter()
                 .map(|ty| Value::default(*ty))
-                .chain(fun.fun.locals().iter().flat_map(|local| {
+                .chain(fun.locals().iter().flat_map(|local| {
                     repeat(Value::default(local.value_type())).take(local.count() as usize)
                 }))
                 .collect(),

@@ -1,5 +1,5 @@
 use crate::exec::Runtime;
-use crate::fun::{Fun, HostFun};
+use crate::fun::{Fun, HostFun, WASIFun};
 use crate::mem::Mem;
 use crate::module::{Module, TypeIdx};
 use crate::value::Value;
@@ -48,35 +48,48 @@ impl Store {
         &self.modules[module_addr.0 as usize]
     }
 
-    pub(crate) fn next_fun_addr(&self) -> FunAddr {
-        FunAddr(self.funs.len() as u32)
-    }
-
     pub(crate) fn allocate_fun(
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        fun_addr: FunAddr,
         fun: wasm::FuncBody,
-    ) -> Result<()> {
+    ) -> Result<FunAddr> {
+        let fun_addr = FunAddr(self.funs.len() as u32);
         self.funs
             .push(Fun::new(module_addr, ty_idx, fun_addr, fun)?);
-        Ok(())
+        Ok(fun_addr)
     }
 
     pub(crate) fn allocate_host_fun(
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        fun: Rc<dyn Fn(&mut Runtime, ModuleAddr) -> Result<()>>,
+        fun: Rc<dyn Fn(&mut Runtime) -> Result<Vec<Value>>>,
     ) -> FunAddr {
-        let ret = self.funs.len();
+        let fun_addr = FunAddr(self.funs.len() as u32);
         self.funs.push(Fun::Host(HostFun {
             module_addr,
             ty_idx,
+            fun_addr,
             fun,
         }));
-        FunAddr(ret as u32)
+        fun_addr
+    }
+
+    pub(crate) fn allocate_wasi_fun(
+        &mut self,
+        module_addr: ModuleAddr,
+        ty_idx: TypeIdx,
+        fun: &'static dyn Fn(&mut Runtime, MemAddr) -> Result<Value>,
+    ) -> FunAddr {
+        let fun_addr = FunAddr(self.funs.len() as u32);
+        self.funs.push(Fun::WASI(WASIFun {
+            module_addr,
+            ty_idx,
+            fun_addr,
+            fun,
+        }));
+        fun_addr
     }
 
     pub(crate) fn get_fun(&self, fun_addr: FunAddr) -> &Fun {

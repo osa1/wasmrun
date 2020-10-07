@@ -1,6 +1,7 @@
 use crate::exec::Runtime;
 use crate::module::TypeIdx;
-use crate::store::{FunAddr, ModuleAddr};
+use crate::store::{FunAddr, MemAddr, ModuleAddr};
+use crate::value::Value;
 use crate::{ExecError, Result};
 
 use std::fmt;
@@ -13,6 +14,7 @@ use parity_wasm::elements::Instruction;
 pub(crate) enum Fun {
     Wasm(WasmFun),
     Host(HostFun),
+    WASI(WASIFun),
 }
 
 impl fmt::Debug for Fun {
@@ -26,8 +28,10 @@ pub(crate) struct HostFun {
     pub(crate) module_addr: ModuleAddr,
     /// Index of the function's type in its module
     pub(crate) ty_idx: TypeIdx,
+    /// Address of the function in the heap
+    pub(crate) fun_addr: FunAddr,
     /// Function code
-    pub(crate) fun: Rc<dyn Fn(&mut Runtime, ModuleAddr) -> Result<()>>,
+    pub(crate) fun: Rc<dyn Fn(&mut Runtime) -> Result<Vec<Value>>>,
 }
 
 #[derive(Debug)]
@@ -44,6 +48,19 @@ pub(crate) struct WasmFun {
     pub(crate) block_to_end: FxHashMap<u32, u32>,
     /// Maps if instructions to their else instructions
     pub(crate) if_to_else: FxHashMap<u32, u32>,
+}
+
+pub(crate) struct WASIFun {
+    /// Address of the WASI module. NB. I think This is not used. (TODO: maybe remove and panic
+    /// when this is needed?)
+    pub(crate) module_addr: ModuleAddr,
+    /// Type index of the function in its module
+    pub(crate) ty_idx: TypeIdx,
+    /// Address of the function in the heap
+    pub(crate) fun_addr: FunAddr,
+    /// The function. WASI functions don't use multi-value returns yet so the return value is just
+    /// a single `Value`.
+    pub(crate) fun: &'static dyn Fn(&mut Runtime, MemAddr) -> Result<Value>,
 }
 
 impl Fun {
@@ -68,6 +85,7 @@ impl Fun {
         match self {
             Fun::Wasm(fun) => fun.ty_idx,
             Fun::Host(fun) => fun.ty_idx,
+            Fun::WASI(fun) => fun.ty_idx,
         }
     }
 
@@ -75,6 +93,22 @@ impl Fun {
         match self {
             Fun::Wasm(fun) => fun.module_addr,
             Fun::Host(fun) => fun.module_addr,
+            Fun::WASI(fun) => fun.module_addr,
+        }
+    }
+
+    pub(crate) fn fun_addr(&self) -> FunAddr {
+        match self {
+            Fun::Wasm(fun) => fun.fun_addr,
+            Fun::Host(fun) => fun.fun_addr,
+            Fun::WASI(fun) => fun.fun_addr,
+        }
+    }
+
+    pub(crate) fn locals(&self) -> &[wasm::Local] {
+        match self {
+            Fun::Wasm(fun) => fun.fun.locals(),
+            Fun::Host(_) | Fun::WASI(_) => &[],
         }
     }
 }
