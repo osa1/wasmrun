@@ -23,6 +23,8 @@ use crate::store::{MemAddr, ModuleAddr, Store};
 use crate::value::Value;
 use crate::{ExecError, Result};
 
+use std::io::Write;
+
 use parity_wasm::elements as wasm;
 
 /// Initializes the 'wasi_snapshot_preview1' module.
@@ -105,24 +107,72 @@ fn wasi_proc_exit(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
 }
 
 // [i32, i32, i32, i32] -> [i32]
-fn wasi_fd_write(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
-    Err(ExecError::Panic("wasi_fd_write".to_string()))
+fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+    let fd = rt.frames.current()?.get_local(0)?.expect_i32();
+
+    // List of scatter/gather vectors from which to retrieve data.
+    // __wasi_ciovec_t *iovs
+    let iovs_ptr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+
+    // The length of the array pointed to by `iovs`
+    let iovs_len = rt.frames.current()?.get_local(2)?.expect_i32() as u32;
+
+    // The number of bytes written
+    let nwritten_ptr = rt.frames.current()?.get_local(3)?.expect_i32() as u32;
+
+    // println!(
+    //     "wasi_fd_write(fd={}, iovs_ptr={:#x}, iovs_len={}, nwritten_ptr={:#x})",
+    //     fd, iovs_ptr, iovs_len, nwritten_ptr
+    // );
+
+    let mut bytes: Vec<u8> = vec![];
+
+    for vec_i in 0..iovs_len {
+        // Each element is two words
+        let offset = vec_i * 8;
+        let vec_buf_addr = iovs_ptr + offset;
+        let vec_len_addr = vec_buf_addr + 4;
+        let vec_buf = rt.store.get_mem(mem_addr).load_32(vec_buf_addr)?;
+        let vec_len = rt.store.get_mem(mem_addr).load_32(vec_len_addr)?;
+        bytes.reserve(vec_len as usize);
+        for byte_i in 0..vec_len {
+            bytes.push(rt.store.get_mem(mem_addr)[vec_buf + byte_i]);
+        }
+    }
+
+    match fd {
+        1 => {
+            ::std::io::stdout().write(&bytes).unwrap();
+        }
+        2 => {
+            ::std::io::stderr().write(&bytes).unwrap();
+        }
+        _ => {
+            return Err(ExecError::Panic(format!("wasi_fd_write fd={}", fd)));
+        }
+    }
+
+    rt.store
+        .get_mem_mut(mem_addr)
+        .store_32(nwritten_ptr, bytes.len() as u32)?;
+
+    Ok(Value::I32(0))
 }
 
 // [i32, i32] -> [i32]
 // Return a description of the given preopened file descriptor.
 // https://github.com/bytecodealliance/wasmtime/blob/5799fd3cc0b4d51f58532b19397d5c3a4677a010/crates/wasi-common/src/old/snapshot_0/hostcalls_impl/fs.rs#L958
-fn wasi_fd_prestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_prestat_get(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t fd
-    let fd = rt.frames.current()?.get_local(0)?.expect_i32();
+    // let fd = rt.frames.current()?.get_local(0)?.expect_i32();
 
     // The buffer where the description is stored
     // __wasi_prestat_t *buf
-    let prestat_t_ptr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+    // let prestat_t_ptr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
 
     // Err(ExecError::Panic(format!("wasi_fd_prestat_get({}, {})", fd, prestat_t_ptr)))
-    println!("wasi_fd_prestat_get({}, {})", fd, prestat_t_ptr);
-    Ok(Value::I32(54)) // ERRNO_NOTDIR
+    // println!("wasi_fd_prestat_get({}, {})", fd, prestat_t_ptr);
+    Ok(Value::I32(8)) // ERRNO_BADF
 
     // // Currently only stdout, stdin, and stderr are allowed: stdin=0, stdout=1, stderr=2
     // match fd {

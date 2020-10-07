@@ -81,6 +81,17 @@ impl Mem {
         Ok(())
     }
 
+    pub(crate) fn load_32(&self, addr: u32) -> Result<u32> {
+        self.check_range(addr, 4)?;
+
+        let b1 = self[addr];
+        let b2 = self[addr + 1];
+        let b3 = self[addr + 2];
+        let b4 = self[addr + 3];
+
+        Ok(u32::from_le_bytes([b1, b2, b3, b4]))
+    }
+
     pub(crate) fn store_64(&mut self, addr: u32, value: u64) -> Result<()> {
         self.check_range(addr, 8)?;
 

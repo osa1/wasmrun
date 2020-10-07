@@ -736,13 +736,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            rt.stack.push_i32(i32::from_le_bytes([b1, b2, b3, b4]))?;
+            rt.stack.push_i32(mem.load_32(addr)? as i32)?;
+
             rt.ip += 1;
         }
 
@@ -752,13 +748,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            rt.stack.push_f32(f32::from_le_bytes([b1, b2, b3, b4]))?;
+            rt.stack.push_f32(f32::from_bits(mem.load_32(addr)?))?;
+
             rt.ip += 1;
         }
 
@@ -910,14 +902,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            rt.stack
-                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, 0, 0, 0, 0]))?;
+            rt.stack.push_i64(mem.load_32(addr)? as i64)?;
+
             rt.ip += 1;
         }
 
@@ -927,15 +914,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
+            rt.stack.push_i64((mem.load_32(addr)? as i32) as i64)?;
 
-            rt.stack
-                .push_i64(i32::from_le_bytes([b1, b2, b3, b4]) as i64)?;
             rt.ip += 1;
         }
 
