@@ -91,32 +91,7 @@ fn print_cmd(pgm: &str, args: &[&str]) {
 
 fn run_cmd(pgm: &str, args: &[&str]) -> Output {
     print_cmd(pgm, args);
-
-    let Output {
-        status,
-        stdout,
-        stderr,
-    } = Command::new(pgm).args(args.iter()).output().unwrap();
-
-    let stdout_str = String::from_utf8_lossy(&stdout);
-    let stdout_str = stdout_str.trim();
-    if !stdout_str.is_empty() {
-        println!("stdout:");
-        println!("{}", stdout_str);
-    }
-
-    let stderr_str = String::from_utf8_lossy(&stderr);
-    let stderr_str = stderr_str.trim();
-    if !stderr_str.is_empty() {
-        println!("stderr:");
-        println!("{}", stderr_str);
-    }
-
-    Output {
-        status,
-        stdout,
-        stderr,
-    }
+    Command::new(pgm).args(args.iter()).output().unwrap()
 }
 
 fn print_output(output: &Output) {
