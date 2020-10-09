@@ -1,7 +1,6 @@
 mod cli;
 mod spec;
 
-use cli::Args;
 use libwasmrun::exec::{self, Runtime, Trap};
 use libwasmrun::store::ModuleAddr;
 use libwasmrun::value::Value;
@@ -16,8 +15,11 @@ use fxhash::FxHashMap;
 use parity_wasm::elements as wasm;
 
 fn main() {
-    let Args { file } = cli::parse();
-    let file = file.as_ref().map(|s| s.as_str()).unwrap_or("tests/testsuite");
+    let cli::Args { file } = cli::parse();
+    let file = file
+        .as_ref()
+        .map(|s| s.as_str())
+        .unwrap_or("tests/testsuite");
 
     let exit_code = match fs::read_dir(&file) {
         Ok(dir_contents) => {
