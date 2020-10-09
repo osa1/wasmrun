@@ -43,11 +43,16 @@ jobs:
             toolchain: stable
             override: true
 
+      - name: Get wasmtime
+        run: bash ci/get_wasmtime.sh
+
       - name: Build
         run: cargo build
 
       - name: Run tests
-        run: cargo run --bin wasi-test
+        run: |
+            export PATH=`pwd`:$PATH
+            cargo run --bin wasi-test
 
   formatting:
     name: 'Check formatting'
