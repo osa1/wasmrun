@@ -23,11 +23,13 @@ fn main() {
     print_version(WASMRUN_PATH);
 
     println!("cd tests/wasi; cargo build");
-    let _ = Command::new("cargo")
+    let status = Command::new("cargo")
         .arg("build")
         .current_dir("tests/wasi")
         .status()
         .unwrap();
+
+    assert!(status.success());
 
     let fail = run(file_or_dir);
     if fail {
