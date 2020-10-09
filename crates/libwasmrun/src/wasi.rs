@@ -23,81 +23,125 @@ use crate::store::{MemAddr, ModuleAddr, Store};
 use crate::value::Value;
 use crate::{ExecError, Result};
 
+use std::ffi::CString;
 use std::io::Write;
 
 use parity_wasm::elements as wasm;
+
+#[derive(Debug)]
+pub(crate) struct WASICtx {
+    pub(crate) args: Vec<CString>,
+}
+
+impl WASICtx {
+    pub(crate) fn new() -> Self {
+        WASICtx { args: vec![] }
+    }
+
+    pub(crate) fn new_with_args(args: Vec<CString>) -> Self {
+        WASICtx { args }
+    }
+}
 
 /// Initializes the 'wasi_snapshot_preview1' module.
 pub fn allocate_wasi(store: &mut Store) -> ModuleAddr {
     let module_addr = store.next_module_addr();
     let mut module: Module = Default::default();
 
-    let ty_i32x1 = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
-    let ty_i32x2_i32x1 = module.add_type(wasm::FunctionType::new(
-        vec![wasm::ValueType::I32; 2],
-        vec![wasm::ValueType::I32],
-    ));
-    let ty_i32x3_i32x1 = module.add_type(wasm::FunctionType::new(
-        vec![wasm::ValueType::I32; 3],
-        vec![wasm::ValueType::I32],
-    ));
-    let ty_i32x4_i32x1 = module.add_type(wasm::FunctionType::new(
-        vec![wasm::ValueType::I32; 4],
-        vec![wasm::ValueType::I32],
-    ));
+    use wasm::ValueType::I32;
 
-    {
-        let proc_exit_addr = store.allocate_wasi_fun(module_addr, ty_i32x1, &wasi_proc_exit);
-        let proc_exit_idx = module.add_fun(proc_exit_addr);
-        module.add_export(Export::new_fun("proc_exit".to_owned(), proc_exit_idx));
-    }
-
-    {
-        let fd_write_addr = store.allocate_wasi_fun(module_addr, ty_i32x4_i32x1, &wasi_fd_write);
-        let fd_write_idx = module.add_fun(fd_write_addr);
-        module.add_export(Export::new_fun("fd_write".to_owned(), fd_write_idx));
-    }
-
-    {
-        let fd_prestat_get_addr =
-            store.allocate_wasi_fun(module_addr, ty_i32x2_i32x1, &wasi_fd_prestat_get);
-        let fd_prestat_get_idx = module.add_fun(fd_prestat_get_addr);
-        module.add_export(Export::new_fun(
-            "fd_prestat_get".to_owned(),
-            fd_prestat_get_idx,
-        ));
-    }
-
-    {
-        let fd_prestat_dir_name_addr =
-            store.allocate_wasi_fun(module_addr, ty_i32x3_i32x1, &wasi_fd_prestat_dir_name);
-        let fd_prestat_dir_name_idx = module.add_fun(fd_prestat_dir_name_addr);
-        module.add_export(Export::new_fun(
-            "fd_prestat_dir_name".to_owned(),
-            fd_prestat_dir_name_idx,
-        ));
-    }
-
-    {
-        let environ_sizes_get_addr =
-            store.allocate_wasi_fun(module_addr, ty_i32x2_i32x1, &wasi_environ_sizes_get);
-        let environ_sizes_get_idx = module.add_fun(environ_sizes_get_addr);
-        module.add_export(Export::new_fun(
-            "environ_sizes_get".to_owned(),
-            environ_sizes_get_idx,
-        ));
-    }
-
-    {
-        let environ_get_addr =
-            store.allocate_wasi_fun(module_addr, ty_i32x2_i32x1, &wasi_environ_get);
-        let environ_get_idx = module.add_fun(environ_get_addr);
-        module.add_export(Export::new_fun("environ_get".to_owned(), environ_get_idx));
-    }
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32],
+        I32,
+        "proc_exit",
+        wasi_proc_exit,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32, I32, I32],
+        I32,
+        "fd_write",
+        wasi_fd_write,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32],
+        I32,
+        "fd_prestat_get",
+        wasi_fd_prestat_get,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32, I32],
+        I32,
+        "fd_prestat_dir_name",
+        wasi_fd_prestat_dir_name,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32],
+        I32,
+        "environ_sizes_get",
+        wasi_environ_sizes_get,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32],
+        I32,
+        "environ_get",
+        wasi_environ_get,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32],
+        I32,
+        "args_sizes_get",
+        wasi_args_sizes_get,
+    );
+    allocate_fn(
+        &mut module,
+        module_addr,
+        store,
+        vec![I32, I32],
+        I32,
+        "args_get",
+        wasi_args_get,
+    );
 
     let module_addr_ = store.allocate_module(module);
     assert_eq!(module_addr, module_addr_);
     module_addr
+}
+
+fn allocate_fn(
+    module: &mut Module,
+    module_addr: ModuleAddr,
+    store: &mut Store,
+    arg_tys: Vec<wasm::ValueType>,
+    ret_ty: wasm::ValueType,
+    name: &str,
+    fun: fn(&mut Runtime, MemAddr) -> Result<Value>,
+) {
+    // TODO: This allocates same types multiple times
+    let ty_idx = module.add_type(wasm::FunctionType::new(arg_tys, vec![ret_ty]));
+    let addr = store.allocate_wasi_fun(module_addr, ty_idx, fun);
+    let idx = module.add_fun(addr);
+    module.add_export(Export::new_fun(name.to_owned(), idx));
 }
 
 // [i32] -> []
@@ -227,4 +271,70 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> 
 // [i32, i32] -> [i32]
 fn wasi_environ_get(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     Err(ExecError::Panic("wasi_environ_get".to_string()))
+}
+
+// Return command-line argument data sizes
+fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+    // Number of arguments
+    let argc_addr = rt.frames.current()?.get_local(0)?.expect_i32() as u32;
+    // The size of the argument string data
+    let argv_buf_size_addr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+
+    let argc = rt.wasi_ctx.args.len();
+    let argv_size: usize = rt
+        .wasi_ctx
+        .args
+        .iter()
+        .map(|arg| arg.as_bytes_with_nul().len())
+        .sum();
+
+    let mem = rt.store.get_mem_mut(mem_addr);
+    mem.store_32(argc_addr, argc as u32)?;
+    mem.store_32(argv_buf_size_addr, argv_size as u32)?;
+
+    Ok(Value::I32(0))
+}
+
+// Read command-line argument data. The size of the array should match that returned by
+// `args_sizes_get`.
+fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+    // uint8_t **
+    let argv_addr = rt.frames.current()?.get_local(0)?.expect_i32() as u32;
+    // uint8_t *
+    let argv_buf_addr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+
+    // Current offset in argv_buf array
+    let mut argv_buf_offset = 0;
+    // Addresses of arguments, to be written to argv_addr
+    let mut arg_ptrs = vec![];
+
+    let mem = rt.store.get_mem_mut(mem_addr);
+
+    for arg in &rt.wasi_ctx.args {
+        let arg_bytes = arg.as_bytes_with_nul();
+        let arg_ptr = argv_buf_addr + argv_buf_offset;
+
+        // Push address of the argument to argv_addr vector
+        arg_ptrs.push(arg_ptr);
+
+        // Copy argument
+        for (offset, byte) in arg_bytes.iter().copied().enumerate() {
+            mem.store_8(arg_ptr + offset as u32, byte)?;
+        }
+
+        // Update offset in argv_buf array
+        argv_buf_offset = argv_buf_offset + arg_bytes.len() as u32;
+    }
+
+    // Write argv
+    for (i, arg_ptr) in arg_ptrs.into_iter().enumerate() {
+        mem.store_32(argv_addr + (i * 4) as u32, arg_ptr)?;
+    }
+
+    // Err(ExecError::Panic(format!(
+    //     "args_get({:#x}, {:#x})",
+    //     argv_addr, argv_buf_addr
+    // )))
+
+    Ok(Value::I32(0))
 }

@@ -80,7 +80,7 @@ impl Store {
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        fun: &'static dyn Fn(&mut Runtime, MemAddr) -> Result<Value>,
+        fun: fn(&mut Runtime, MemAddr) -> Result<Value>,
     ) -> FunAddr {
         let fun_addr = FunAddr(self.funs.len() as u32);
         self.funs.push(Fun::WASI(WASIFun {

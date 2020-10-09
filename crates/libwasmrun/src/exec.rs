@@ -6,6 +6,7 @@ use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store};
 use crate::value::{self, Value};
+use crate::wasi::WASICtx;
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
@@ -13,6 +14,7 @@ use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
 use wasm::{Instruction, SignExtInstruction};
 
+use std::ffi::CString;
 use std::mem::{replace, take};
 use std::rc::Rc;
 
@@ -48,6 +50,8 @@ pub struct Runtime {
     pub(crate) stack: Stack,
     /// Call stack. Frames hold locals.
     pub(crate) frames: FrameStack,
+    /// WASI state
+    pub(crate) wasi_ctx: WASICtx,
     /// Maps registered modules to their module addresses
     module_names: FxHashMap<String, ModuleAddr>,
     /// Instruction pointer
@@ -60,6 +64,18 @@ impl Runtime {
             store: Default::default(),
             stack: Default::default(),
             frames: Default::default(),
+            wasi_ctx: WASICtx::new(),
+            module_names: Default::default(),
+            ip: Default::default(),
+        }
+    }
+
+    pub(crate) fn new_with_args(args: Vec<CString>) -> Self {
+        Runtime {
+            store: Default::default(),
+            stack: Default::default(),
+            frames: Default::default(),
+            wasi_ctx: WASICtx::new_with_args(args),
             module_names: Default::default(),
             ip: Default::default(),
         }

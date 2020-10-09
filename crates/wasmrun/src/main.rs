@@ -4,7 +4,8 @@ use cli::Args;
 
 fn main() {
     let Args { file } = cli::parse();
-    match libwasmrun::run_wasm(file) {
+    // TODO: program args?
+    match libwasmrun::run_wasm(file, vec![]) {
         Ok(()) => {}
         Err(err) => {
             println!("{}", err);

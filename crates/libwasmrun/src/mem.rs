@@ -69,6 +69,12 @@ impl Mem {
         }
     }
 
+    pub(crate) fn store_8(&mut self, addr: u32, value: u8) -> Result<()> {
+        self.check_range(addr, 1)?;
+        self[addr] = value;
+        Ok(())
+    }
+
     pub(crate) fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
         self.check_range(addr, 4)?;
 

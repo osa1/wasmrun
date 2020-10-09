@@ -9,7 +9,9 @@ pub mod store;
 pub mod value;
 pub mod wasi;
 
+use std::ffi::CString;
 use std::fmt::Display;
+use std::path::Path;
 
 use exec::Runtime;
 
@@ -36,15 +38,24 @@ impl Display for ExecError {
 
 pub type Result<A> = ::std::result::Result<A, ExecError>;
 
-pub fn run_wasm(file: String) -> Result<()> {
-    let module = match wasm::deserialize_file(file) {
+pub fn run_wasm(file: String, args: Vec<String>) -> Result<()> {
+    let module = match wasm::deserialize_file(&file) {
         Ok(module) => module,
         Err(err) => {
             return Err(ExecError::Panic(format!("Unable to parse module: {}", err)));
         }
     };
 
-    let mut rt = Runtime::new();
+    let mut args = args
+        .into_iter()
+        .map(|arg| CString::new(arg).unwrap())
+        .collect::<Vec<_>>();
+    let file_name = Path::new(&file).file_name().unwrap().to_str().unwrap();
+    args.insert(0, CString::new(file_name).unwrap());
+
+    //args.insert(0, file_name.to_string_lossy());
+
+    let mut rt = Runtime::new_with_args(args);
     let wasi_module_addr = allocate_wasi(&mut rt.store);
     rt.register_module("wasi_snapshot_preview1".to_owned(), wasi_module_addr);
 

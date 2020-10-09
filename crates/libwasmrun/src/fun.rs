@@ -60,7 +60,7 @@ pub(crate) struct WASIFun {
     pub(crate) fun_addr: FunAddr,
     /// The function. WASI functions don't use multi-value returns yet so the return value is just
     /// a single `Value`.
-    pub(crate) fun: &'static dyn Fn(&mut Runtime, MemAddr) -> Result<Value>,
+    pub(crate) fun: fn(&mut Runtime, MemAddr) -> Result<Value>,
 }
 
 impl Fun {
