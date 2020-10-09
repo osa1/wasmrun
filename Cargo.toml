@@ -2,7 +2,12 @@
 members = [
     "crates/libwasmrun",
     "crates/spec-test",
+    "crates/wasi-test",
     "crates/wasmrun",
+]
+
+exclude = [
+    "tests/wasi"
 ]
 
 [profile.release]

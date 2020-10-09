@@ -1,0 +1,17 @@
+[package]
+name = "wasi-tests"
+version = "0.1.0"
+authors = ["Ömer Sinan Ağacan <omeragacan@gmail.com>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+wasi = "0.10.0"
+
+[[bin]]
+name = "hello"
+path = "src/hello.rs"
+
+[[bin]]
+name = "environ1"
+path = "src/environ1.rs"

@@ -3,8 +3,8 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  run_tests:
-    name: 'Build and test'
+  spec_tests:
+    name: 'Run WebAssembly test suite'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -13,7 +13,6 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
             toolchain: stable
-            components: rustfmt
             override: true
 
       - name: Build
@@ -31,6 +30,35 @@ jobs:
             git submodule update --init --recursive
             cargo run --bin spec-test || true
             diff -u test_output_current test_output
+
+  wasi_tests:
+    name: 'Run WASI tests'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+
+      - name: Build
+        run: cargo build
+
+      - name: Run tests
+        run: cargo run --bin wasi-test
+
+  formatting:
+    name: 'Check formatting'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            components: rustfmt
+            override: true
 
       - name: Check formatting
         run: cargo fmt --all -- --check

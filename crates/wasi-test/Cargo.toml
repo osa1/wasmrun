@@ -1,0 +1,11 @@
+[package]
+name = "wasi-test"
+version = "0.1.0"
+authors = ["Ömer Sinan Ağacan <omeragacan@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.33"
+
+[build-dependencies]
+rustc_tools_util = "0.2.0"
