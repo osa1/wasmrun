@@ -48,79 +48,38 @@ pub fn allocate_wasi(store: &mut Store) -> ModuleAddr {
     let module_addr = store.next_module_addr();
     let mut module: Module = Default::default();
 
-    use wasm::ValueType::I32;
+    use wasm::ValueType::{I32, I64};
 
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
-        vec![I32],
-        I32,
-        "proc_exit",
-        wasi_proc_exit,
-    );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
-        vec![I32, I32, I32, I32],
-        I32,
-        "fd_write",
-        wasi_fd_write,
-    );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
-        vec![I32, I32],
-        I32,
-        "fd_prestat_get",
-        wasi_fd_prestat_get,
-    );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
+    let mut allocate = |arg_tys, ret_ty, name, fun| {
+        allocate_fn(&mut module, module_addr, store, arg_tys, ret_ty, name, fun);
+    };
+
+    allocate(vec![I32], I32, "proc_exit", wasi_proc_exit);
+    allocate(vec![I32, I32, I32, I32], I32, "fd_write", wasi_fd_write);
+    allocate(vec![I32, I32], I32, "fd_prestat_get", wasi_fd_prestat_get);
+    allocate(
         vec![I32, I32, I32],
         I32,
         "fd_prestat_dir_name",
         wasi_fd_prestat_dir_name,
     );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
+    allocate(
         vec![I32, I32],
         I32,
         "environ_sizes_get",
         wasi_environ_sizes_get,
     );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
-        vec![I32, I32],
+    allocate(vec![I32, I32], I32, "environ_get", wasi_environ_get);
+    allocate(vec![I32, I32], I32, "args_sizes_get", wasi_args_sizes_get);
+    allocate(vec![I32, I32], I32, "args_get", wasi_args_get);
+    allocate(vec![I32], I32, "fd_close", wasi_fd_close);
+    allocate(vec![I32, I32], I32, "fd_filestat_get", wasi_fd_filestat_get);
+    allocate(vec![I32, I32, I32], I32, "fd_read", wasi_fd_read);
+    allocate(
+        vec![I32, I32, I32, I32, I32, I64, I64, I32, I32],
         I32,
-        "environ_get",
-        wasi_environ_get,
-    );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
-        vec![I32, I32],
-        I32,
-        "args_sizes_get",
-        wasi_args_sizes_get,
-    );
-    allocate_fn(
-        &mut module,
-        module_addr,
-        store,
-        vec![I32, I32],
-        I32,
-        "args_get",
-        wasi_args_get,
+        "path_open",
+        wasi_path_open,
     );
 
     let module_addr_ = store.allocate_module(module);
@@ -201,6 +160,11 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         .store_32(nwritten_ptr, bytes.len() as u32)?;
 
     Ok(Value::I32(0))
+}
+
+// [i32, i32, i32, i32] -> [i32]
+fn wasi_fd_read(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    Err(ExecError::Panic("wasi_fd_read".to_string()))
 }
 
 // [i32, i32] -> [i32]
@@ -337,4 +301,19 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // )))
 
     Ok(Value::I32(0))
+}
+
+// [i32] -> [i32]
+fn wasi_fd_close(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    Err(ExecError::Panic("wasi_fd_close".to_string()))
+}
+
+// [i32, i32] -> [i32]
+fn wasi_fd_filestat_get(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    Err(ExecError::Panic("wasi_fd_filestat".to_string()))
+}
+
+// [I32, I32, I32, I32, I32, I64, I64, I32, I32] -> [I32]
+fn wasi_path_open(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    Err(ExecError::Panic("wasi_path_open".to_string()))
 }
