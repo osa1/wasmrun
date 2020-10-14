@@ -16,6 +16,9 @@
 //!   call sites we pass the memory address of the calling function to WASI functions implemented
 //!   below.
 
+mod ctx;
+mod file;
+
 use crate::exec::Runtime;
 use crate::export::Export;
 use crate::module::Module;
@@ -23,28 +26,15 @@ use crate::store::{MemAddr, ModuleAddr, Store};
 use crate::value::Value;
 use crate::{ExecError, Result};
 
-use std::ffi::CString;
 use std::io::Write;
 
 use parity_wasm::elements as wasm;
 
-#[derive(Debug)]
-pub(crate) struct WASICtx {
-    pub(crate) args: Vec<CString>,
-}
-
-impl WASICtx {
-    pub(crate) fn new() -> Self {
-        WASICtx { args: vec![] }
-    }
-
-    pub(crate) fn new_with_args(args: Vec<CString>) -> Self {
-        WASICtx { args }
-    }
-}
+pub use ctx::{WasiCtx, WasiCtxBuilder};
+pub use file::{Dir, File, FileOrDir};
 
 /// Initializes the 'wasi_snapshot_preview1' module.
-pub fn allocate_wasi(store: &mut Store) -> ModuleAddr {
+pub(crate) fn allocate_wasi(store: &mut Store) -> ModuleAddr {
     let module_addr = store.next_module_addr();
     let mut module: Module = Default::default();
 
@@ -144,12 +134,22 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     }
 
     match fd {
-        1 => {
-            ::std::io::stdout().write(&bytes).unwrap();
-        }
-        2 => {
-            ::std::io::stderr().write(&bytes).unwrap();
-        }
+        1 => match &mut rt.wasi_ctx.stdout {
+            None => {
+                ::std::io::stdout().write(&bytes).unwrap();
+            }
+            Some(stdout) => {
+                stdout.write(&bytes).unwrap();
+            }
+        },
+        2 => match &mut rt.wasi_ctx.stderr {
+            None => {
+                ::std::io::stderr().write(&bytes).unwrap();
+            }
+            Some(stderr) => {
+                stderr.write(&bytes).unwrap();
+            }
+        },
         _ => {
             return Err(ExecError::Panic(format!("wasi_fd_write fd={}", fd)));
         }

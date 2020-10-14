@@ -19,3 +19,7 @@ path = "src/environ1.rs"
 [[bin]]
 name = "args"
 path = "src/args.rs"
+
+[[bin]]
+name = "file1"
+path = "src/file1.rs"

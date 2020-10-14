@@ -6,7 +6,7 @@ use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store};
 use crate::value::{self, Value};
-use crate::wasi::WASICtx;
+use crate::wasi::{allocate_wasi, WasiCtx};
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
@@ -14,7 +14,7 @@ use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
 use wasm::{Instruction, SignExtInstruction};
 
-use std::ffi::CString;
+use std::fmt;
 use std::mem::{replace, take};
 use std::rc::Rc;
 
@@ -43,6 +43,22 @@ pub enum Trap {
     Unreachable,
 }
 
+impl fmt::Display for Trap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Trap::UndefinedElement => "undefined element".fmt(f),
+            Trap::UninitializedElement => "uninitialized element".fmt(f),
+            Trap::IndirectCallTypeMismatch => "indirect call type mismatch".fmt(f),
+            Trap::OOBTableElementIdx => "out of bounds element".fmt(f),
+            Trap::OOBMemoryAccess => "out of bound memory access".fmt(f),
+            Trap::IntDivideByZero => "divide by zero".fmt(f),
+            Trap::IntOverflow => "integer overflow".fmt(f),
+            Trap::InvalidConvToInt => "invalid conversion to integer".fmt(f),
+            Trap::Unreachable => "unreachable executed".fmt(f),
+        }
+    }
+}
+
 pub struct Runtime {
     /// The heap
     pub(crate) store: Store,
@@ -51,7 +67,7 @@ pub struct Runtime {
     /// Call stack. Frames hold locals.
     pub(crate) frames: FrameStack,
     /// WASI state
-    pub(crate) wasi_ctx: WASICtx,
+    pub(crate) wasi_ctx: WasiCtx,
     /// Maps registered modules to their module addresses
     module_names: FxHashMap<String, ModuleAddr>,
     /// Instruction pointer
@@ -59,24 +75,30 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Runtime {
             store: Default::default(),
             stack: Default::default(),
             frames: Default::default(),
-            wasi_ctx: WASICtx::new(),
+            wasi_ctx: Default::default(),
             module_names: Default::default(),
             ip: Default::default(),
         }
     }
 
-    pub(crate) fn new_with_args(args: Vec<CString>) -> Self {
+    pub fn new_with_wasi(wasi_ctx: WasiCtx) -> Self {
+        let mut store = Default::default();
+        let wasi_addr = allocate_wasi(&mut store);
+
+        let mut module_names: FxHashMap<String, ModuleAddr> = Default::default();
+        module_names.insert("wasi_snapshot_preview1".to_owned(), wasi_addr);
+
         Runtime {
-            store: Default::default(),
+            store,
             stack: Default::default(),
             frames: Default::default(),
-            wasi_ctx: WASICtx::new_with_args(args),
-            module_names: Default::default(),
+            wasi_ctx,
+            module_names,
             ip: Default::default(),
         }
     }

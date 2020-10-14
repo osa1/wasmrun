@@ -13,11 +13,10 @@ use std::ffi::CString;
 use std::fmt::Display;
 use std::path::Path;
 
-use exec::Runtime;
-
 use parity_wasm::elements as wasm;
 
-pub use wasi::allocate_wasi;
+pub use exec::Runtime;
+pub use wasi::{Dir, File, FileOrDir, WasiCtx, WasiCtxBuilder};
 
 #[derive(Debug)]
 pub enum ExecError {
@@ -25,13 +24,16 @@ pub enum ExecError {
     Trap(exec::Trap),
     /// Invalid module, unsupported operation, IO error, or a bug
     Panic(String),
+    /// WASI proc_exit called
+    Exit(i32),
 }
 
 impl Display for ExecError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExecError::Trap(_trap) => write!(f, "Wasm module trapped"),
+            ExecError::Trap(trap) => write!(f, "Wasm module trapped: {}", trap),
             ExecError::Panic(msg) => write!(f, "Interpreter panicked: {}", msg),
+            ExecError::Exit(exit) => write!(f, "proc_exit({})", exit),
         }
     }
 }
@@ -53,11 +55,10 @@ pub fn run_wasm(file: String, args: Vec<String>) -> Result<()> {
     let file_name = Path::new(&file).file_name().unwrap().to_str().unwrap();
     args.insert(0, CString::new(file_name).unwrap());
 
-    //args.insert(0, file_name.to_string_lossy());
-
-    let mut rt = Runtime::new_with_args(args);
-    let wasi_module_addr = allocate_wasi(&mut rt.store);
-    rt.register_module("wasi_snapshot_preview1".to_owned(), wasi_module_addr);
+    let mut wasi_builder = WasiCtxBuilder::new();
+    wasi_builder.set_args(args);
+    let wasi_ctx = wasi_builder.build();
+    let mut rt = Runtime::new_with_wasi(wasi_ctx);
 
     // allocate_module also runs 'start'
     let module_addr = exec::allocate_module(&mut rt, module)?;

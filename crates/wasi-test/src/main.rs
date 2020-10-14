@@ -1,8 +1,15 @@
 mod cli;
+mod cmd;
 
 use std::fs;
+use std::io::Read;
+use std::os::unix::io::{FromRawFd, RawFd};
 use std::path::{Path, PathBuf};
-use std::process::{exit, Command, Output};
+use std::process::{exit, Command};
+
+use parity_wasm::elements as wasm;
+
+use libwasmrun::{exec, ExecError, File, FileOrDir, Runtime, WasiCtx, WasiCtxBuilder};
 
 static WASMRUN_PATH: &str = "target/debug/wasmrun";
 
@@ -89,46 +96,138 @@ fn print_cmd(pgm: &str, args: &[&str]) {
     println!("Running {} {}", pgm, args.join(" "));
 }
 
-fn run_cmd(pgm: &str, args: &[&str]) -> Output {
-    print_cmd(pgm, args);
-    Command::new(pgm).args(args.iter()).output().unwrap()
-}
-
-fn print_output(output: &Output) {
-    println!("stdout: {:?}", String::from_utf8_lossy(&output.stdout));
-    println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
-    println!("status: {:?}", output.status);
-}
-
-fn report(wasmtime: &Output, wasmrun: &Output) -> bool {
+fn report(
+    wasm_out: RawFd,
+    wasm_err: RawFd,
+    wasm_exit: i32,
+    expected_out: &str,
+    expected_err: &str,
+    expected_exit: i32,
+) -> bool {
     let mut fail = false;
-    if wasmtime.stdout != wasmrun.stdout {
-        println!("!!! stdouts don't match");
+
+    let out = {
+        let mut out = String::new();
+        let mut out_file = unsafe { fs::File::from_raw_fd(wasm_out) };
+        out_file.read_to_string(&mut out).unwrap();
+        out
+    };
+
+    let err = {
+        let mut err = String::new();
+        let mut err_file = unsafe { fs::File::from_raw_fd(wasm_err) };
+        err_file.read_to_string(&mut err).unwrap();
+        err
+    };
+
+    if out != expected_out {
+        println!("\tExpected and actual stdsout outputs don't match");
+        println!("\tExpected: {:?}", expected_out);
+        println!("\tFound:    {:?}", out);
         fail = true;
     }
-    if wasmtime.stderr != wasmrun.stderr {
-        println!("!!! stderrs don't match");
+
+    if err != expected_err {
+        println!("\tExpected and actual stderr outputs don't match");
+        println!("\tExpected: {:?}", expected_err);
+        println!("\tFound:    {:?}", err);
         fail = true;
     }
-    if wasmtime.status != wasmrun.status {
-        println!("!!! statuses don't match");
+
+    if wasm_exit != expected_exit {
+        println!("\tExpected and actual exit codes don't match");
+        println!("\tExpected: {}", expected_exit);
+        println!("\tFound:    {}", wasm_exit);
         fail = true;
     }
+
     fail
+}
+
+fn handle_commands(cmds: Vec<cmd::Cmd>) -> (WasiCtx, i32, RawFd, RawFd) {
+    let mut exit = 0;
+    let mut wasi_builder = WasiCtxBuilder::new();
+
+    let (out_read, out_write) = nix::unistd::pipe().unwrap();
+    let (err_read, err_write) = nix::unistd::pipe().unwrap();
+
+    wasi_builder.stdout(out_write);
+    wasi_builder.stderr(err_write);
+
+    for cmd in cmds {
+        match cmd {
+            cmd::Cmd::Preopen {
+                wasm_path,
+                file_path,
+            } => {
+                wasi_builder.preopen(wasm_path, FileOrDir::File(File::Pending(file_path.into())));
+            }
+            cmd::Cmd::ExitCode(exit_) => {
+                exit = exit_;
+            }
+        }
+    }
+
+    (wasi_builder.build(), exit, out_read, err_read)
 }
 
 fn run_file(file: &Path) -> bool {
-    let mut fail = false;
-    let file_str = file.to_str().unwrap();
-    let wasm_interpreter_args: [&str; 1] = [file_str];
+    println!("{}", file.to_string_lossy());
 
-    let wasmtime_out = run_cmd("wasmtime", &wasm_interpreter_args);
-    print_output(&wasmtime_out);
+    let file_stem = file.file_stem().unwrap().to_str().unwrap();
+    let file_src_path = format!("tests/wasi/src/{}.rs", file_stem);
+    let file_src = fs::read_to_string(file_src_path).unwrap();
 
-    let wasmrun_out = run_cmd(WASMRUN_PATH, &wasm_interpreter_args);
-    print_output(&wasmrun_out);
+    let cmds = cmd::parse_cmds(&file_src);
+    let (wasi, expected_exit, stdout, stderr) = handle_commands(cmds);
+    let mut rt = Runtime::new_with_wasi(wasi);
 
-    fail |= report(&wasmtime_out, &wasmrun_out);
+    let out_path = format!("tests/wasi/src/{}.out", file_stem);
+    let out = fs::read_to_string(out_path).unwrap_or_else(|_| "".to_owned());
 
-    fail
+    let err_path = format!("tests/wasi/src/{}.err", file_stem);
+    let err = fs::read_to_string(err_path).unwrap_or_else(|_| "".to_owned());
+
+    let module = match wasm::deserialize_file(&file) {
+        Ok(module) => module,
+        Err(err) => {
+            println!("\tUnable to parse Wasm: {}", err);
+            return true;
+        }
+    };
+
+    let module_addr = match exec::allocate_module(&mut rt, module) {
+        Ok(module_addr) => module_addr,
+        Err(err) => {
+            println!("\tUnable to load Wasm module: {}", err);
+            return true;
+        }
+    };
+
+    let exit = match exec::invoke_by_name(&mut rt, module_addr, "_start")
+        .and_then(|()| exec::finish(&mut rt))
+    {
+        Ok(()) => 0,
+        Err(ExecError::Exit(exit)) => exit,
+        Err(err) => {
+            println!("\tError while invoking _start: {}", err);
+
+            drop(rt); // FIXME: closes stdout and stderr
+
+            let err = {
+                let mut err = String::new();
+                let mut err_file = unsafe { fs::File::from_raw_fd(stderr) };
+                err_file.read_to_string(&mut err).unwrap();
+                err
+            };
+
+            println!("\tStderr: {}", err);
+
+            return true;
+        }
+    };
+
+    drop(rt); // FIXME: closes stdout and stderr
+
+    report(stdout, stderr, exit, &out, &err, expected_exit)
 }

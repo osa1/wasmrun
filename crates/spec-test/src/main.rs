@@ -485,6 +485,9 @@ fn run_spec_cmd(
                                 writeln!(out, "OK").unwrap();
                             }
                         }
+                        Err(ExecError::Exit(_exit)) => {
+                            panic!("WASI proc_exit called in a spec test");
+                        }
                     }
                 }
 
