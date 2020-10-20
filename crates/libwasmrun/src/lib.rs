@@ -1,3 +1,4 @@
+mod borrow;
 pub mod exec;
 mod export;
 mod frame;
@@ -9,14 +10,12 @@ pub mod store;
 pub mod value;
 pub mod wasi;
 
-use std::ffi::CString;
 use std::fmt::Display;
-use std::path::Path;
 
 use parity_wasm::elements as wasm;
 
 pub use exec::Runtime;
-pub use wasi::{Dir, File, FileOrDir, WasiCtx, WasiCtxBuilder};
+pub use wasi_common::{virtfs, Handle, WasiCtx, WasiCtxBuilder};
 
 #[macro_use]
 extern crate log;
@@ -51,16 +50,10 @@ pub fn run_wasm(file: String, args: Vec<String>) -> Result<()> {
         }
     };
 
-    let mut args = args
-        .into_iter()
-        .map(|arg| CString::new(arg).unwrap())
-        .collect::<Vec<_>>();
-    let file_name = Path::new(&file).file_name().unwrap().to_str().unwrap();
-    args.insert(0, CString::new(file_name).unwrap());
-
     let mut wasi_builder = WasiCtxBuilder::new();
-    wasi_builder.set_args(args);
-    let wasi_ctx = wasi_builder.build();
+    wasi_builder.args(args);
+
+    let wasi_ctx = wasi_builder.build().unwrap();
     let mut rt = Runtime::new_with_wasi(wasi_ctx);
 
     // allocate_module also runs 'start'

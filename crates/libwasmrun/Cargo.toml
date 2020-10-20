@@ -14,3 +14,11 @@ log = "0.4"
 git = "https://github.com/osa1/parity-wasm"
 branch = "wasmrun"
 features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]
+
+[dependencies.wasi-common]
+git = "https://github.com/bytecodealliance/wasmtime.git"
+branch = "main"
+
+[dependencies.wiggle]
+git = "https://github.com/bytecodealliance/wasmtime.git"
+branch = "main"

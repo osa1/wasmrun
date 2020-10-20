@@ -18,9 +18,6 @@
 //!   call sites we pass the memory address of the calling function to WASI functions implemented
 //!   below.
 
-mod ctx;
-mod file;
-
 use crate::exec::Runtime;
 use crate::export::Export;
 use crate::module::Module;
@@ -28,12 +25,8 @@ use crate::store::{MemAddr, ModuleAddr, Store};
 use crate::value::Value;
 use crate::{ExecError, Result};
 
-use std::io::Write;
-
 use parity_wasm::elements as wasm;
-
-pub use ctx::{WasiCtx, WasiCtxBuilder};
-pub use file::{Dir, File, FileOrDir};
+use wasi_common::wasi::wasi_snapshot_preview1;
 
 /// Initializes the 'wasi_snapshot_preview1' module.
 pub(crate) fn allocate_wasi(store: &mut Store) -> ModuleAddr {
@@ -66,7 +59,7 @@ pub(crate) fn allocate_wasi(store: &mut Store) -> ModuleAddr {
     allocate(vec![I32, I32], I32, "args_get", wasi_args_get);
     allocate(vec![I32], I32, "fd_close", wasi_fd_close);
     allocate(vec![I32, I32], I32, "fd_filestat_get", wasi_fd_filestat_get);
-    allocate(vec![I32, I32, I32], I32, "fd_read", wasi_fd_read);
+    allocate(vec![I32, I32, I32, I32], I32, "fd_read", wasi_fd_read);
     allocate(
         vec![I32, I32, I32, I32, I32, I64, I64, I32, I32],
         I32,
@@ -96,10 +89,13 @@ fn allocate_fn(
 }
 
 // [i32] -> []
-fn wasi_proc_exit(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_proc_exit(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     let exit_code = rt.get_local(0)?.expect_i32();
 
     trace!("proc_exit({})", exit_code);
+
+    // TODO: No idea what this does
+    wasi_snapshot_preview1::proc_exit(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), exit_code);
 
     Err(ExecError::Exit(exit_code))
 }
@@ -110,13 +106,13 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 
     // List of scatter/gather vectors from which to retrieve data.
     // __wasi_ciovec_t *iovs
-    let iovs_ptr = rt.get_local(1)?.expect_i32() as u32;
+    let iovs_ptr = rt.get_local(1)?.expect_i32();
 
     // The length of the array pointed to by `iovs`
-    let iovs_len = rt.get_local(2)?.expect_i32() as u32;
+    let iovs_len = rt.get_local(2)?.expect_i32();
 
     // The number of bytes written
-    let nwritten_ptr = rt.get_local(3)?.expect_i32() as u32;
+    let nwritten_ptr = rt.get_local(3)?.expect_i32();
 
     trace!(
         "fd_write(fd={}, iovs_ptr={:#x}, iovs_len={}, nwritten_ptr={:#x})",
@@ -126,52 +122,20 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         nwritten_ptr
     );
 
-    let mut bytes: Vec<u8> = vec![];
+    let ret = wasi_snapshot_preview1::fd_write(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        fd,
+        iovs_ptr,
+        iovs_len,
+        nwritten_ptr,
+    );
 
-    for vec_i in 0..iovs_len {
-        // Each element is two words
-        let offset = vec_i * 8;
-        let vec_buf_addr = iovs_ptr + offset;
-        let vec_len_addr = vec_buf_addr + 4;
-        let vec_buf = rt.store.get_mem(mem_addr).load_32(vec_buf_addr)?;
-        let vec_len = rt.store.get_mem(mem_addr).load_32(vec_len_addr)?;
-        bytes.reserve(vec_len as usize);
-        for byte_i in 0..vec_len {
-            bytes.push(rt.store.get_mem(mem_addr)[vec_buf + byte_i]);
-        }
-    }
-
-    match fd {
-        1 => match &mut rt.wasi_ctx.stdout {
-            None => {
-                ::std::io::stdout().write(&bytes).unwrap();
-            }
-            Some(stdout) => {
-                stdout.write(&bytes).unwrap();
-            }
-        },
-        2 => match &mut rt.wasi_ctx.stderr {
-            None => {
-                ::std::io::stderr().write(&bytes).unwrap();
-            }
-            Some(stderr) => {
-                stderr.write(&bytes).unwrap();
-            }
-        },
-        _ => {
-            return Err(ExecError::Panic(format!("wasi_fd_write fd={}", fd)));
-        }
-    }
-
-    rt.store
-        .get_mem_mut(mem_addr)
-        .store_32(nwritten_ptr, bytes.len() as u32)?;
-
-    Ok(Value::I32(0))
+    Ok(Value::I32(ret))
 }
 
 // [i32, i32, i32, i32] -> [i32]
-fn wasi_fd_read(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_read(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     let fd = rt.get_local(0)?.expect_i32();
 
     // List of scatter/gather vectors to which to store data
@@ -188,28 +152,44 @@ fn wasi_fd_read(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
 
     trace!("fd_read({}, {:#x}, {}, {:#x})", fd, iovs, iovs_len, nread);
 
-    Err(ExecError::Panic("wasi_fd_read".to_string()))
+    let ret = wasi_snapshot_preview1::fd_read(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        fd,
+        iovs,
+        iovs_len,
+        nread,
+    );
+
+    Ok(Value::I32(ret))
 }
 
 // [i32, i32] -> [i32]
 // Return a description of the given preopened file descriptor.
 // https://github.com/bytecodealliance/wasmtime/blob/5799fd3cc0b4d51f58532b19397d5c3a4677a010/crates/wasi-common/src/old/snapshot_0/hostcalls_impl/fs.rs#L958
-fn wasi_fd_prestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_prestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
     // The buffer where the description is stored
     // __wasi_prestat_t *buf
-    let prestat_t_ptr = rt.get_local(1)?.expect_i32() as u32;
+    let prestat_t_ptr = rt.get_local(1)?.expect_i32();
 
-    trace!("fd_prestat_get({}, {})", fd, prestat_t_ptr);
+    trace!("fd_prestat_get({}, {:#x})", fd, prestat_t_ptr);
 
-    Ok(Value::I32(8)) // ERRNO_BADF
+    let ret = wasi_snapshot_preview1::fd_prestat_get(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        fd,
+        prestat_t_ptr,
+    );
+
+    Ok(Value::I32(ret)) // ERRNO_BADF
 }
 
 // [i32, i32, i32] -> [i32]
 // Return a description of the given preopened file descriptor
-fn wasi_fd_prestat_dir_name(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_prestat_dir_name(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -222,20 +202,27 @@ fn wasi_fd_prestat_dir_name(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Valu
 
     trace!("fd_prestat_dir_name({}, {:#x}, {})", fd, buf_ptr, len);
 
-    Err(ExecError::Panic("wasi_fd_prestat_dir_name".to_string()))
+    let ret = wasi_snapshot_preview1::fd_prestat_dir_name(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        fd,
+        buf_ptr,
+        len,
+    );
+
+    Ok(Value::I32(ret))
 }
 
 // [i32, i32] -> [i32]
-// TODO: This function currently returns 0
 fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // The size of the environment variable data.
 
     // The number of environment variable arguments.
     // __wasi_size_t *environc
-    let environc_ptr = rt.get_local(0)?.expect_i32() as u32;
+    let environc_ptr = rt.get_local(0)?.expect_i32();
 
     // __wasi_size_t *environ_buf_size
-    let environ_buf_size = rt.get_local(1)?.expect_i32() as u32;
+    let environ_buf_size = rt.get_local(1)?.expect_i32();
 
     trace!(
         "environ_sizes_get({:#x}, {})",
@@ -243,17 +230,20 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> 
         environ_buf_size
     );
 
-    let mem = rt.store.get_mem_mut(mem_addr);
-    mem.store_32(environc_ptr, 0)?;
-    mem.store_32(environ_buf_size, 0)?;
+    let ret = wasi_snapshot_preview1::environ_sizes_get(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        environc_ptr,
+        environ_buf_size,
+    );
 
-    Ok(Value::I32(0)) // errno success
+    Ok(Value::I32(ret))
 }
 
 // [i32, i32] -> [i32]
 // Read environment variable data. The sizes of the buffers should match that returned by
 // `environ_sizes_get`.
-fn wasi_environ_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_environ_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // uint8_t * * environ
     let environ = rt.get_local(0)?.expect_i32();
 
@@ -262,15 +252,22 @@ fn wasi_environ_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
 
     trace!("environ_get({:#x}, {:#x})", environ, environ_buf);
 
-    Err(ExecError::Panic("wasi_environ_get".to_string()))
+    let ret = wasi_snapshot_preview1::environ_get(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        environ,
+        environ_buf,
+    );
+
+    Ok(Value::I32(ret))
 }
 
 // Return command-line argument data sizes
 fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // Number of arguments
-    let argc_addr = rt.get_local(0)?.expect_i32() as u32;
+    let argc_addr = rt.get_local(0)?.expect_i32();
     // The size of the argument string data
-    let argv_buf_size_addr = rt.get_local(1)?.expect_i32() as u32;
+    let argv_buf_size_addr = rt.get_local(1)?.expect_i32();
 
     trace!(
         "args_sizes_get({:#x}, {:#x})",
@@ -278,79 +275,51 @@ fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         argv_buf_size_addr
     );
 
-    let argc = rt.wasi_ctx.args.len();
-    let argv_size: usize = rt
-        .wasi_ctx
-        .args
-        .iter()
-        .map(|arg| arg.as_bytes_with_nul().len())
-        .sum();
+    let ret = wasi_snapshot_preview1::args_sizes_get(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        argc_addr,
+        argv_buf_size_addr,
+    );
 
-    let mem = rt.store.get_mem_mut(mem_addr);
-    mem.store_32(argc_addr, argc as u32)?;
-    mem.store_32(argv_buf_size_addr, argv_size as u32)?;
-
-    Ok(Value::I32(0))
+    Ok(Value::I32(ret))
 }
 
 // Read command-line argument data. The size of the array should match that returned by
 // `args_sizes_get`.
 fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // uint8_t **
-    let argv_addr = rt.get_local(0)?.expect_i32() as u32;
+    let argv = rt.get_local(0)?.expect_i32();
     // uint8_t *
-    let argv_buf_addr = rt.get_local(1)?.expect_i32() as u32;
+    let argv_buf = rt.get_local(1)?.expect_i32();
 
-    trace!("args_get({:#x}, {:#x})", argv_addr, argv_buf_addr);
+    trace!("args_get({:#x}, {:#x})", argv, argv_buf);
 
-    // Current offset in argv_buf array
-    let mut argv_buf_offset = 0;
-    // Addresses of arguments, to be written to argv_addr
-    let mut arg_ptrs = vec![];
+    let ret = wasi_snapshot_preview1::args_get(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        argv,
+        argv_buf,
+    );
 
-    let mem = rt.store.get_mem_mut(mem_addr);
-
-    for arg in &rt.wasi_ctx.args {
-        let arg_bytes = arg.as_bytes_with_nul();
-        let arg_ptr = argv_buf_addr + argv_buf_offset;
-
-        // Push address of the argument to argv_addr vector
-        arg_ptrs.push(arg_ptr);
-
-        // Copy argument
-        for (offset, byte) in arg_bytes.iter().copied().enumerate() {
-            mem.store_8(arg_ptr + offset as u32, byte)?;
-        }
-
-        // Update offset in argv_buf array
-        argv_buf_offset = argv_buf_offset + arg_bytes.len() as u32;
-    }
-
-    // Write argv
-    for (i, arg_ptr) in arg_ptrs.into_iter().enumerate() {
-        mem.store_32(argv_addr + (i * 4) as u32, arg_ptr)?;
-    }
-
-    // Err(ExecError::Panic(format!(
-    //     "args_get({:#x}, {:#x})",
-    //     argv_addr, argv_buf_addr
-    // )))
-
-    Ok(Value::I32(0))
+    Ok(Value::I32(ret))
 }
 
 // [i32] -> [i32]
-fn wasi_fd_close(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_close(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     let fd = rt.get_local(0)?.expect_i32();
 
     trace!("fd_close({})", fd);
 
-    Err(ExecError::Panic("wasi_fd_close".to_string()))
+    let ret =
+        wasi_snapshot_preview1::fd_close(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), fd);
+
+    Ok(Value::I32(ret))
 }
 
 // [i32, i32] -> [i32]
 // Return the attributes of an open file.
-fn wasi_fd_filestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -360,7 +329,14 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
 
     trace!("fd_filestat_get({}, {:#x})", fd, buf);
 
-    Err(ExecError::Panic("wasi_fd_filestat".to_string()))
+    let ret = wasi_snapshot_preview1::fd_filestat_get(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        fd,
+        buf,
+    );
+
+    Ok(Value::I32(ret))
 }
 
 // [I32, I32, I32, I32, I32, I64, I64, I32, I32] -> [I32]
@@ -369,7 +345,7 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
 // from depending on making assumptions about indexes, since this is error-prone in multi-threaded
 // contexts. The returned file descriptor is guaranteed to be less than 2**31. Note: This is
 // similar to `openat` in POSIX.
-fn wasi_path_open(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_path_open(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -426,5 +402,19 @@ fn wasi_path_open(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
         opened_fd
     );
 
-    Err(ExecError::Panic("wasi_path_open".to_string()))
+    let ret = wasi_snapshot_preview1::path_open(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        fd,
+        flags,
+        path,
+        path_len,
+        oflags,
+        fs_rights_base,
+        fs_rights_inheriting,
+        fdflags,
+        opened_fd,
+    );
+
+    Ok(Value::I32(ret))
 }

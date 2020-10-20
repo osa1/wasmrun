@@ -6,15 +6,17 @@ use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store};
 use crate::value::{self, Value};
-use crate::wasi::{allocate_wasi, WasiCtx};
+use crate::wasi::allocate_wasi;
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
+use wasi_common::WasiCtx;
 use wasm::{Instruction, SignExtInstruction};
 
 use std::fmt;
+use std::iter;
 use std::mem::{replace, take};
 use std::rc::Rc;
 
@@ -80,7 +82,7 @@ impl Runtime {
             store: Default::default(),
             stack: Default::default(),
             frames: Default::default(),
-            wasi_ctx: Default::default(),
+            wasi_ctx: WasiCtx::new(iter::empty::<String>()).unwrap(),
             module_names: Default::default(),
             ip: Default::default(),
         }

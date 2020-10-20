@@ -1,12 +1,16 @@
+use crate::borrow::BorrowChecker;
 use crate::exec::{Trap, PAGE_SIZE};
 use crate::{ExecError, Result};
 
 use std::ops::{Index, IndexMut};
 
+use wiggle::GuestMemory;
+
 #[derive(Debug)]
 pub(crate) struct Mem {
     mem: Vec<u8>,
     limit: Option<u32>,
+    bc: BorrowChecker,
 }
 
 impl Index<u32> for Mem {
@@ -23,6 +27,31 @@ impl IndexMut<u32> for Mem {
     }
 }
 
+unsafe impl GuestMemory for Mem {
+    fn base(&self) -> (*mut u8, u32) {
+        (self.mem.as_ptr() as *mut _, self.mem.len() as u32)
+    }
+
+    fn has_outstanding_borrows(&self) -> bool {
+        self.bc.has_outstanding_borrows()
+    }
+
+    fn is_borrowed(&self, r: wiggle::Region) -> bool {
+        self.bc.is_borrowed(r)
+    }
+
+    fn borrow(
+        &self,
+        r: wiggle::Region,
+    ) -> std::result::Result<wiggle::BorrowHandle, wiggle::GuestError> {
+        self.bc.borrow(r)
+    }
+
+    fn unborrow(&self, h: wiggle::BorrowHandle) {
+        self.bc.unborrow(h)
+    }
+}
+
 impl Mem {
     /// `initial`: Initial number of pages
     /// `limit`: Max num. of pages
@@ -30,6 +59,7 @@ impl Mem {
         Mem {
             mem: vec![0; initial as usize * PAGE_SIZE],
             limit,
+            bc: BorrowChecker::new(),
         }
     }
 
@@ -69,11 +99,13 @@ impl Mem {
         }
     }
 
-    pub(crate) fn store_8(&mut self, addr: u32, value: u8) -> Result<()> {
-        self.check_range(addr, 1)?;
-        self[addr] = value;
-        Ok(())
-    }
+    /*
+        pub(crate) fn store_8(&mut self, addr: u32, value: u8) -> Result<()> {
+            self.check_range(addr, 1)?;
+            self[addr] = value;
+            Ok(())
+        }
+    */
 
     pub(crate) fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
         self.check_range(addr, 4)?;

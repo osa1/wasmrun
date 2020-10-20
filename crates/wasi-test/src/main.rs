@@ -1,15 +1,17 @@
 mod cli;
 mod cmd;
 
+use std::collections::HashMap;
 use std::fs;
-use std::io::Read;
-use std::os::unix::io::{FromRawFd, RawFd};
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
+use std::sync::{Arc, RwLock};
 
 use parity_wasm::elements as wasm;
 
-use libwasmrun::{exec, ExecError, File, FileOrDir, Runtime, WasiCtx, WasiCtxBuilder};
+use libwasmrun::virtfs::pipe::{ReadPipe, WritePipe};
+use libwasmrun::virtfs::{VecFileContents, VirtualDirEntry};
+use libwasmrun::{exec, ExecError, Runtime, WasiCtx, WasiCtxBuilder};
 
 static WASMRUN_PATH: &str = "target/debug/wasmrun";
 
@@ -99,8 +101,8 @@ fn print_cmd(pgm: &str, args: &[&str]) {
 }
 
 fn report(
-    wasm_out: RawFd,
-    wasm_err: RawFd,
+    wasm_out: Arc<RwLock<Vec<u8>>>,
+    wasm_err: Arc<RwLock<Vec<u8>>>,
     wasm_exit: i32,
     expected_out: &str,
     expected_err: &str,
@@ -108,19 +110,11 @@ fn report(
 ) -> bool {
     let mut fail = false;
 
-    let out = {
-        let mut out = String::new();
-        let mut out_file = unsafe { fs::File::from_raw_fd(wasm_out) };
-        out_file.read_to_string(&mut out).unwrap();
-        out
-    };
+    let out_ref = wasm_out.read().unwrap();
+    let out = String::from_utf8_lossy(&*out_ref);
 
-    let err = {
-        let mut err = String::new();
-        let mut err_file = unsafe { fs::File::from_raw_fd(wasm_err) };
-        err_file.read_to_string(&mut err).unwrap();
-        err
-    };
+    let err_ref = wasm_err.read().unwrap();
+    let err = String::from_utf8_lossy(&*err_ref);
 
     if out != expected_out {
         println!("\tExpected and actual stdsout outputs don't match");
@@ -146,15 +140,21 @@ fn report(
     fail
 }
 
-fn handle_commands(cmds: Vec<cmd::Cmd>) -> (WasiCtx, i32, RawFd, RawFd) {
+fn handle_commands(
+    cmds: Vec<cmd::Cmd>,
+) -> (WasiCtx, i32, Arc<RwLock<Vec<u8>>>, Arc<RwLock<Vec<u8>>>) {
     let mut exit = 0;
     let mut wasi_builder = WasiCtxBuilder::new();
 
-    let (out_read, out_write) = nix::unistd::pipe().unwrap();
-    let (err_read, err_write) = nix::unistd::pipe().unwrap();
+    wasi_builder.stdin(ReadPipe::from(""));
 
-    wasi_builder.stdout(out_write);
-    wasi_builder.stderr(err_write);
+    let stdout_buf: Arc<RwLock<Vec<u8>>> = Arc::new(RwLock::new(vec![]));
+    wasi_builder.stdout(WritePipe::from_shared(stdout_buf.clone()));
+
+    let stderr_buf: Arc<RwLock<Vec<u8>>> = Arc::new(RwLock::new(vec![]));
+    wasi_builder.stderr(WritePipe::from_shared(stderr_buf.clone()));
+
+    let mut fs_map = HashMap::new();
 
     for cmd in cmds {
         match cmd {
@@ -162,7 +162,14 @@ fn handle_commands(cmds: Vec<cmd::Cmd>) -> (WasiCtx, i32, RawFd, RawFd) {
                 wasm_path,
                 file_path,
             } => {
-                wasi_builder.preopen(wasm_path, FileOrDir::File(File::Pending(file_path.into())));
+                // TODO: This assumes all files are relative to the wasm file's directory
+                // TODO: Reading the file eagerly for now
+                // TODO: Hard-coded file path
+                let path = format!("tests/wasi/{}", file_path);
+                let file_contents = fs::read(path).unwrap();
+                let entry =
+                    VirtualDirEntry::File(Box::new(VecFileContents::with_content(file_contents)));
+                fs_map.insert(wasm_path, entry);
             }
             cmd::Cmd::ExitCode(exit_) => {
                 exit = exit_;
@@ -170,7 +177,10 @@ fn handle_commands(cmds: Vec<cmd::Cmd>) -> (WasiCtx, i32, RawFd, RawFd) {
         }
     }
 
-    (wasi_builder.build(), exit, out_read, err_read)
+    let dir = VirtualDirEntry::Directory(fs_map);
+    wasi_builder.preopened_virt(dir, ".");
+
+    (wasi_builder.build().unwrap(), exit, stdout_buf, stderr_buf)
 }
 
 fn run_file(file: &Path) -> bool {
@@ -214,22 +224,20 @@ fn run_file(file: &Path) -> bool {
         Err(err) => {
             println!("\tError while invoking _start: {}", err);
 
-            drop(rt); // FIXME: closes stdout and stderr
-
+            /*
             let err = {
                 let mut err = String::new();
                 let mut err_file = unsafe { fs::File::from_raw_fd(stderr) };
                 err_file.read_to_string(&mut err).unwrap();
                 err
             };
+            */
 
             println!("\tStderr: {}", err);
 
             return true;
         }
     };
-
-    drop(rt); // FIXME: closes stdout and stderr
 
     report(stdout, stderr, exit, &out, &err, expected_exit)
 }
