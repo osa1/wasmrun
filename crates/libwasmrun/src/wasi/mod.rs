@@ -6,6 +6,8 @@
 //! - C header file for the API:
 //!   https://github.com/WebAssembly/wasi-libc/blob/master/libc-bottom-half/headers/public/wasi/api.h
 //!
+//!   (Most of the comments below are copied from this header file)
+//!
 //! - See also https://github.com/WebAssembly/WASI/blob/master/design/application-abi.md for how
 //!   WASI functions access callers' memories. Quoting here:
 //!
@@ -95,23 +97,23 @@ fn allocate_fn(
 
 // [i32] -> []
 fn wasi_proc_exit(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
-    let exit_code = rt.frames.current()?.get_local(0)?.expect_i32();
-    ::std::process::exit(exit_code);
+    let exit_code = rt.get_local(0)?.expect_i32();
+    Err(ExecError::Exit(exit_code))
 }
 
 // [i32, i32, i32, i32] -> [i32]
 fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
-    let fd = rt.frames.current()?.get_local(0)?.expect_i32();
+    let fd = rt.get_local(0)?.expect_i32();
 
     // List of scatter/gather vectors from which to retrieve data.
     // __wasi_ciovec_t *iovs
-    let iovs_ptr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+    let iovs_ptr = rt.get_local(1)?.expect_i32() as u32;
 
     // The length of the array pointed to by `iovs`
-    let iovs_len = rt.frames.current()?.get_local(2)?.expect_i32() as u32;
+    let iovs_len = rt.get_local(2)?.expect_i32() as u32;
 
     // The number of bytes written
-    let nwritten_ptr = rt.frames.current()?.get_local(3)?.expect_i32() as u32;
+    let nwritten_ptr = rt.get_local(3)?.expect_i32() as u32;
 
     // println!(
     //     "wasi_fd_write(fd={}, iovs_ptr={:#x}, iovs_len={}, nwritten_ptr={:#x})",
@@ -163,48 +165,57 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 }
 
 // [i32, i32, i32, i32] -> [i32]
-fn wasi_fd_read(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_read(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    let fd = rt.get_local(0)?.expect_i32();
+
+    // List of scatter/gather vectors to which to store data
+    // const __wasi_iovec_t *iovs,
+    let iovs = rt.get_local(1)?.expect_i32();
+
+    // The length of the array pointed to by `iovs`.
+    // size_t iovs_len
+    let iovs_len = rt.get_local(2)?.expect_i32();
+
+    // The number of bytes read.
+    // __wasi_size_t *nread
+    let nread = rt.get_local(3)?.expect_i32();
+
+    println!("fd_read({}, {:#x}, {}, {:#x})", fd, iovs, iovs_len, nread);
+
     Err(ExecError::Panic("wasi_fd_read".to_string()))
 }
 
 // [i32, i32] -> [i32]
 // Return a description of the given preopened file descriptor.
 // https://github.com/bytecodealliance/wasmtime/blob/5799fd3cc0b4d51f58532b19397d5c3a4677a010/crates/wasi-common/src/old/snapshot_0/hostcalls_impl/fs.rs#L958
-fn wasi_fd_prestat_get(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_prestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t fd
-    // let fd = rt.frames.current()?.get_local(0)?.expect_i32();
+    let fd = rt.get_local(0)?.expect_i32();
 
     // The buffer where the description is stored
     // __wasi_prestat_t *buf
-    // let prestat_t_ptr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+    let prestat_t_ptr = rt.get_local(1)?.expect_i32() as u32;
 
-    // Err(ExecError::Panic(format!("wasi_fd_prestat_get({}, {})", fd, prestat_t_ptr)))
-    // println!("wasi_fd_prestat_get({}, {})", fd, prestat_t_ptr);
+    println!("fd_prestat_get({}, {})", fd, prestat_t_ptr);
+
     Ok(Value::I32(8)) // ERRNO_BADF
-
-    // // Currently only stdout, stdin, and stderr are allowed: stdin=0, stdout=1, stderr=2
-    // match fd {
-    //     0 => {
-    //         // stdin
-    //         Ok(Value::I32(0))
-    //     }
-    //     1 => {
-    //         // stdout
-    //         Ok(Value::I32(0))
-    //     }
-    //     2 => {
-    //         // stderr
-    //         Ok(Value::I32(0))
-    //     }
-    //     _ => {
-    //         // TODO
-    //         Err(ExecError::Panic(format!("wasi_fd_prestat_get({})", fd)))
-    //     }
-    // }
 }
 
 // [i32, i32, i32] -> [i32]
-fn wasi_fd_prestat_dir_name(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+// Return a description of the given preopened file descriptor
+fn wasi_fd_prestat_dir_name(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    // __wasi_fd_t fd
+    let fd = rt.get_local(0)?.expect_i32();
+
+    // A buffer into which to write the preopened directory name.
+    // uint8_t * path
+    let buf_ptr = rt.get_local(1)?.expect_i32();
+
+    // __wasi_size_t path_len
+    let len = rt.get_local(2)?.expect_i32();
+
+    println!("fd_prestat_dir_name({}, {:#x}, {})", fd, buf_ptr, len);
+
     Err(ExecError::Panic("wasi_fd_prestat_dir_name".to_string()))
 }
 
@@ -215,34 +226,39 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> 
 
     // The number of environment variable arguments.
     // __wasi_size_t *environc
-    let environc_ptr = rt.frames.current()?.get_local(0)?.expect_i32() as u32;
+    let environc_ptr = rt.get_local(0)?.expect_i32() as u32;
 
     // __wasi_size_t *environ_buf_size
-    let environ_buf_size = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+    let environ_buf_size = rt.get_local(1)?.expect_i32() as u32;
 
     let mem = rt.store.get_mem_mut(mem_addr);
     mem.store_32(environc_ptr, 0)?;
     mem.store_32(environ_buf_size, 0)?;
 
     Ok(Value::I32(0)) // errno success
-
-    // Err(ExecError::Panic(format!(
-    //     "wasi_environ_sizes_get (environ_buf_size={:#x}, environc_ptr={:#x})",
-    //     environ_buf_size, environc_ptr
-    // )))
 }
 
 // [i32, i32] -> [i32]
-fn wasi_environ_get(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+// Read environment variable data. The sizes of the buffers should match that returned by
+// `environ_sizes_get`.
+fn wasi_environ_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    // uint8_t * * environ
+    let environ = rt.get_local(0)?.expect_i32();
+
+    // uint8_t * environ_buf
+    let environ_buf = rt.get_local(1)?.expect_i32();
+
+    println!("environ_get({:#x}, {:#x})", environ, environ_buf);
+
     Err(ExecError::Panic("wasi_environ_get".to_string()))
 }
 
 // Return command-line argument data sizes
 fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // Number of arguments
-    let argc_addr = rt.frames.current()?.get_local(0)?.expect_i32() as u32;
+    let argc_addr = rt.get_local(0)?.expect_i32() as u32;
     // The size of the argument string data
-    let argv_buf_size_addr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+    let argv_buf_size_addr = rt.get_local(1)?.expect_i32() as u32;
 
     let argc = rt.wasi_ctx.args.len();
     let argv_size: usize = rt
@@ -263,9 +279,9 @@ fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 // `args_sizes_get`.
 fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // uint8_t **
-    let argv_addr = rt.frames.current()?.get_local(0)?.expect_i32() as u32;
+    let argv_addr = rt.get_local(0)?.expect_i32() as u32;
     // uint8_t *
-    let argv_buf_addr = rt.frames.current()?.get_local(1)?.expect_i32() as u32;
+    let argv_buf_addr = rt.get_local(1)?.expect_i32() as u32;
 
     // Current offset in argv_buf array
     let mut argv_buf_offset = 0;
@@ -304,16 +320,83 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 }
 
 // [i32] -> [i32]
-fn wasi_fd_close(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_close(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    let fd = rt.get_local(0)?.expect_i32();
+
+    println!("fd_close({})", fd);
+
     Err(ExecError::Panic("wasi_fd_close".to_string()))
 }
 
 // [i32, i32] -> [i32]
-fn wasi_fd_filestat_get(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+// Return the attributes of an open file.
+fn wasi_fd_filestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    // __wasi_fd_t fd
+    let fd = rt.get_local(0)?.expect_i32();
+
+    // The buffer where the file's attributes are stored.
+    // __wasi_filestat_t *buf
+    let buf = rt.get_local(1)?.expect_i32();
+
+    println!("fd_filestat_get({}, {:#x})", fd, buf);
+
     Err(ExecError::Panic("wasi_fd_filestat".to_string()))
 }
 
 // [I32, I32, I32, I32, I32, I64, I64, I32, I32] -> [I32]
-fn wasi_path_open(_rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+// Open a file or directory. The returned file descriptor is not guaranteed to be the
+// lowest-numbered file descriptor not currently open; it is randomized to prevent applications
+// from depending on making assumptions about indexes, since this is error-prone in multi-threaded
+// contexts. The returned file descriptor is guaranteed to be less than 2**31. Note: This is
+// similar to `openat` in POSIX.
+fn wasi_path_open(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
+    // __wasi_fd_t fd
+    let fd = rt.get_local(0)?.expect_i32();
+
+    // Flags determining the method of how the path is resolved.
+    // __wasi_lookupflags_t dirflags,
+    let flags = rt.get_local(1)?.expect_i32();
+
+    // The relative path of the file or directory to open, relative to the `path_open::fd`
+    // directory.
+    // const char *path
+    let path = rt.get_local(2)?.expect_i32();
+
+    // The length of the buffer pointed to by `path`.
+    // size_t path_len
+    let path_len = rt.get_local(3)?.expect_i32();
+
+    // The method by which to open the file.
+    // __wasi_oflags_t oflags
+    let oflags = rt.get_local(4)?.expect_i32();
+
+    // The initial rights of the newly created file descriptor. The
+    // implementation is allowed to return a file descriptor with fewer rights
+    // than specified, if and only if those rights do not apply to the type of
+    // file being opened.
+    // The *base* rights are rights that will apply to operations using the file
+    // descriptor itself, while the *inheriting* rights are rights that apply to
+    // file descriptors derived from it.
+    // __wasi_rights_t fs_rights_base
+    let fs_rights_base = rt.get_local(5)?.expect_i64();
+
+    // __wasi_rights_t fs_rights_inherting
+    let fs_rights_inheriting = rt.get_local(6)?.expect_i64();
+
+    // __wasi_fdflags_t fdflags
+    let fdflags = rt.get_local(7)?.expect_i32();
+
+    // The file descriptor of the file that has been opened.
+    // __wasi_fd_t *opened_fd
+    let opened_fd = rt.get_local(8)?.expect_i32();
+
+    println!(
+        "path_open(\
+        fd={}, flags={}, path={:#x}, path_len={}, oflags={}, \
+        fs_rights_base={}, fs_rights_inheriting={}, fdflags={}, \
+        opened_fd={:#x})",
+        fd, flags, path, path_len, oflags, fs_rights_base, fs_rights_inheriting, fdflags, opened_fd
+    );
+
     Err(ExecError::Panic("wasi_path_open".to_string()))
 }

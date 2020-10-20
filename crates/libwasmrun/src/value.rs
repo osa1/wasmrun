@@ -70,6 +70,13 @@ impl Value {
             Value::I64(_) | Value::F32(_) | Value::F64(_) => panic!(),
         }
     }
+
+    pub(crate) fn expect_i64(&self) -> i64 {
+        match self {
+            Value::I64(i) => *i,
+            Value::I32(_) | Value::F32(_) | Value::F64(_) => panic!(),
+        }
+    }
 }
 
 impl fmt::Debug for Value {

@@ -137,6 +137,10 @@ impl Runtime {
             .get_exported_global(name)?;
         Some(self.store.get_global(global_addr).value)
     }
+
+    pub(crate) fn get_local(&self, local_idx: u32) -> Result<Value> {
+        self.frames.current()?.get_local(local_idx)
+    }
 }
 
 pub(crate) fn allocate_spectest(rt: &mut Runtime) {
