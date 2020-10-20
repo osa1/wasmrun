@@ -98,6 +98,9 @@ fn allocate_fn(
 // [i32] -> []
 fn wasi_proc_exit(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     let exit_code = rt.get_local(0)?.expect_i32();
+
+    trace!("proc_exit({})", exit_code);
+
     Err(ExecError::Exit(exit_code))
 }
 
@@ -115,10 +118,13 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     // The number of bytes written
     let nwritten_ptr = rt.get_local(3)?.expect_i32() as u32;
 
-    // println!(
-    //     "wasi_fd_write(fd={}, iovs_ptr={:#x}, iovs_len={}, nwritten_ptr={:#x})",
-    //     fd, iovs_ptr, iovs_len, nwritten_ptr
-    // );
+    trace!(
+        "fd_write(fd={}, iovs_ptr={:#x}, iovs_len={}, nwritten_ptr={:#x})",
+        fd,
+        iovs_ptr,
+        iovs_len,
+        nwritten_ptr
+    );
 
     let mut bytes: Vec<u8> = vec![];
 
@@ -180,7 +186,7 @@ fn wasi_fd_read(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // __wasi_size_t *nread
     let nread = rt.get_local(3)?.expect_i32();
 
-    println!("fd_read({}, {:#x}, {}, {:#x})", fd, iovs, iovs_len, nread);
+    trace!("fd_read({}, {:#x}, {}, {:#x})", fd, iovs, iovs_len, nread);
 
     Err(ExecError::Panic("wasi_fd_read".to_string()))
 }
@@ -196,7 +202,7 @@ fn wasi_fd_prestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // __wasi_prestat_t *buf
     let prestat_t_ptr = rt.get_local(1)?.expect_i32() as u32;
 
-    println!("fd_prestat_get({}, {})", fd, prestat_t_ptr);
+    trace!("fd_prestat_get({}, {})", fd, prestat_t_ptr);
 
     Ok(Value::I32(8)) // ERRNO_BADF
 }
@@ -214,7 +220,7 @@ fn wasi_fd_prestat_dir_name(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Valu
     // __wasi_size_t path_len
     let len = rt.get_local(2)?.expect_i32();
 
-    println!("fd_prestat_dir_name({}, {:#x}, {})", fd, buf_ptr, len);
+    trace!("fd_prestat_dir_name({}, {:#x}, {})", fd, buf_ptr, len);
 
     Err(ExecError::Panic("wasi_fd_prestat_dir_name".to_string()))
 }
@@ -230,6 +236,12 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> 
 
     // __wasi_size_t *environ_buf_size
     let environ_buf_size = rt.get_local(1)?.expect_i32() as u32;
+
+    trace!(
+        "environ_sizes_get({:#x}, {})",
+        environc_ptr,
+        environ_buf_size
+    );
 
     let mem = rt.store.get_mem_mut(mem_addr);
     mem.store_32(environc_ptr, 0)?;
@@ -248,7 +260,7 @@ fn wasi_environ_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // uint8_t * environ_buf
     let environ_buf = rt.get_local(1)?.expect_i32();
 
-    println!("environ_get({:#x}, {:#x})", environ, environ_buf);
+    trace!("environ_get({:#x}, {:#x})", environ, environ_buf);
 
     Err(ExecError::Panic("wasi_environ_get".to_string()))
 }
@@ -259,6 +271,12 @@ fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     let argc_addr = rt.get_local(0)?.expect_i32() as u32;
     // The size of the argument string data
     let argv_buf_size_addr = rt.get_local(1)?.expect_i32() as u32;
+
+    trace!(
+        "args_sizes_get({:#x}, {:#x})",
+        argc_addr,
+        argv_buf_size_addr
+    );
 
     let argc = rt.wasi_ctx.args.len();
     let argv_size: usize = rt
@@ -282,6 +300,8 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     let argv_addr = rt.get_local(0)?.expect_i32() as u32;
     // uint8_t *
     let argv_buf_addr = rt.get_local(1)?.expect_i32() as u32;
+
+    trace!("args_get({:#x}, {:#x})", argv_addr, argv_buf_addr);
 
     // Current offset in argv_buf array
     let mut argv_buf_offset = 0;
@@ -323,7 +343,7 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 fn wasi_fd_close(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     let fd = rt.get_local(0)?.expect_i32();
 
-    println!("fd_close({})", fd);
+    trace!("fd_close({})", fd);
 
     Err(ExecError::Panic("wasi_fd_close".to_string()))
 }
@@ -338,7 +358,7 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // __wasi_filestat_t *buf
     let buf = rt.get_local(1)?.expect_i32();
 
-    println!("fd_filestat_get({}, {:#x})", fd, buf);
+    trace!("fd_filestat_get({}, {:#x})", fd, buf);
 
     Err(ExecError::Panic("wasi_fd_filestat".to_string()))
 }
@@ -390,12 +410,20 @@ fn wasi_path_open(rt: &mut Runtime, _mem_addr: MemAddr) -> Result<Value> {
     // __wasi_fd_t *opened_fd
     let opened_fd = rt.get_local(8)?.expect_i32();
 
-    println!(
+    trace!(
         "path_open(\
         fd={}, flags={}, path={:#x}, path_len={}, oflags={}, \
         fs_rights_base={}, fs_rights_inheriting={}, fdflags={}, \
         opened_fd={:#x})",
-        fd, flags, path, path_len, oflags, fs_rights_base, fs_rights_inheriting, fdflags, opened_fd
+        fd,
+        flags,
+        path,
+        path_len,
+        oflags,
+        fs_rights_base,
+        fs_rights_inheriting,
+        fdflags,
+        opened_fd
     );
 
     Err(ExecError::Panic("wasi_path_open".to_string()))

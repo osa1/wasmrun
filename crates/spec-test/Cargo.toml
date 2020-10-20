@@ -18,4 +18,4 @@ branch = "wasmrun"
 features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]
 
 [build-dependencies]
-rustc_tools_util = "0.2.0"
+rustc_tools_util = "0.2"

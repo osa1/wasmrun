@@ -8,6 +8,7 @@ license = "MIT"
 [dependencies]
 fxhash = "0.2"
 ieee754 = "0.2"
+log = "0.4"
 
 [dependencies.parity-wasm]
 git = "https://github.com/osa1/parity-wasm"

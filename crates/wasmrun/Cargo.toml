@@ -6,8 +6,8 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
-clap = "2.33.3"
+clap = "2.33"
 libwasmrun = { path = "../libwasmrun" }
 
 [build-dependencies]
-rustc_tools_util = "0.2.0"
+rustc_tools_util = "0.2"

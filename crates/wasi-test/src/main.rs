@@ -14,6 +14,8 @@ use libwasmrun::{exec, ExecError, File, FileOrDir, Runtime, WasiCtx, WasiCtxBuil
 static WASMRUN_PATH: &str = "target/debug/wasmrun";
 
 fn main() {
+    pretty_env_logger::init();
+
     let cli::Args { file } = cli::parse();
     let file_or_dir = file
         .as_ref()

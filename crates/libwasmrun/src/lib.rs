@@ -18,6 +18,9 @@ use parity_wasm::elements as wasm;
 pub use exec::Runtime;
 pub use wasi::{Dir, File, FileOrDir, WasiCtx, WasiCtxBuilder};
 
+#[macro_use]
+extern crate log;
+
 #[derive(Debug)]
 pub enum ExecError {
     /// Wasm code trapped

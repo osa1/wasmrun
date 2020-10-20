@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
-wasi = "0.10.0"
+wasi = "0.10"
 
 [[bin]]
 name = "hello"
