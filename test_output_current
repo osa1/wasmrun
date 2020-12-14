@@ -364,19 +364,19 @@ binary.wast
 	line 2: OK
 	line 3: OK
 	line 4: OK
-	line 357: OK
-	line 413: OK
-	line 419: OK
-	line 425: OK
-	line 453: OK
-	line 570: OK
-	line 617: OK
-	line 670: OK
-	line 698: OK
-	line 752: OK
-	line 801: OK
-	line 863: OK
-	line 902: OK
+	line 371: OK
+	line 427: OK
+	line 433: OK
+	line 439: OK
+	line 467: OK
+	line 584: OK
+	line 631: OK
+	line 684: OK
+	line 712: OK
+	line 766: OK
+	line 830: OK
+	line 892: OK
+	line 931: OK
 block.wast
 	line 3: OK
 	line 353: OK
