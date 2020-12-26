@@ -5,7 +5,7 @@ use crate::module::{Module, TypeIdx};
 use crate::value::Value;
 use crate::Result;
 
-use parity_wasm::elements as wasm;
+use parity_wasm::elements::{self as wasm, IndexMap};
 
 use std::rc::Rc;
 
@@ -13,7 +13,7 @@ use std::rc::Rc;
 pub struct ModuleAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FunAddr(u32);
+pub struct FunAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TableAddr(u32);
@@ -53,10 +53,18 @@ impl Store {
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
         fun: wasm::FuncBody,
+        name: Option<String>,
+        local_names: Option<IndexMap<String>>,
     ) -> Result<FunAddr> {
         let fun_addr = FunAddr(self.funs.len() as u32);
-        self.funs
-            .push(Fun::new(module_addr, ty_idx, fun_addr, fun)?);
+        self.funs.push(Fun::new(
+            module_addr,
+            ty_idx,
+            fun_addr,
+            fun,
+            name,
+            local_names,
+        )?);
         Ok(fun_addr)
     }
 
@@ -92,7 +100,7 @@ impl Store {
         fun_addr
     }
 
-    pub(crate) fn get_fun(&self, fun_addr: FunAddr) -> &Fun {
+    pub fn get_fun(&self, fun_addr: FunAddr) -> &Fun {
         &self.funs[fun_addr.0 as usize]
     }
 

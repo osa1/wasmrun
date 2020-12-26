@@ -112,6 +112,10 @@ impl Runtime {
         rt
     }
 
+    pub fn backtrace(&self) -> &FrameStack {
+        &self.frames
+    }
+
     pub fn clear_stack(&mut self) {
         self.stack.clear();
         self.frames.clear();
@@ -286,8 +290,12 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     rt.module_names.insert("spectest".to_string(), module_addr);
 }
 
-pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Result<ModuleAddr> {
+pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<ModuleAddr> {
     // https://webassembly.github.io/spec/core/exec/modules.html
+    let mut parsed_module = match parsed_module.parse_names() {
+        Ok(m) => m,
+        Err((_, m)) => m,
+    };
 
     let module_addr = rt.store.next_module_addr();
 
@@ -302,6 +310,9 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
             }
         }
     }
+
+    // Number of functions seen in imports. Used to get function indices in code section
+    let mut n_funs = 0;
 
     // Add imported stuff to the module
     if let Some(import_section) = parsed_module.import_section_mut() {
@@ -322,6 +333,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
 
             match import.external() {
                 wasm::External::Function(_fun_ty_idx) => {
+                    n_funs += 1;
                     let fun_addr = imported_module.get_exported_fun(field_name).unwrap();
                     inst.add_fun(fun_addr);
                 }
@@ -350,7 +362,7 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
     }
 
     // Allocate functions
-    if let Some(code_section) = parsed_module.code_section_mut() {
+    if let Some(code_section) = parsed_module.code_section_mut().take() {
         for (fun_idx, fun) in replace(code_section.bodies_mut(), vec![])
             .into_iter()
             .enumerate()
@@ -359,10 +371,21 @@ pub fn allocate_module(rt: &mut Runtime, mut parsed_module: wasm::Module) -> Res
                 ExecError::Panic("Module has a code section but no function section".to_string())
             })?;
 
+            let fun_idx_ = fun_idx + n_funs;
+
             let fun_addr = rt.store.allocate_fun(
                 module_addr,
                 TypeIdx(function_section.entries()[fun_idx].type_ref()),
                 fun,
+                parsed_module
+                    .names_section()
+                    .and_then(|names| names.functions())
+                    .and_then(|fun_names| fun_names.names().get(fun_idx_ as u32))
+                    .cloned(),
+                parsed_module
+                    .names_section()
+                    .and_then(|names| names.locals())
+                    .and_then(|funs| funs.local_names().get(fun_idx_ as u32).cloned()),
             )?;
 
             inst.add_fun(fun_addr);

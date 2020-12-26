@@ -8,27 +8,29 @@ use parity_wasm::elements as wasm;
 use std::iter::repeat;
 
 #[derive(Default, Debug)]
-pub(crate) struct FrameStack(Vec<Frame>);
+pub struct FrameStack {
+    pub frames: Vec<Frame>,
+}
 
 impl FrameStack {
     pub(crate) fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.frames.is_empty()
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct Frame {
-    pub(crate) fun_addr: FunAddr,
-    pub(crate) locals: Vec<Value>, // includes args
+pub struct Frame {
+    pub fun_addr: FunAddr,
+    pub locals: Vec<Value>, // includes args
 }
 
 impl FrameStack {
     pub(crate) fn clear(&mut self) {
-        self.0.clear();
+        self.frames.clear();
     }
 
     pub(crate) fn current(&self) -> Result<&Frame> {
-        match self.0.last() {
+        match self.frames.last() {
             None => Err(ExecError::Panic(
                 "FrameStack::current: call stack empty".to_string(),
             )),
@@ -37,7 +39,7 @@ impl FrameStack {
     }
 
     pub(crate) fn current_mut(&mut self) -> Result<&mut Frame> {
-        match self.0.last_mut() {
+        match self.frames.last_mut() {
             None => Err(ExecError::Panic(
                 "FrameStack::current_mut: call stack empty".to_string(),
             )),
@@ -46,7 +48,7 @@ impl FrameStack {
     }
 
     pub(crate) fn push(&mut self, fun: &Fun, arg_tys: &[wasm::ValueType]) {
-        self.0.push(Frame {
+        self.frames.push(Frame {
             fun_addr: fun.fun_addr(),
             locals: arg_tys
                 .iter()
@@ -59,12 +61,12 @@ impl FrameStack {
     }
 
     pub(crate) fn pop(&mut self) {
-        self.0.pop().unwrap();
+        self.frames.pop().unwrap();
     }
 }
 
 impl Frame {
-    pub(crate) fn get_local(&self, idx: u32) -> Result<Value> {
+    pub fn get_local(&self, idx: u32) -> Result<Value> {
         match self.locals.get(idx as usize) {
             Some(value) => Ok(*value),
             None => Err(ExecError::Panic(format!(

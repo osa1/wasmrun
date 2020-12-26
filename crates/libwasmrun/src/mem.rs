@@ -63,7 +63,12 @@ impl Mem {
         }
     }
 
-    pub(crate) fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
+    pub fn get_range_exclusive(&self, range_begin: u32, range_end_exclusive: u32) -> Result<&[u8]> {
+        self.check_range(range_begin, range_end_exclusive - range_begin)?;
+        Ok(&self.mem[range_begin as usize..range_end_exclusive as usize])
+    }
+
+    pub fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
         if value.is_empty() {
             return Ok(());
         }
@@ -107,7 +112,7 @@ impl Mem {
         }
     */
 
-    pub(crate) fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
+    pub fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
         self.check_range(addr, 4)?;
 
         let [b1, b2, b3, b4] = value.to_le_bytes();
@@ -119,7 +124,7 @@ impl Mem {
         Ok(())
     }
 
-    pub(crate) fn load_32(&self, addr: u32) -> Result<u32> {
+    pub fn load_32(&self, addr: u32) -> Result<u32> {
         self.check_range(addr, 4)?;
 
         let b1 = self[addr];
@@ -130,7 +135,7 @@ impl Mem {
         Ok(u32::from_le_bytes([b1, b2, b3, b4]))
     }
 
-    pub(crate) fn store_64(&mut self, addr: u32, value: u64) -> Result<()> {
+    pub fn store_64(&mut self, addr: u32, value: u64) -> Result<()> {
         self.check_range(addr, 8)?;
 
         let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();

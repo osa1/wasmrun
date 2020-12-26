@@ -8,10 +8,10 @@ use std::fmt;
 use std::rc::Rc;
 
 use fxhash::FxHashMap;
-use parity_wasm::elements as wasm;
 use parity_wasm::elements::Instruction;
+use parity_wasm::elements::{self as wasm, IndexMap};
 
-pub(crate) enum Fun {
+pub enum Fun {
     Wasm(WasmFun),
     Host(HostFun),
     WASI(WASIFun),
@@ -23,7 +23,7 @@ impl fmt::Debug for Fun {
     }
 }
 
-pub(crate) struct HostFun {
+pub struct HostFun {
     /// Address of the function's module
     pub(crate) module_addr: ModuleAddr,
     /// Index of the function's type in its module
@@ -35,8 +35,8 @@ pub(crate) struct HostFun {
 }
 
 #[derive(Debug)]
-pub(crate) struct WasmFun {
-    /// Addrss of the function's module
+pub struct WasmFun {
+    /// Address of the function's module
     pub(crate) module_addr: ModuleAddr,
     /// Type index of the function in its module
     pub(crate) ty_idx: TypeIdx,
@@ -44,13 +44,17 @@ pub(crate) struct WasmFun {
     pub(crate) fun_addr: FunAddr,
     /// Function code
     pub(crate) fun: wasm::FuncBody,
+    /// Function name as specified in the name section
+    pub(crate) name: Option<String>,
+    /// Names of locals as specified in the name section
+    pub(crate) local_names: Option<IndexMap<String>>,
     /// Maps `block` and `if instructions to their `end` instructions
     pub(crate) block_to_end: FxHashMap<u32, u32>,
     /// Maps if instructions to their else instructions
     pub(crate) if_to_else: FxHashMap<u32, u32>,
 }
 
-pub(crate) struct WASIFun {
+pub struct WASIFun {
     /// Address of the WASI module. NB. I think This is not used. (TODO: maybe remove and panic
     /// when this is needed?)
     pub(crate) module_addr: ModuleAddr,
@@ -69,6 +73,8 @@ impl Fun {
         ty_idx: TypeIdx,
         fun_addr: FunAddr,
         fun: wasm::FuncBody,
+        name: Option<String>,
+        local_names: Option<IndexMap<String>>,
     ) -> Result<Fun> {
         let (block_to_end, if_to_else) = gen_block_bounds(fun.code().elements())?;
         Ok(Fun::Wasm(WasmFun {
@@ -76,6 +82,8 @@ impl Fun {
             ty_idx,
             fun_addr,
             fun,
+            name,
+            local_names,
             block_to_end,
             if_to_else,
         }))
@@ -109,6 +117,13 @@ impl Fun {
         match self {
             Fun::Wasm(fun) => fun.fun.locals(),
             Fun::Host(_) | Fun::WASI(_) => &[],
+        }
+    }
+
+    pub fn name(&self) -> Option<&String> {
+        match self {
+            Fun::Wasm(fun) => fun.name.as_ref(),
+            Fun::Host(_) | Fun::WASI(_) => None,
         }
     }
 }
