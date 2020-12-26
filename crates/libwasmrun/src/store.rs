@@ -19,7 +19,7 @@ pub(crate) struct FunAddr(u32);
 pub(crate) struct TableAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct MemAddr(u32);
+pub struct MemAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GlobalAddr(u32);

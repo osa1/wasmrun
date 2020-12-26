@@ -22,3 +22,6 @@ branch = "main"
 [dependencies.wiggle]
 git = "https://github.com/bytecodealliance/wasmtime.git"
 branch = "main"
+
+[dev-dependencies]
+wabt = { git = "https://github.com/pepyakin/wabt-rs.git" }

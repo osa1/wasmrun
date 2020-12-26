@@ -7,7 +7,7 @@ mod mem;
 mod module;
 mod stack;
 pub mod store;
-pub mod value;
+mod value;
 pub mod wasi;
 
 use std::fmt::Display;
@@ -15,7 +15,10 @@ use std::fmt::Display;
 use parity_wasm::elements as wasm;
 
 pub use exec::Runtime;
+pub use store::MemAddr;
+pub use value::Value;
 pub use wasi_common::{virtfs, Handle, WasiCtx, WasiCtxBuilder};
+pub use wasm::ValueType;
 
 #[macro_use]
 extern crate log;
@@ -38,6 +41,12 @@ impl Display for ExecError {
             ExecError::Exit(exit) => write!(f, "proc_exit({})", exit),
         }
     }
+}
+
+pub struct HostFunDecl {
+    pub arg_tys: Vec<ValueType>,
+    pub ret_tys: Vec<ValueType>,
+    pub fun: fn(&mut Runtime) -> Result<Vec<Value>>,
 }
 
 pub type Result<A> = ::std::result::Result<A, ExecError>;

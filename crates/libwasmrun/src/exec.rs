@@ -7,6 +7,7 @@ use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store};
 use crate::value::{self, Value};
 use crate::wasi::allocate_wasi;
+use crate::HostFunDecl;
 use crate::{ExecError, Result};
 
 use fxhash::FxHashMap;
@@ -124,6 +125,10 @@ impl Runtime {
         self.stack.pop_value_opt().unwrap()
     }
 
+    pub fn pop_i32(&mut self) -> Result<i32> {
+        self.stack.pop_i32()
+    }
+
     pub fn push_value(&mut self, value: Value) {
         self.stack.push_value(value).unwrap()
     }
@@ -140,8 +145,44 @@ impl Runtime {
         Some(self.store.get_global(global_addr).value)
     }
 
-    pub(crate) fn get_local(&self, local_idx: u32) -> Result<Value> {
+    pub fn get_local(&self, local_idx: u32) -> Result<Value> {
         self.frames.current()?.get_local(local_idx)
+    }
+
+    pub fn set_local(&mut self, local_idx: u32, value: Value) -> Result<()> {
+        self.frames.current_mut()?.set_local(local_idx, value)
+    }
+
+    /// Allocate a module with just host functions and nothing else
+    pub fn allocate_host_module(
+        &mut self,
+        module_name: String,
+        fns: Vec<(String, HostFunDecl)>,
+    ) -> ModuleAddr {
+        let module_addr = self.store.next_module_addr();
+        let mut module: Module = Default::default();
+
+        for (host_fn_name, host_fn) in fns {
+            let HostFunDecl {
+                arg_tys,
+                ret_tys,
+                fun,
+            } = host_fn;
+
+            let ty_idx = module.add_type(wasm::FunctionType::new(arg_tys, ret_tys));
+            let fun_addr = self
+                .store
+                .allocate_host_fun(module_addr, ty_idx, Rc::new(fun));
+            let fun_idx = module.add_fun(fun_addr);
+            module.add_export(Export::new_fun(host_fn_name, fun_idx));
+        }
+
+        let module_addr_ = self.store.allocate_module(module);
+        assert_eq!(module_addr, module_addr_);
+
+        self.module_names.insert(module_name, module_addr);
+
+        module_addr
     }
 }
 
@@ -509,6 +550,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
         .store
         .get_module(fun.module_addr())
         .get_type(fun.ty_idx());
+
     let arg_tys = fun_ty.params();
 
     let n_args = fun_ty.params().len();
@@ -539,13 +581,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
         }
         Fun::Host(fun) => {
             let host_fun = fun.fun.clone();
-
-            host_fun(rt)?;
-
-            let mut vals = Vec::with_capacity(n_rets);
-            for _ in 0..n_rets {
-                vals.push(rt.stack.pop_value()?);
-            }
+            let vals = host_fun(rt)?;
 
             rt.stack.pop_fun_block()?;
             rt.frames.pop();
@@ -995,20 +1031,20 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::GetLocal(idx) => {
-            let val = rt.frames.current()?.get_local(idx)?;
+            let val = rt.get_local(idx)?;
             rt.stack.push_value(val)?;
             rt.ip += 1;
         }
 
         Instruction::SetLocal(idx) => {
             let val = rt.stack.pop_value()?;
-            rt.frames.current_mut()?.set_local(idx, val)?;
+            rt.set_local(idx, val)?;
             rt.ip += 1;
         }
 
         Instruction::TeeLocal(idx) => {
             let val = rt.stack.pop_value()?;
-            rt.frames.current_mut()?.set_local(idx, val)?;
+            rt.set_local(idx, val)?;
             rt.stack.push_value(val)?;
             rt.ip += 1;
         }

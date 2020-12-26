@@ -3,8 +3,7 @@ mod spec;
 
 use libwasmrun::exec::{self, Runtime, Trap};
 use libwasmrun::store::ModuleAddr;
-use libwasmrun::value::Value;
-use libwasmrun::ExecError;
+use libwasmrun::{ExecError, Value};
 
 use std::fs;
 use std::io::{self, Write};

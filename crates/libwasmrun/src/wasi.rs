@@ -29,13 +29,12 @@ use crate::{ExecError, Result};
 
 use parity_wasm::elements as wasm;
 use wasi_common::wasi::wasi_snapshot_preview1;
+use wasm::ValueType::{I32, I64};
 
 /// Initializes the 'wasi_snapshot_preview1' module.
 pub(crate) fn allocate_wasi(store: &mut Store) -> ModuleAddr {
     let module_addr = store.next_module_addr();
     let mut module: Module = Default::default();
-
-    use wasm::ValueType::{I32, I64};
 
     let mut allocate = |arg_tys, ret_ty, name, fun| {
         allocate_fn(&mut module, module_addr, store, arg_tys, ret_ty, name, fun);

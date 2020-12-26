@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use libwasmrun::value::Value;
+use libwasmrun::Value;
 
 use serde::Deserialize;
 
