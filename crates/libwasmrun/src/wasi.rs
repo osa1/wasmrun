@@ -1,4 +1,6 @@
-//! Implements a module that provides the WASI API. References
+//! Implements a Wasm module that provides the WASI API
+//!
+//! References:
 //!
 //! - API documentation: https://github.com/WebAssembly/WASI/blob/master/phases/snapshot/docs.md
 //!   This is currently not too useful, see https://github.com/WebAssembly/WASI/issues/326
