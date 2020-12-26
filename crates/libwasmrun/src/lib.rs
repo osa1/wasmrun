@@ -46,7 +46,7 @@ impl Display for ExecError {
 pub struct HostFunDecl {
     pub arg_tys: Vec<ValueType>,
     pub ret_tys: Vec<ValueType>,
-    pub fun: fn(&mut Runtime) -> Result<Vec<Value>>,
+    pub fun: fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>,
 }
 
 pub type Result<A> = ::std::result::Result<A, ExecError>;

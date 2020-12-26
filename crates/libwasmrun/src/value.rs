@@ -64,14 +64,14 @@ impl Value {
         }
     }
 
-    pub(crate) fn expect_i32(&self) -> i32 {
+    pub fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
             Value::I64(_) | Value::F32(_) | Value::F64(_) => panic!(),
         }
     }
 
-    pub(crate) fn expect_i64(&self) -> i64 {
+    pub fn expect_i64(&self) -> i64 {
         match self {
             Value::I64(i) => *i,
             Value::I32(_) | Value::F32(_) | Value::F64(_) => panic!(),

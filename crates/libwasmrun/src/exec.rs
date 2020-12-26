@@ -64,7 +64,7 @@ impl fmt::Display for Trap {
 
 pub struct Runtime {
     /// The heap
-    pub(crate) store: Store,
+    pub store: Store,
     /// Value and continuation stack
     pub(crate) stack: Stack,
     /// Call stack. Frames hold locals.
@@ -231,14 +231,14 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
     let print_addr = rt
         .store
-        .allocate_host_fun(module_addr, print_ty, Rc::new(|_| Ok(vec![])));
+        .allocate_host_fun(module_addr, print_ty, Rc::new(|_, _| Ok(vec![])));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
     let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
     let print_i32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_| Ok(vec![])));
+            .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
@@ -248,7 +248,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     ));
     let print_i32_f32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_| Ok(vec![])));
+            .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_i32_f32_idx = module.add_fun(print_i32_f32_addr);
     module.add_export(Export::new_fun(
         "print_i32_f32".to_owned(),
@@ -261,7 +261,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     ));
     let print_f64_f64_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_| Ok(vec![])));
+            .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_, _| Ok(vec![])));
     let print_f64_f64_idx = module.add_fun(print_f64_f64_addr);
     module.add_export(Export::new_fun(
         "print_f64_f64".to_owned(),
@@ -271,14 +271,14 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
     let print_f32_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_| Ok(vec![])));
+            .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
     let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
     let print_f64_addr =
         rt.store
-            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_| Ok(vec![])));
+            .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_, _| Ok(vec![])));
     let print_f64_idx = module.add_fun(print_f64_addr);
     module.add_export(Export::new_fun("print_f64".to_owned(), print_f64_idx));
 
@@ -540,10 +540,9 @@ pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx)
 fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun = rt.store.get_fun(fun_addr);
 
-    let caller = if let Fun::WASI(_) = fun {
-        rt.frames.current().ok().map(|frame| frame.fun_addr)
-    } else {
-        None
+    let caller = match fun {
+        Fun::WASI(_) | Fun::Host(_) => rt.frames.current().ok().map(|frame| frame.fun_addr),
+        Fun::Wasm(_) => None,
     };
 
     let fun_ty = rt
@@ -580,8 +579,16 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
             Ok(())
         }
         Fun::Host(fun) => {
+            let caller_mem_addr = caller.and_then(|caller| {
+                let caller_module_addr = rt.store.get_fun(caller).module_addr();
+                rt.store
+                    .get_module(caller_module_addr)
+                    .get_mem_opt(MemIdx(0))
+            });
+
             let host_fun = fun.fun.clone();
-            let vals = host_fun(rt)?;
+
+            let vals = host_fun(rt, caller_mem_addr)?;
 
             rt.stack.pop_fun_block()?;
             rt.frames.pop();

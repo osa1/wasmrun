@@ -64,7 +64,7 @@ impl Store {
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        fun: Rc<dyn Fn(&mut Runtime) -> Result<Vec<Value>>>,
+        fun: Rc<dyn Fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>>,
     ) -> FunAddr {
         let fun_addr = FunAddr(self.funs.len() as u32);
         self.funs.push(Fun::Host(HostFun {
@@ -116,11 +116,11 @@ impl Store {
         MemAddr(ret)
     }
 
-    pub(crate) fn get_mem(&self, mem_addr: MemAddr) -> &Mem {
+    pub fn get_mem(&self, mem_addr: MemAddr) -> &Mem {
         &self.mems[mem_addr.0 as usize]
     }
 
-    pub(crate) fn get_mem_mut(&mut self, mem_addr: MemAddr) -> &mut Mem {
+    pub fn get_mem_mut(&mut self, mem_addr: MemAddr) -> &mut Mem {
         &mut self.mems[mem_addr.0 as usize]
     }
 

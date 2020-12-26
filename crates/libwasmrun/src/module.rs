@@ -72,6 +72,10 @@ impl Module {
         self.mem_addrs[mem_idx.0 as usize]
     }
 
+    pub(crate) fn get_mem_opt(&self, mem_idx: MemIdx) -> Option<MemAddr> {
+        self.mem_addrs.get(mem_idx.0 as usize).copied()
+    }
+
     pub(crate) fn add_global(&mut self, global_addr: GlobalAddr) -> GlobalIdx {
         let ret = self.global_addrs.len();
         self.global_addrs.push(global_addr);

@@ -1,7 +1,7 @@
-use libwasmrun::{exec, HostFunDecl, Result, Runtime, Value, ValueType};
+use libwasmrun::{exec, HostFunDecl, MemAddr, Result, Runtime, Value, ValueType};
 use parity_wasm as wasm;
 
-fn host_add(rt: &mut Runtime) -> Result<Vec<Value>> {
+fn host_add(rt: &mut Runtime, _: Option<MemAddr>) -> Result<Vec<Value>> {
     let arg1 = match rt.get_local(0)? {
         Value::I32(a) => a,
         _ => panic!(),
@@ -17,7 +17,9 @@ static TEST_WAST: &str = r#"
     (module
       (func $i (import "host" "add") (param i32 i32) (result i32))
       (func (export "test") (param $a i32) (param $b i32) (result i32)
-         (call $i (get_local $a) (get_local $b))))
+         (call $i (get_local $a) (get_local $b)))
+      (memory 1)
+      (export "mem" (memory 0)))
 "#;
 
 #[test]

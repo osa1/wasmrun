@@ -7,7 +7,7 @@ use std::ops::{Index, IndexMut};
 use wiggle::GuestMemory;
 
 #[derive(Debug)]
-pub(crate) struct Mem {
+pub struct Mem {
     mem: Vec<u8>,
     limit: Option<u32>,
     bc: BorrowChecker,

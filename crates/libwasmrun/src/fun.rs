@@ -31,7 +31,7 @@ pub(crate) struct HostFun {
     /// Address of the function in the heap
     pub(crate) fun_addr: FunAddr,
     /// Function code
-    pub(crate) fun: Rc<dyn Fn(&mut Runtime) -> Result<Vec<Value>>>,
+    pub(crate) fun: Rc<dyn Fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>>,
 }
 
 #[derive(Debug)]
