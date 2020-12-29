@@ -1,18 +1,37 @@
 mod cli;
 
-use cli::Args;
+use libwasmrun::{exec, load_wasm, Runtime};
+
+use std::process::exit;
 
 fn main() {
-    let Args {
-        file,
-        program_args: _,
-    } = cli::parse();
+    let cli::Args { file, program_args } = cli::parse();
 
-    match libwasmrun::run_wasm(file, vec![]) {
-        Ok(()) => {}
-        Err(err) => {
-            println!("{}", err);
-            ::std::process::exit(1);
+    let module = load_wasm(file).unwrap();
+    let mut rt = Runtime::new_with_wasi(program_args);
+
+    let module_addr = exec::allocate_module(&mut rt, module).unwrap();
+
+    if let Err(err) = exec::invoke_by_name(&mut rt, module_addr, "_start") {
+        println!("Error while calling _start: {}", err);
+        exit(1);
+    }
+
+    if let Err(err) = exec::finish(&mut rt) {
+        println!("Runtime error: {}", err);
+        print_backtrace(&rt);
+        exit(1);
+    }
+}
+
+fn print_backtrace(rt: &Runtime) {
+    let bt = rt.backtrace();
+    println!("Backtrace:");
+    for (i, frame) in bt.frames.iter().enumerate() {
+        let fun = rt.store.get_fun(frame.fun_addr);
+        match fun.name() {
+            None => println!("  {}: ???", i),
+            Some(fun_name) => println!("  {}: {}", i, fun_name),
         }
     }
 }

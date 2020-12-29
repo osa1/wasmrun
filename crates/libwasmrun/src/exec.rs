@@ -13,7 +13,7 @@ use crate::{ExecError, Result};
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use parity_wasm::elements as wasm;
-use wasi_common::WasiCtx;
+use wasi_common::{WasiCtx, WasiCtxBuilder};
 use wasm::{Instruction, SignExtInstruction};
 
 use std::fmt;
@@ -89,7 +89,15 @@ impl Runtime {
         }
     }
 
-    pub fn new_with_wasi(wasi_ctx: WasiCtx) -> Self {
+    pub fn new_with_wasi(program_args: Vec<String>) -> Self {
+        let mut wasi_builder = WasiCtxBuilder::new();
+        wasi_builder.args(program_args);
+
+        let wasi_ctx = wasi_builder.build().unwrap();
+        Runtime::new_with_wasi_ctx(wasi_ctx)
+    }
+
+    pub fn new_with_wasi_ctx(wasi_ctx: WasiCtx) -> Self {
         let mut store = Default::default();
         let wasi_addr = allocate_wasi(&mut store);
 

@@ -192,7 +192,7 @@ fn run_file(file: &Path) -> bool {
 
     let cmds = cmd::parse_cmds(&file_src);
     let (wasi, expected_exit, stdout, stderr) = handle_commands(cmds);
-    let mut rt = Runtime::new_with_wasi(wasi);
+    let mut rt = Runtime::new_with_wasi_ctx(wasi);
 
     let out_path = format!("tests/wasi/src/{}.out", file_stem);
     let out = fs::read_to_string(out_path).unwrap_or_else(|_| "".to_owned());

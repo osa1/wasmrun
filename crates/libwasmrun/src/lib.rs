@@ -11,6 +11,7 @@ mod value;
 pub mod wasi;
 
 use std::fmt::Display;
+use std::path::Path;
 
 use parity_wasm::elements as wasm;
 
@@ -18,6 +19,7 @@ pub use exec::Runtime;
 pub use store::MemAddr;
 pub use value::Value;
 pub use wasi_common::{virtfs, Handle, WasiCtx, WasiCtxBuilder};
+pub use wasm::Module;
 pub use wasm::ValueType;
 
 #[macro_use]
@@ -51,24 +53,7 @@ pub struct HostFunDecl {
 
 pub type Result<A> = ::std::result::Result<A, ExecError>;
 
-pub fn run_wasm(file: String, args: Vec<String>) -> Result<()> {
-    let module = match wasm::deserialize_file(&file) {
-        Ok(module) => module,
-        Err(err) => {
-            return Err(ExecError::Panic(format!("Unable to parse module: {}", err)));
-        }
-    };
-
-    let mut wasi_builder = WasiCtxBuilder::new();
-    wasi_builder.args(args);
-
-    let wasi_ctx = wasi_builder.build().unwrap();
-    let mut rt = Runtime::new_with_wasi(wasi_ctx);
-
-    // allocate_module also runs 'start'
-    let module_addr = exec::allocate_module(&mut rt, module)?;
-
-    // Find exported _start function and call it
-    exec::invoke_by_name(&mut rt, module_addr, "_start")?;
-    exec::finish(&mut rt)
+pub fn load_wasm<P: AsRef<Path>>(file: P) -> Result<Module> {
+    wasm::deserialize_file(file)
+        .map_err(|err| ExecError::Panic(format!("Unable to parse module: {}", err)))
 }
