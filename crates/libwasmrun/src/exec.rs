@@ -572,11 +572,6 @@ pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx)
 fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun = rt.store.get_fun(fun_addr);
 
-    let caller = match fun {
-        Fun::Host(_) => rt.frames.current().ok().map(|frame| frame.fun_addr),
-        Fun::Wasm(_) => None,
-    };
-
     let fun_ty = rt
         .store
         .get_module(fun.module_addr())
@@ -611,8 +606,8 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
             Ok(())
         }
         Fun::Host(fun) => {
-            let caller_mem_addr = caller.and_then(|caller| {
-                let caller_module_addr = rt.store.get_fun(caller).module_addr();
+            let caller_mem_addr = rt.frames.current().ok().and_then(|frame| {
+                let caller_module_addr = rt.store.get_fun(frame.fun_addr).module_addr();
                 rt.store
                     .get_module(caller_module_addr)
                     .get_mem_opt(MemIdx(0))
