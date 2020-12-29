@@ -20,6 +20,8 @@
 //!   call sites we pass the memory address of the calling function to WASI functions implemented
 //!   below.
 
+use std::rc::Rc;
+
 use crate::exec::Runtime;
 use crate::export::Export;
 use crate::module::Module;
@@ -80,17 +82,19 @@ fn allocate_fn(
     arg_tys: Vec<wasm::ValueType>,
     ret_ty: wasm::ValueType,
     name: &str,
-    fun: fn(&mut Runtime, MemAddr) -> Result<Value>,
+    fun: fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>,
 ) {
     // TODO: This allocates same types multiple times
     let ty_idx = module.add_type(wasm::FunctionType::new(arg_tys, vec![ret_ty]));
-    let addr = store.allocate_wasi_fun(module_addr, ty_idx, fun);
+    let addr = store.allocate_host_fun(module_addr, ty_idx, Rc::new(fun));
     let idx = module.add_fun(addr);
     module.add_export(Export::new_fun(name.to_owned(), idx));
 }
 
 // [i32] -> []
-fn wasi_proc_exit(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_proc_exit(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     let exit_code = rt.get_local(0)?.expect_i32();
 
     trace!("proc_exit({})", exit_code);
@@ -102,7 +106,9 @@ fn wasi_proc_exit(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 }
 
 // [i32, i32, i32, i32] -> [i32]
-fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_write(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     let fd = rt.get_local(0)?.expect_i32();
 
     // List of scatter/gather vectors from which to retrieve data.
@@ -132,11 +138,13 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         nwritten_ptr,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32, i32, i32, i32] -> [i32]
-fn wasi_fd_read(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_read(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     let fd = rt.get_local(0)?.expect_i32();
 
     // List of scatter/gather vectors to which to store data
@@ -162,13 +170,15 @@ fn wasi_fd_read(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         nread,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32, i32] -> [i32]
 // Return a description of the given preopened file descriptor.
 // https://github.com/bytecodealliance/wasmtime/blob/5799fd3cc0b4d51f58532b19397d5c3a4677a010/crates/wasi-common/src/old/snapshot_0/hostcalls_impl/fs.rs#L958
-fn wasi_fd_prestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_prestat_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -185,12 +195,14 @@ fn wasi_fd_prestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         prestat_t_ptr,
     );
 
-    Ok(Value::I32(ret)) // ERRNO_BADF
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32, i32, i32] -> [i32]
 // Return a description of the given preopened file descriptor
-fn wasi_fd_prestat_dir_name(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_prestat_dir_name(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -211,11 +223,13 @@ fn wasi_fd_prestat_dir_name(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value
         len,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32, i32] -> [i32]
-fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // The size of the environment variable data.
 
     // The number of environment variable arguments.
@@ -238,13 +252,15 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> 
         environ_buf_size,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32, i32] -> [i32]
 // Read environment variable data. The sizes of the buffers should match that returned by
 // `environ_sizes_get`.
-fn wasi_environ_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_environ_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // uint8_t * * environ
     let environ = rt.get_local(0)?.expect_i32();
 
@@ -260,11 +276,13 @@ fn wasi_environ_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         environ_buf,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // Return command-line argument data sizes
-fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // Number of arguments
     let argc_addr = rt.get_local(0)?.expect_i32();
     // The size of the argument string data
@@ -283,12 +301,14 @@ fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         argv_buf_size_addr,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // Read command-line argument data. The size of the array should match that returned by
 // `args_sizes_get`.
-fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_args_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // uint8_t **
     let argv = rt.get_local(0)?.expect_i32();
     // uint8_t *
@@ -303,11 +323,13 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         argv_buf,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32] -> [i32]
-fn wasi_fd_close(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_close(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     let fd = rt.get_local(0)?.expect_i32();
 
     trace!("fd_close({})", fd);
@@ -315,12 +337,14 @@ fn wasi_fd_close(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
     let ret =
         wasi_snapshot_preview1::fd_close(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), fd);
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [i32, i32] -> [i32]
 // Return the attributes of an open file.
-fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -337,7 +361,7 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         buf,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }
 
 // [I32, I32, I32, I32, I32, I64, I64, I32, I32] -> [I32]
@@ -346,7 +370,9 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
 // from depending on making assumptions about indexes, since this is error-prone in multi-threaded
 // contexts. The returned file descriptor is guaranteed to be less than 2**31. Note: This is
 // similar to `openat` in POSIX.
-fn wasi_path_open(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
+fn wasi_path_open(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
     // __wasi_fd_t fd
     let fd = rt.get_local(0)?.expect_i32();
 
@@ -417,5 +443,5 @@ fn wasi_path_open(rt: &mut Runtime, mem_addr: MemAddr) -> Result<Value> {
         opened_fd,
     );
 
-    Ok(Value::I32(ret))
+    Ok(vec![Value::I32(ret)])
 }

@@ -1,5 +1,5 @@
 use crate::exec::Runtime;
-use crate::fun::{Fun, HostFun, WASIFun};
+use crate::fun::{Fun, HostFun};
 use crate::mem::Mem;
 use crate::module::{Module, TypeIdx};
 use crate::value::Value;
@@ -76,22 +76,6 @@ impl Store {
     ) -> FunAddr {
         let fun_addr = FunAddr(self.funs.len() as u32);
         self.funs.push(Fun::Host(HostFun {
-            module_addr,
-            ty_idx,
-            fun_addr,
-            fun,
-        }));
-        fun_addr
-    }
-
-    pub(crate) fn allocate_wasi_fun(
-        &mut self,
-        module_addr: ModuleAddr,
-        ty_idx: TypeIdx,
-        fun: fn(&mut Runtime, MemAddr) -> Result<Value>,
-    ) -> FunAddr {
-        let fun_addr = FunAddr(self.funs.len() as u32);
-        self.funs.push(Fun::WASI(WASIFun {
             module_addr,
             ty_idx,
             fun_addr,

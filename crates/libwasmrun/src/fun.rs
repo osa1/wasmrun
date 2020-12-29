@@ -14,7 +14,6 @@ use parity_wasm::elements::{self as wasm, IndexMap};
 pub enum Fun {
     Wasm(WasmFun),
     Host(HostFun),
-    WASI(WASIFun),
 }
 
 impl fmt::Debug for Fun {
@@ -54,19 +53,6 @@ pub struct WasmFun {
     pub(crate) if_to_else: FxHashMap<u32, u32>,
 }
 
-pub struct WASIFun {
-    /// Address of the WASI module. NB. I think This is not used. (TODO: maybe remove and panic
-    /// when this is needed?)
-    pub(crate) module_addr: ModuleAddr,
-    /// Type index of the function in its module
-    pub(crate) ty_idx: TypeIdx,
-    /// Address of the function in the heap
-    pub(crate) fun_addr: FunAddr,
-    /// The function. WASI functions don't use multi-value returns yet so the return value is just
-    /// a single `Value`.
-    pub(crate) fun: fn(&mut Runtime, MemAddr) -> Result<Value>,
-}
-
 impl Fun {
     pub(crate) fn new(
         module_addr: ModuleAddr,
@@ -93,7 +79,6 @@ impl Fun {
         match self {
             Fun::Wasm(fun) => fun.ty_idx,
             Fun::Host(fun) => fun.ty_idx,
-            Fun::WASI(fun) => fun.ty_idx,
         }
     }
 
@@ -101,7 +86,6 @@ impl Fun {
         match self {
             Fun::Wasm(fun) => fun.module_addr,
             Fun::Host(fun) => fun.module_addr,
-            Fun::WASI(fun) => fun.module_addr,
         }
     }
 
@@ -109,21 +93,20 @@ impl Fun {
         match self {
             Fun::Wasm(fun) => fun.fun_addr,
             Fun::Host(fun) => fun.fun_addr,
-            Fun::WASI(fun) => fun.fun_addr,
         }
     }
 
     pub(crate) fn locals(&self) -> &[wasm::Local] {
         match self {
             Fun::Wasm(fun) => fun.fun.locals(),
-            Fun::Host(_) | Fun::WASI(_) => &[],
+            Fun::Host(_) => &[],
         }
     }
 
     pub fn name(&self) -> Option<&String> {
         match self {
             Fun::Wasm(fun) => fun.name.as_ref(),
-            Fun::Host(_) | Fun::WASI(_) => None,
+            Fun::Host(_) => None,
         }
     }
 }

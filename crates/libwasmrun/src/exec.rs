@@ -573,7 +573,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun = rt.store.get_fun(fun_addr);
 
     let caller = match fun {
-        Fun::WASI(_) | Fun::Host(_) => rt.frames.current().ok().map(|frame| frame.fun_addr),
+        Fun::Host(_) => rt.frames.current().ok().map(|frame| frame.fun_addr),
         Fun::Wasm(_) => None,
     };
 
@@ -618,9 +618,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
                     .get_mem_opt(MemIdx(0))
             });
 
-            let host_fun = fun.fun.clone();
-
-            let vals = host_fun(rt, caller_mem_addr)?;
+            let vals = (fun.fun.clone())(rt, caller_mem_addr)?;
 
             rt.stack.pop_fun_block()?;
             rt.frames.pop();
@@ -628,21 +626,6 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
             for val in vals.into_iter().rev() {
                 rt.stack.push_value(val)?;
             }
-
-            rt.ip += 1;
-
-            Ok(())
-        }
-        Fun::WASI(fun) => {
-            let caller = caller.expect("Caller not available when calling WASI function");
-            let caller_module_addr = rt.store.get_fun(caller).module_addr();
-            let caller_mem_addr = rt.store.get_module(caller_module_addr).get_mem(MemIdx(0));
-
-            let ret = (fun.fun)(rt, caller_mem_addr)?;
-
-            rt.stack.pop_fun_block()?;
-            rt.frames.pop();
-            rt.stack.push_value(ret)?;
 
             rt.ip += 1;
 
@@ -669,9 +652,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Fun::Wasm(fun) => fun,
         Fun::Host { .. } => {
             return Err(ExecError::Panic("single_step: host function".to_string()));
-        }
-        Fun::WASI { .. } => {
-            return Err(ExecError::Panic("single_step: WASI function".to_string()));
         }
     };
 
@@ -2558,9 +2538,6 @@ fn ret(rt: &mut Runtime) -> Result<()> {
         Fun::Wasm(fun) => fun,
         Fun::Host { .. } => {
             return Err(ExecError::Panic("ret: host function".to_string()));
-        }
-        Fun::WASI { .. } => {
-            return Err(ExecError::Panic("ret: WASI function".to_string()));
         }
     };
     let module_addr = current_fun.module_addr;
