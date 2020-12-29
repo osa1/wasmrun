@@ -69,12 +69,6 @@ pub fn run_wasm(file: String, args: Vec<String>) -> Result<()> {
     let module_addr = exec::allocate_module(&mut rt, module)?;
 
     // Find exported _start function and call it
-    match exec::invoke_by_name(&mut rt, module_addr, "_start").and_then(|()| exec::finish(&mut rt))
-    {
-        Ok(()) => Ok(()),
-        Err(err) => Err(ExecError::Panic(format!(
-            "Error while invoking _start: {:?}",
-            err
-        ))),
-    }
+    exec::invoke_by_name(&mut rt, module_addr, "_start")?;
+    exec::finish(&mut rt)
 }

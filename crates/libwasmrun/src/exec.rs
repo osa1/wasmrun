@@ -95,6 +95,7 @@ impl Runtime {
 
         let mut module_names: FxHashMap<String, ModuleAddr> = Default::default();
         module_names.insert("wasi_snapshot_preview1".to_owned(), wasi_addr);
+        module_names.insert("wasi_unstable".to_owned(), wasi_addr);
 
         Runtime {
             store,
