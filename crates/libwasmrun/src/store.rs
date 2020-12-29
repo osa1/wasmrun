@@ -24,7 +24,7 @@ pub struct MemAddr(u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GlobalAddr(u32);
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Store {
     modules: Vec<Module>,
     funs: Vec<Fun>,

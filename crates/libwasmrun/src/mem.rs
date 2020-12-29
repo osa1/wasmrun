@@ -1,12 +1,11 @@
-use crate::borrow::BorrowChecker;
 use crate::exec::{Trap, PAGE_SIZE};
 use crate::{ExecError, Result};
 
 use std::ops::{Index, IndexMut};
 
-use wiggle::GuestMemory;
+use wiggle::{BorrowHandle, GuestError, GuestMemory, Region};
+use wiggle_borrow::BorrowChecker;
 
-#[derive(Debug)]
 pub struct Mem {
     mem: Vec<u8>,
     limit: Option<u32>,
@@ -36,19 +35,28 @@ unsafe impl GuestMemory for Mem {
         self.bc.has_outstanding_borrows()
     }
 
-    fn is_borrowed(&self, r: wiggle::Region) -> bool {
-        self.bc.is_borrowed(r)
+    fn is_shared_borrowed(&self, r: Region) -> bool {
+        self.bc.is_shared_borrowed(r)
     }
 
-    fn borrow(
-        &self,
-        r: wiggle::Region,
-    ) -> std::result::Result<wiggle::BorrowHandle, wiggle::GuestError> {
-        self.bc.borrow(r)
+    fn is_mut_borrowed(&self, r: Region) -> bool {
+        self.bc.is_mut_borrowed(r)
     }
 
-    fn unborrow(&self, h: wiggle::BorrowHandle) {
-        self.bc.unborrow(h)
+    fn shared_borrow(&self, r: Region) -> std::result::Result<BorrowHandle, GuestError> {
+        self.bc.shared_borrow(r)
+    }
+
+    fn mut_borrow(&self, r: Region) -> std::result::Result<BorrowHandle, GuestError> {
+        self.bc.mut_borrow(r)
+    }
+
+    fn shared_unborrow(&self, h: BorrowHandle) {
+        self.bc.shared_unborrow(h)
+    }
+
+    fn mut_unborrow(&self, h: BorrowHandle) {
+        self.bc.mut_unborrow(h)
     }
 }
 

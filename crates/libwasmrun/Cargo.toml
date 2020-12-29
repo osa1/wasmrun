@@ -17,11 +17,15 @@ features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]
 
 [dependencies.wasi-common]
 git = "https://github.com/bytecodealliance/wasmtime.git"
-rev = "76998f0404d83f1c303887c5fd207e14a07dcf4c"
+rev = "2964023a7"
 
 [dependencies.wiggle]
 git = "https://github.com/bytecodealliance/wasmtime.git"
-rev = "76998f0404d83f1c303887c5fd207e14a07dcf4c"
+rev = "2964023a7"
+
+[dependencies.wiggle-borrow]
+git = "https://github.com/bytecodealliance/wasmtime.git"
+rev = "2964023a7"
 
 [dev-dependencies]
 wabt = { git = "https://github.com/pepyakin/wabt-rs.git" }

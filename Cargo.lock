@@ -20,9 +20,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68803225a7b13e47191bab76f2687382b60d259e8cf37f6e1893658b84bb9479"
+checksum = "ee67c11feeac938fae061b232e38e0b6d94f97a9df10e6271319325ac4c56a86"
 
 [[package]]
 name = "atty"
@@ -175,6 +175,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "getrandom"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee8025cf36f917e6a52cce185b7c7177689b838b7ec138364e50cc2277a56cf4"
+dependencies = [
+ "cfg-if 0.1.10",
+ "libc",
+ "wasi",
+]
+
+[[package]]
 name = "glob"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -215,9 +226,9 @@ checksum = "9007da9cacbd3e6343da136e98b0d2df013f553d35bdec8b518f07bea768e19c"
 
 [[package]]
 name = "itoa"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
+checksum = "dd25036021b0de88a0aff6b850051563c6516d0bf53f8638938edbb9de732736"
 
 [[package]]
 name = "lazy_static"
@@ -248,6 +259,7 @@ dependencies = [
  "wabt",
  "wasi-common",
  "wiggle",
+ "wiggle-borrow",
 ]
 
 [[package]]
@@ -334,7 +346,7 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de0737333e7a9502c789a36d7c7fa6092a49895d4faa31ca5df163857ded2e9d"
 dependencies = [
- "getrandom",
+ "getrandom 0.1.15",
  "redox_syscall",
 ]
 
@@ -390,9 +402,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.60"
+version = "1.0.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1500e84d27fe482ed1dc791a56eddc2f230046a040fa908c08bda1d9fb615779"
+checksum = "4fceb2595057b6891a4ee808f70054bd2d12f0e97f1cbb78689b59f676df325a"
 dependencies = [
  "itoa",
  "ryu",
@@ -429,9 +441,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.55"
+version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a571a711dddd09019ccc628e1b17fe87c59b09d513c06c026877aa708334f37a"
+checksum = "a9802ddde94170d186eeee5005b798d9c159fa970403f1be19976d0cfb939b72"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -458,18 +470,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.22"
+version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e9ae34b84616eedaaf1e9dd6026dbe00dcafa92aa0c8077cb69df1fcfe5e53e"
+checksum = "76cc616c6abf8c8928e2fdcc0dbfab37175edd8fb49a4641066ad1364fdab146"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.22"
+version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ba20f23e85b10754cd195504aebf6a27e2e6cbe28c17778a0c930724628dd56"
+checksum = "9be73a2caec27583d0046ef3796c3794f868a5bc813db689eed00c7631275cd1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -571,19 +583,18 @@ checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
 
 [[package]]
 name = "wasi-common"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "anyhow",
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "cpu-time",
  "filetime",
- "getrandom",
+ "getrandom 0.2.0",
  "lazy_static",
  "libc",
  "thiserror",
  "tracing",
- "wig",
  "wiggle",
  "winapi",
  "winx",
@@ -622,20 +633,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "wig"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "witx",
-]
-
-[[package]]
 name = "wiggle"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "thiserror",
  "tracing",
@@ -644,9 +644,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wiggle-borrow"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
+dependencies = [
+ "wiggle",
+]
+
+[[package]]
 name = "wiggle-generate"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "anyhow",
  "heck",
@@ -659,8 +667,8 @@ dependencies = [
 
 [[package]]
 name = "wiggle-macro"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "quote",
  "syn",
@@ -701,8 +709,8 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "winx"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "bitflags",
  "cvt",
@@ -712,7 +720,7 @@ dependencies = [
 [[package]]
 name = "witx"
 version = "0.8.7"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "anyhow",
  "log",
@@ -722,11 +730,11 @@ dependencies = [
 
 [[package]]
 name = "yanix"
-version = "0.20.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=76998f0404d83f1c303887c5fd207e14a07dcf4c#76998f0404d83f1c303887c5fd207e14a07dcf4c"
+version = "0.21.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=2964023a7#2964023a77f94939242aad5381e32ff458e3793c"
 dependencies = [
  "bitflags",
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "filetime",
  "libc",
  "tracing",

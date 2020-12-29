@@ -1,4 +1,3 @@
-mod borrow;
 pub mod exec;
 mod export;
 mod frame;
@@ -31,6 +30,8 @@ pub enum ExecError {
     Trap(exec::Trap),
     /// Invalid module, unsupported operation, IO error, or a bug
     Panic(String),
+    /// WASI error
+    WASI(String),
     /// WASI proc_exit called
     Exit(i32),
 }
@@ -40,6 +41,7 @@ impl Display for ExecError {
         match self {
             ExecError::Trap(trap) => write!(f, "Wasm module trapped: {}", trap),
             ExecError::Panic(msg) => write!(f, "Interpreter panicked: {}", msg),
+            ExecError::WASI(wasi_err) => write!(f, "WASI error: {}", wasi_err),
             ExecError::Exit(exit) => write!(f, "proc_exit({})", exit),
         }
     }

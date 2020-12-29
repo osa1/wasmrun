@@ -100,7 +100,8 @@ fn wasi_proc_exit(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Val
     trace!("proc_exit({})", exit_code);
 
     // TODO: No idea what this does
-    wasi_snapshot_preview1::proc_exit(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), exit_code);
+    wasi_snapshot_preview1::proc_exit(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), exit_code)
+        .map_err(ExecError::WASI)?;
 
     Err(ExecError::Exit(exit_code))
 }
@@ -136,7 +137,8 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Valu
         iovs_ptr,
         iovs_len,
         nwritten_ptr,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -168,7 +170,8 @@ fn wasi_fd_read(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value
         iovs,
         iovs_len,
         nread,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -193,7 +196,8 @@ fn wasi_fd_prestat_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Ve
         rt.store.get_mem_mut(mem_addr),
         fd,
         prestat_t_ptr,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -221,7 +225,8 @@ fn wasi_fd_prestat_dir_name(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Resu
         fd,
         buf_ptr,
         len,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -250,7 +255,8 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result
         rt.store.get_mem_mut(mem_addr),
         environc_ptr,
         environ_buf_size,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -274,7 +280,8 @@ fn wasi_environ_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<V
         rt.store.get_mem_mut(mem_addr),
         environ,
         environ_buf,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -299,7 +306,8 @@ fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Ve
         rt.store.get_mem_mut(mem_addr),
         argc_addr,
         argv_buf_size_addr,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -321,7 +329,8 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Valu
         rt.store.get_mem_mut(mem_addr),
         argv,
         argv_buf,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -335,7 +344,8 @@ fn wasi_fd_close(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Valu
     trace!("fd_close({})", fd);
 
     let ret =
-        wasi_snapshot_preview1::fd_close(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), fd);
+        wasi_snapshot_preview1::fd_close(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), fd)
+            .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -359,7 +369,8 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<V
         rt.store.get_mem_mut(mem_addr),
         fd,
         buf,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -441,7 +452,8 @@ fn wasi_path_open(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Val
         fs_rights_inheriting,
         fdflags,
         opened_fd,
-    );
+    )
+    .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
