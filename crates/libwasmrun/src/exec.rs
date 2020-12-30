@@ -92,6 +92,8 @@ impl Runtime {
     pub fn new_with_wasi(program_args: Vec<String>) -> Self {
         let mut wasi_builder = WasiCtxBuilder::new();
         wasi_builder.args(program_args);
+        wasi_builder.inherit_stderr();
+        wasi_builder.inherit_stdout();
 
         let wasi_ctx = wasi_builder.build().unwrap();
         Runtime::new_with_wasi_ctx(wasi_ctx)
