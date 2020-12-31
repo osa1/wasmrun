@@ -71,9 +71,26 @@ impl Mem {
         }
     }
 
+    pub fn get_len(&self, offset: u32, len: u32) -> Result<&[u8]> {
+        self.get_range_exclusive(offset, offset + len)
+    }
+
+    pub fn get_len_mut(&mut self, offset: u32, len: u32) -> Result<&mut [u8]> {
+        self.get_range_exclusive_mut(offset, offset + len)
+    }
+
     pub fn get_range_exclusive(&self, range_begin: u32, range_end_exclusive: u32) -> Result<&[u8]> {
         self.check_range(range_begin, range_end_exclusive - range_begin)?;
         Ok(&self.mem[range_begin as usize..range_end_exclusive as usize])
+    }
+
+    pub fn get_range_exclusive_mut(
+        &mut self,
+        range_begin: u32,
+        range_end_exclusive: u32,
+    ) -> Result<&mut [u8]> {
+        self.check_range(range_begin, range_end_exclusive - range_begin)?;
+        Ok(&mut self.mem[range_begin as usize..range_end_exclusive as usize])
     }
 
     pub fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
