@@ -185,9 +185,7 @@ impl Runtime {
             } = host_fn;
 
             let ty_idx = module.add_type(wasm::FunctionType::new(arg_tys, ret_tys));
-            let fun_addr = self
-                .store
-                .allocate_host_fun(module_addr, ty_idx, Rc::new(fun));
+            let fun_addr = self.store.allocate_host_fun(module_addr, ty_idx, fun);
             let fun_idx = module.add_fun(fun_addr);
             module.add_export(Export::new_fun(host_fn_name, fun_idx));
         }

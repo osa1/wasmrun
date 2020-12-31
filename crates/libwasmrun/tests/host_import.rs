@@ -1,6 +1,8 @@
 use libwasmrun::{exec, HostFunDecl, MemAddr, Result, Runtime, Value, ValueType};
 use parity_wasm as wasm;
 
+use std::rc::Rc;
+
 fn host_add(rt: &mut Runtime, _: Option<MemAddr>) -> Result<Vec<Value>> {
     let arg1 = match rt.get_local(0)? {
         Value::I32(a) => a,
@@ -36,7 +38,7 @@ fn test_importing_host_fn() {
             HostFunDecl {
                 arg_tys: vec![ValueType::I32, ValueType::I32],
                 ret_tys: vec![ValueType::I32],
-                fun: host_add,
+                fun: Rc::new(host_add),
             },
         )],
     );

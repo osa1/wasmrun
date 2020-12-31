@@ -11,6 +11,7 @@ pub mod wasi;
 
 use std::fmt::Display;
 use std::path::Path;
+use std::rc::Rc;
 
 use parity_wasm::elements as wasm;
 
@@ -50,7 +51,7 @@ impl Display for ExecError {
 pub struct HostFunDecl {
     pub arg_tys: Vec<ValueType>,
     pub ret_tys: Vec<ValueType>,
-    pub fun: fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>,
+    pub fun: Rc<dyn Fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>>,
 }
 
 pub type Result<A> = ::std::result::Result<A, ExecError>;
