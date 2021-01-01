@@ -9,16 +9,16 @@ use parity_wasm::elements::{self as wasm, IndexMap};
 
 use std::rc::Rc;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ModuleAddr(u32);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FunAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TableAddr(u32);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MemAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
