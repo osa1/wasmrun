@@ -16,6 +16,7 @@ use std::rc::Rc;
 use parity_wasm::elements as wasm;
 
 pub use exec::Runtime;
+pub use module::MemIdx;
 pub use store::MemAddr;
 pub use value::Value;
 pub use wasi_common::{virtfs, Handle, WasiCtx, WasiCtxBuilder};

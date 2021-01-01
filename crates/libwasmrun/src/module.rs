@@ -14,7 +14,7 @@ pub(crate) struct TableIdx(pub u32);
 pub(crate) struct GlobalIdx(pub u32);
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct MemIdx(pub u32);
+pub struct MemIdx(pub u32);
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TypeIdx(pub u32);

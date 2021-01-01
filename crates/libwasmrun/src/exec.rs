@@ -7,8 +7,8 @@ use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store};
 use crate::value::{self, Value};
 use crate::wasi::allocate_wasi;
-use crate::HostFunDecl;
 use crate::{ExecError, Result};
+use crate::{HostFunDecl, MemAddr};
 
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
@@ -134,6 +134,10 @@ impl Runtime {
 
     pub(crate) fn get_module(&self, addr: ModuleAddr) -> &Module {
         self.store.get_module(addr)
+    }
+
+    pub fn get_module_mem_addr(&self, module_addr: ModuleAddr, mem_idx: MemIdx) -> MemAddr {
+        self.store.get_module(module_addr).get_mem(mem_idx)
     }
 
     pub fn pop_value(&mut self) -> Option<Value> {
