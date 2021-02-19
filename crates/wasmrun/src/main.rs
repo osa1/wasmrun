@@ -5,6 +5,8 @@ use libwasmrun::{exec, load_wasm, Runtime};
 use std::process::exit;
 
 fn main() {
+    pretty_env_logger::init();
+
     let cli::Args { file, program_args } = cli::parse();
 
     let module = load_wasm(file).unwrap();
