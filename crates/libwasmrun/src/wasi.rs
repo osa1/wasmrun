@@ -69,6 +69,12 @@ pub(crate) fn allocate_wasi(store: &mut Store) -> ModuleAddr {
         "path_open",
         wasi_path_open,
     );
+    allocate(
+        vec![I32, I32, I32, I32, I32, I32, I32],
+        I32,
+        "path_link",
+        wasi_path_link,
+    );
 
     let module_addr_ = store.allocate_module(module);
     assert_eq!(module_addr, module_addr_);
@@ -451,6 +457,60 @@ fn wasi_path_open(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Val
         fs_rights_inheriting,
         fdflags,
         opened_fd,
+    )
+    .map_err(ExecError::WASI)?;
+
+    Ok(vec![Value::I32(ret)])
+}
+
+// Create a hard link. This is similar to `linkat` in POSIX.
+fn wasi_path_link(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
+    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
+
+    // __wasi_fd_t
+    let old_fd = rt.get_local(0)?.expect_i32();
+
+    // __wasi_lookupflags_t: Flags determining the method of how the path is resolved.
+    let old_flags = rt.get_local(1)?.expect_i32();
+
+    // const char*: The source path from which to link.
+    let old_path = rt.get_local(2)?.expect_i32();
+
+    // size_t: The length of the buffer pointed to by `old_path`.
+    let old_path_len = rt.get_local(3)?.expect_i32();
+
+    // __wasi_fd_t: The working directory at which the resolution of the new path starts.
+    let new_fd = rt.get_local(4)?.expect_i32();
+
+    // const char*: The destination path at which to create the hard link.
+    let new_path = rt.get_local(5)?.expect_i32();
+
+    // sizes_t: The length of the buffer pointed to by `new_path`.
+    let new_path_len = rt.get_local(6)?.expect_i32();
+
+    trace!(
+        "path_link(\
+        old_fd={}, old_flags={}, old_path={:#x}, old_path_len={}, \
+        new_fd={}, new_path={:#x}, new_path_len={})",
+        old_fd,
+        old_flags,
+        old_path,
+        old_path_len,
+        new_fd,
+        new_path,
+        new_path_len
+    );
+
+    let ret = wasi_snapshot_preview1::path_link(
+        &mut rt.wasi_ctx,
+        rt.store.get_mem_mut(mem_addr),
+        old_fd,
+        old_flags,
+        old_path,
+        old_path_len,
+        new_fd,
+        new_path,
+        new_path_len,
     )
     .map_err(ExecError::WASI)?;
 
