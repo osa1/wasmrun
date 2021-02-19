@@ -92,16 +92,15 @@ fn allocate_fn(
 }
 
 // [i32] -> []
-fn wasi_proc_exit(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
-    let mem_addr = mem_addr.expect("Caller memory address not available in WASI function");
-
+fn wasi_proc_exit(rt: &mut Runtime, _mem_addr: Option<MemAddr>) -> Result<Vec<Value>> {
     let exit_code = rt.get_local(0)?.expect_i32();
 
     trace!("proc_exit({})", exit_code);
 
-    // TODO: No idea what this does
-    wasi_snapshot_preview1::proc_exit(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), exit_code)
-        .map_err(ExecError::WASI)?;
+    // wasi_snapshot_preview1::proc doesn't do anything, just panics with with: "not implemented:
+    // runtimes are expected to override this implementation"
+    // wasi_snapshot_preview1::proc_exit(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), exit_code)
+    //     .map_err(ExecError::WASI)?;
 
     Err(ExecError::Exit(exit_code))
 }
