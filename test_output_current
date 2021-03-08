@@ -364,19 +364,19 @@ binary.wast
 	line 2: OK
 	line 3: OK
 	line 4: OK
-	line 371: OK
-	line 427: OK
-	line 433: OK
-	line 439: OK
-	line 467: OK
-	line 584: OK
-	line 631: OK
-	line 684: OK
-	line 712: OK
-	line 766: OK
-	line 830: OK
-	line 892: OK
-	line 931: OK
+	line 406: OK
+	line 462: OK
+	line 468: OK
+	line 474: OK
+	line 502: OK
+	line 619: OK
+	line 666: OK
+	line 719: OK
+	line 747: OK
+	line 801: OK
+	line 865: OK
+	line 927: OK
+	line 966: OK
 block.wast
 	line 3: OK
 	line 353: OK
@@ -2295,23 +2295,23 @@ elem.wast
 	line 122: OK
 	line 128: OK
 	line 134: OK
-	line 305: OK
-	line 316: OK
-	line 318: OK
-	line 329: OK
-	line 333: OK
-	line 351: OK
-	line 353: OK
-	line 354: OK
-	line 355: OK
-	line 357: OK
 	line 366: OK
-	line 367: OK
-	line 368: OK
-	line 370: OK
+	line 377: OK
 	line 379: OK
-	line 380: OK
-	line 381: OK
+	line 390: OK
+	line 394: OK
+	line 412: OK
+	line 414: OK
+	line 415: OK
+	line 416: OK
+	line 418: OK
+	line 427: OK
+	line 428: OK
+	line 429: OK
+	line 431: OK
+	line 440: OK
+	line 441: OK
+	line 442: OK
 endianness.wast
 	line 1: OK
 	line 133: OK
@@ -2400,49 +2400,49 @@ exports.wast
 	line 24: OK
 	line 25: OK
 	line 26: OK
-	line 56: OK
-	line 57: OK
-	line 58: OK
-	line 60: OK
-	line 61: OK
-	line 62: OK
-	line 63: OK
 	line 64: OK
 	line 65: OK
-	line 67: OK
+	line 66: OK
+	line 68: OK
+	line 69: OK
+	line 70: OK
 	line 71: OK
 	line 72: OK
 	line 73: OK
-	line 74: OK
 	line 75: OK
-	line 105: OK
-	line 106: OK
-	line 110: OK
-	line 111: OK
-	line 112: OK
-	line 113: OK
-	line 114: OK
-	line 115: OK
-	line 116: OK
-	line 117: OK
-	line 118: OK
-	line 119: OK
-	line 120: OK
+	line 79: OK
+	line 80: OK
+	line 81: OK
+	line 82: OK
+	line 83: OK
 	line 121: OK
-	line 154: OK
-	line 155: OK
-	line 159: OK
-	line 160: OK
-	line 161: OK
-	line 162: OK
-	line 163: OK
-	line 164: OK
-	line 165: OK
-	line 166: OK
-	line 167: OK
-	line 168: OK
-	line 169: OK
-	line 170: OK
+	line 122: OK
+	line 126: OK
+	line 127: OK
+	line 128: OK
+	line 129: OK
+	line 130: OK
+	line 131: OK
+	line 132: OK
+	line 133: OK
+	line 134: OK
+	line 135: OK
+	line 136: OK
+	line 137: OK
+	line 178: OK
+	line 179: OK
+	line 183: OK
+	line 184: OK
+	line 185: OK
+	line 186: OK
+	line 187: OK
+	line 188: OK
+	line 189: OK
+	line 190: OK
+	line 191: OK
+	line 192: OK
+	line 193: OK
+	line 194: OK
 f32.wast
 	line 5: OK
 	line 19: OK
@@ -14642,14 +14642,8 @@ func_ptrs.wast
 	line 106: OK
 global.wast
 	line 3: OK
-	line 181: OK
-	line 182: OK
-	line 183: OK
-	line 184: OK
-	line 186: OK
-	line 187: OK
-	line 188: OK
 	line 189: OK
+	line 190: OK
 	line 191: OK
 	line 192: OK
 	line 193: OK
@@ -14661,14 +14655,15 @@ global.wast
 	line 201: OK
 	line 202: OK
 	line 203: OK
-	line 205: OK
+	line 204: OK
 	line 206: OK
 	line 207: OK
+	line 208: OK
 	line 209: OK
-	line 210: OK
 	line 211: OK
+	line 212: OK
 	line 213: OK
-	line 214: OK
+	line 215: OK
 	line 216: OK
 	line 217: OK
 	line 219: OK
@@ -14676,22 +14671,29 @@ global.wast
 	line 221: OK
 	line 223: OK
 	line 224: OK
-	line 225: OK
 	line 226: OK
-	line 228: OK
+	line 227: OK
+	line 229: OK
 	line 230: OK
 	line 231: OK
-	line 232: OK
+	line 233: OK
 	line 234: OK
 	line 235: OK
 	line 236: OK
 	line 238: OK
-	line 239: OK
 	line 240: OK
+	line 241: OK
+	line 242: OK
+	line 244: OK
+	line 245: OK
+	line 246: OK
 	line 248: OK
 	line 249: OK
-	line 301: OK
-	line 331: OK
+	line 250: OK
+	line 263: OK
+	line 264: OK
+	line 341: OK
+	line 371: OK
 i32.wast
 	line 3: OK
 	line 37: OK
@@ -15581,74 +15583,75 @@ if.wast
 	line 723: OK
 imports.wast
 	line 3: OK
-	line 19: OK
-	line 24: OK
-	line 87: OK
+	line 20: OK
+	line 25: OK
 	line 88: OK
-	line 98: OK
+	line 89: OK
 	line 99: OK
 	line 100: OK
 	line 101: OK
 	line 102: OK
 	line 103: OK
 	line 104: OK
-	line 208: OK
-	line 226: OK
+	line 105: OK
+	line 209: OK
 	line 227: OK
 	line 228: OK
 	line 229: OK
-	line 231: OK
+	line 230: OK
 	line 232: OK
-	line 271: OK
-	line 283: OK
-	line 284: OK
-	line 285: OK
-	line 286: OK
-	line 287: OK
-	line 290: OK
-	line 302: OK
-	line 303: OK
-	line 304: OK
-	line 305: OK
-	line 306: OK
+	line 233: OK
+	line 234: OK
 	line 322: OK
-	line 323: OK
-	line 324: OK
-	line 325: OK
-	line 326: OK
-	line 327: OK
-	line 328: OK
-	line 329: OK
-	line 330: OK
-	line 331: OK
-	line 332: OK
+	line 334: OK
+	line 335: OK
+	line 336: OK
+	line 337: OK
+	line 338: OK
+	line 341: OK
+	line 353: OK
+	line 354: OK
+	line 355: OK
+	line 356: OK
+	line 357: OK
+	line 373: OK
+	line 374: OK
+	line 375: OK
+	line 376: OK
+	line 377: OK
+	line 378: OK
+	line 379: OK
+	line 380: OK
 	line 381: OK
-	line 388: OK
-	line 389: OK
-	line 390: OK
-	line 391: OK
-	line 393: OK
-	line 399: OK
-	line 400: OK
-	line 401: OK
-	line 402: OK
-	line 417: OK
-	line 418: OK
-	line 419: OK
-	line 420: OK
-	line 421: OK
-	line 422: OK
-	line 423: OK
-	line 424: OK
-	line 425: OK
-	line 487: OK
-	line 491: OK
-	line 492: OK
-	line 493: OK
-	line 494: OK
-	line 495: OK
-	line 571: OK
-	line 572: OK
+	line 382: OK
+	line 383: OK
+	line 432: OK
+	line 439: OK
+	line 440: OK
+	line 441: OK
+	line 442: OK
+	line 444: OK
+	line 450: OK
+	line 451: OK
+	line 452: OK
+	line 453: OK
+	line 468: OK
+	line 469: OK
+	line 470: OK
+	line 471: OK
+	line 472: OK
+	line 473: OK
+	line 474: OK
+	line 475: OK
+	line 476: OK
+	line 538: OK
+	line 542: OK
+	line 543: OK
+	line 544: OK
+	line 545: OK
+	line 546: OK
+	line 622: OK
+	line 623: OK
 inline-module.wast
 	line 1: OK
 int_exprs.wast
@@ -17249,18 +17252,10 @@ return.wast
 	line 308: OK
 select.wast
 	line 1: OK
-	line 180: OK
-	line 181: OK
-	line 182: OK
-	line 183: OK
-	line 185: OK
-	line 186: OK
-	line 187: OK
-	line 188: OK
+	line 189: OK
 	line 190: OK
 	line 191: OK
 	line 192: OK
-	line 193: OK
 	line 194: OK
 	line 195: OK
 	line 196: OK
@@ -17277,53 +17272,52 @@ select.wast
 	line 209: OK
 	line 210: OK
 	line 211: OK
+	line 212: OK
 	line 213: OK
 	line 214: OK
 	line 215: OK
-	line 216: OK
 	line 217: OK
 	line 218: OK
+	line 219: OK
 	line 220: OK
-	line 221: OK
 	line 222: OK
 	line 223: OK
 	line 224: OK
 	line 225: OK
+	line 226: OK
 	line 227: OK
-	line 228: OK
 	line 229: OK
 	line 230: OK
 	line 231: OK
 	line 232: OK
+	line 233: OK
 	line 234: OK
-	line 235: OK
 	line 236: OK
 	line 237: OK
+	line 238: OK
 	line 239: OK
 	line 240: OK
 	line 241: OK
-	line 242: OK
+	line 243: OK
 	line 244: OK
 	line 245: OK
 	line 246: OK
-	line 247: OK
 	line 248: OK
 	line 249: OK
+	line 250: OK
 	line 251: OK
-	line 252: OK
 	line 253: OK
 	line 254: OK
+	line 255: OK
 	line 256: OK
 	line 257: OK
-	line 259: OK
+	line 258: OK
 	line 260: OK
 	line 261: OK
 	line 262: OK
 	line 263: OK
-	line 264: OK
 	line 265: OK
 	line 266: OK
-	line 267: OK
 	line 268: OK
 	line 269: OK
 	line 270: OK
@@ -17331,6 +17325,7 @@ select.wast
 	line 272: OK
 	line 273: OK
 	line 274: OK
+	line 275: OK
 	line 276: OK
 	line 277: OK
 	line 278: OK
@@ -17339,10 +17334,18 @@ select.wast
 	line 281: OK
 	line 282: OK
 	line 283: OK
-	line 284: OK
 	line 285: OK
 	line 286: OK
 	line 287: OK
+	line 288: OK
+	line 289: OK
+	line 290: OK
+	line 291: OK
+	line 292: OK
+	line 293: OK
+	line 294: OK
+	line 295: OK
+	line 296: OK
 skip-stack-guard-page.wast
 	line 2: OK
 stack.wast
