@@ -28,8 +28,7 @@ jobs:
         run: |
             export PATH=`pwd`:$PATH
             git submodule update --init --recursive
-            cargo run --bin spec-test || true
-            diff -u test_output_current test_output
+            cargo run --bin spec-test
 
   wasi_tests:
     name: 'Run WASI tests'
