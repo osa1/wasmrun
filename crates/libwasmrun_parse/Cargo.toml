@@ -4,5 +4,9 @@ version = "0.1.0"
 authors = ["Ömer Sinan Ağacan <omeragacan@gmail.com>"]
 edition = "2018"
 
+[[bin]]
+name = "lexer_test"
+path = "exec/lexer_test.rs"
+
 [dependencies]
 libwasmrun_parse_macros = { path = "../libwasmrun_parse_macros" }

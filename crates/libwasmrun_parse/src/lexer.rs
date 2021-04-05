@@ -1,5 +1,159 @@
 use libwasmrun_parse_macros::make_enum;
 
+use std::iter::Peekable;
+use std::str::CharIndices;
+
+#[derive(Debug)]
+pub enum Token {
+    /// Left parenthesis (`(`)
+    LParen,
+
+    /// Right parenthesis (`)`)
+    RParen,
+
+    /// `=`, used in named parameters, e.g. `(i32.load offset=25 align=4 ...)`
+    Eq,
+
+    /// String literal
+    String(String),
+
+    /// Integer literal
+    Int(i64),
+
+    /// Float literal
+    Float(f64),
+
+    /// Variable
+    Var(String),
+
+    /// Instructions
+    Instr(Instr),
+
+    /// Keywords
+    Keyword(Keyword),
+}
+
+#[derive(Debug)]
+pub enum LexerError {
+    UnterminatedString(usize),
+    EmptyVar(usize),
+    UnknownToken(usize),
+}
+
+pub type Result<A> = std::result::Result<Option<A>, LexerError>;
+
+impl Token {
+    pub fn parse(chars: &mut Peekable<CharIndices>) -> Result<Token> {
+        loop {
+            match chars.peek().copied() {
+                None => return Ok(None),
+                Some((idx, char)) => match char {
+                    _ if char.is_whitespace() => {
+                        let _ = chars.next();
+                        continue;
+                    }
+                    '(' => {
+                        let _ = chars.next();
+                        return Ok(Some(Token::LParen));
+                    }
+                    ')' => {
+                        let _ = chars.next();
+                        return Ok(Some(Token::RParen));
+                    }
+                    '=' => {
+                        let _ = chars.next();
+                        return Ok(Some(Token::Eq));
+                    }
+                    '"' => {
+                        let _ = chars.next();
+                        let str = parse_string(chars, idx)?;
+                        return Ok(Some(Token::String(str)));
+                    }
+                    '$' => {
+                        let _ = chars.next();
+                        let str = parse_var(chars, idx)?;
+                        return Ok(Some(Token::Var(str)));
+                    }
+                    // TODO: literals
+                    _ => {
+                        // Keyword or instruction. Try instruction first
+                        let mut instr_chars = chars.clone();
+                        let mut instr_chars_adjusted = (&mut instr_chars).map(|(_, c)| c);
+                        match Instr::parse(&mut instr_chars_adjusted) {
+                            Some(instr) => {
+                                *chars = instr_chars;
+                                return Ok(Some(Token::Instr(instr)));
+                            }
+                            None => {
+                                // Try keyword
+                                let mut keyword_chars = chars.clone();
+                                let mut keyword_chars_adjusted =
+                                    (&mut keyword_chars).map(|(_, c)| c);
+                                match Keyword::parse(&mut keyword_chars_adjusted) {
+                                    Some(kw) => {
+                                        *chars = keyword_chars;
+                                        return Ok(Some(Token::Keyword(kw)));
+                                    }
+                                    None => return Err(LexerError::UnknownToken(idx)),
+                                }
+                            }
+                        }
+                    }
+                },
+            }
+        }
+    }
+}
+
+/// Assumes that the initial '"' is consumed. Consumes the closing '"' and returns index after it.
+fn parse_string(
+    chars: &mut Peekable<CharIndices>,
+    dquote_idx: usize,
+) -> std::result::Result<String, LexerError> {
+    let mut ret = String::new();
+
+    loop {
+        match chars.next() {
+            None => {
+                return Err(LexerError::UnterminatedString(dquote_idx));
+            }
+            Some((_, '"')) => {
+                return Ok(ret);
+            }
+            Some((_, char)) => {
+                ret.push(char);
+            }
+        }
+    }
+}
+
+/// Assumes that the initial '$' is consumed.
+fn parse_var(
+    chars: &mut Peekable<CharIndices>,
+    dollar_idx: usize,
+) -> std::result::Result<String, LexerError> {
+    let mut ret = String::new();
+
+    loop {
+        match chars.next() {
+            None => {
+                if ret.is_empty() {
+                    return Err(LexerError::EmptyVar(dollar_idx));
+                } else {
+                    return Ok(ret);
+                }
+            }
+            Some((_, char)) => {
+                if char.is_whitespace() {
+                    return Ok(ret);
+                } else {
+                    ret.push(char);
+                }
+            }
+        }
+    }
+}
+
 make_enum! {
     Instr,
     "unreachable",
@@ -202,6 +356,8 @@ make_enum! {
 
 make_enum! {
     Keyword,
+    "align",
+    "assert_invalid",
     "assert_malformed",
     "assert_return",
     "assert_trap",
@@ -211,6 +367,14 @@ make_enum! {
     "invoke",
     "memory",
     "module",
+    "offset",
     "param",
     "result",
+    "start",
+}
+
+#[test]
+fn test_keyword_parser() {
+    let mut chars = "assert_invalid".chars();
+    assert_eq!(Keyword::parse(&mut chars).unwrap(), Keyword::AssertInvalid);
 }

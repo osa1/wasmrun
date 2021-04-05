@@ -80,12 +80,13 @@ pub fn make_enum(input: TokenStream) -> TokenStream {
     let parser_body = tree::build_decision_tree(rules);
 
     quote!(
-        enum #enum_name {
+        #[derive(Debug, PartialEq, Eq)]
+        pub enum #enum_name {
             #(#variant_ids,)*
         }
 
         impl #enum_name {
-            fn parse(chars: &mut std::str::Chars) -> Option<#enum_name> {
+            pub fn parse(chars: &mut Iterator<Item=char>) -> Option<#enum_name> {
                 #parser_body
             }
         }
