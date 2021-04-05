@@ -38,6 +38,8 @@ pub enum LexerError {
     UnterminatedString(usize),
     EmptyVar(usize),
     UnknownToken(usize),
+    InvalidIntDigit(usize),
+    CantParseInt(String),
 }
 
 pub type Result<A> = std::result::Result<Option<A>, LexerError>;
@@ -51,6 +53,20 @@ impl Token {
                     _ if char.is_whitespace() => {
                         let _ = chars.next();
                         continue;
+                    }
+                    _ if char.is_ascii_digit() => {
+                        let int = parse_int(chars)?;
+                        return Ok(Some(Token::Int(int)));
+                    }
+                    ';' => {
+                        let _ = chars.next();
+                        loop {
+                            match chars.next() {
+                                None => return Ok(None),
+                                Some((_, '\n')) => break,
+                                Some((_, _)) => continue,
+                            }
+                        }
                     }
                     '(' => {
                         let _ = chars.next();
@@ -151,6 +167,34 @@ fn parse_var(
                 }
             }
         }
+    }
+}
+
+fn parse_int(chars: &mut Peekable<CharIndices>) -> std::result::Result<i64, LexerError> {
+    // TODO: We can't get the underlying &str from a `Peekable<CharIndices>` so we need to push the
+    // characters somewhere. A custom `Peekable<CharIndices>` implementation could avoid this
+    // problem.
+    let mut ret = String::new();
+
+    loop {
+        match chars.peek().copied() {
+            None => {
+                break;
+            }
+            Some((_, char)) => {
+                if char.is_ascii_digit() {
+                    let _ = chars.next();
+                    ret.push(char);
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    match ret.parse::<i64>() {
+        Ok(int) => Ok(int),
+        Err(_) => Err(LexerError::CantParseInt(ret)),
     }
 }
 
@@ -363,12 +407,18 @@ make_enum! {
     "assert_trap",
     "data",
     "export",
+    "f32",
+    "f64",
     "func",
+    "i32",
+    "i64",
+    "import",
     "invoke",
     "memory",
     "module",
     "offset",
     "param",
+    "quote",
     "result",
     "start",
 }
