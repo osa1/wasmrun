@@ -55,7 +55,12 @@ impl Token {
                         continue;
                     }
                     _ if char.is_ascii_digit() => {
-                        let int = parse_int(chars)?;
+                        let int = parse_int(chars, false)?;
+                        return Ok(Some(Token::Int(int)));
+                    }
+                    '-' => {
+                        let _ = chars.next();
+                        let int = parse_int(chars, true)?;
                         return Ok(Some(Token::Int(int)));
                     }
                     ';' => {
@@ -170,11 +175,26 @@ fn parse_var(
     }
 }
 
-fn parse_int(chars: &mut Peekable<CharIndices>) -> std::result::Result<i64, LexerError> {
+fn parse_int(
+    chars: &mut Peekable<CharIndices>,
+    negate: bool,
+) -> std::result::Result<i64, LexerError> {
     // TODO: We can't get the underlying &str from a `Peekable<CharIndices>` so we need to push the
     // characters somewhere. A custom `Peekable<CharIndices>` implementation could avoid this
     // problem.
     let mut ret = String::new();
+
+    let mut hex = false;
+
+    if let Some((_, '0')) = chars.peek() {
+        let _ = chars.next();
+        if let Some((_, 'x')) = chars.peek() {
+            let _ = chars.next();
+            hex = true;
+        } else {
+            ret.push('0');
+        }
+    }
 
     loop {
         match chars.peek().copied() {
@@ -182,7 +202,7 @@ fn parse_int(chars: &mut Peekable<CharIndices>) -> std::result::Result<i64, Lexe
                 break;
             }
             Some((_, char)) => {
-                if char.is_ascii_digit() {
+                if char.is_ascii_digit() || (hex && char.is_ascii_hexdigit()) {
                     let _ = chars.next();
                     ret.push(char);
                 } else {
@@ -192,8 +212,8 @@ fn parse_int(chars: &mut Peekable<CharIndices>) -> std::result::Result<i64, Lexe
         }
     }
 
-    match ret.parse::<i64>() {
-        Ok(int) => Ok(int),
+    match i64::from_str_radix(&ret, if hex { 16 } else { 10 }) {
+        Ok(int) => Ok(if negate { -int } else { int }),
         Err(_) => Err(LexerError::CantParseInt(ret)),
     }
 }
@@ -427,4 +447,5 @@ make_enum! {
 fn test_keyword_parser() {
     let mut chars = "assert_invalid".chars();
     assert_eq!(Keyword::parse(&mut chars).unwrap(), Keyword::AssertInvalid);
+    assert_eq!(chars.next(), None);
 }
