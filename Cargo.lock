@@ -263,6 +263,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "libwasmrun_parse"
+version = "0.1.0"
+dependencies = [
+ "libwasmrun_parse_macros",
+]
+
+[[package]]
+name = "libwasmrun_parse_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "log"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"

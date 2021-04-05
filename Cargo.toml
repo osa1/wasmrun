@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "crates/libwasmrun",
+    "crates/libwasmrun_parse",
+    "crates/libwasmrun_parse_macros",
     "crates/spec-test",
     "crates/wasi-test",
     "crates/wasmrun",
