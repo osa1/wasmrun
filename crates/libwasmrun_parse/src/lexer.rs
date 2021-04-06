@@ -1,9 +1,10 @@
 use libwasmrun_parse_macros::make_enum;
 
+use std::convert::TryFrom;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
     /// Left parenthesis (`(`)
     LParen,
@@ -40,6 +41,7 @@ pub enum LexerError {
     UnknownToken(usize),
     InvalidIntDigit(usize),
     CantParseInt(String),
+    CantParseFloat(String),
 }
 
 pub type Result<A> = std::result::Result<Option<A>, LexerError>;
@@ -54,14 +56,10 @@ impl Token {
                         let _ = chars.next();
                         continue;
                     }
-                    _ if char.is_ascii_digit() => {
-                        let int = parse_int(chars, false)?;
-                        return Ok(Some(Token::Int(int)));
-                    }
+                    _ if char.is_ascii_digit() => return parse_int_or_float(chars, false),
                     '-' => {
                         let _ = chars.next();
-                        let int = parse_int(chars, true)?;
-                        return Ok(Some(Token::Int(int)));
+                        return parse_int_or_float(chars, true);
                     }
                     ';' => {
                         let _ = chars.next();
@@ -175,26 +173,42 @@ fn parse_var(
     }
 }
 
-fn parse_int(
-    chars: &mut Peekable<CharIndices>,
-    negate: bool,
-) -> std::result::Result<i64, LexerError> {
-    // TODO: We can't get the underlying &str from a `Peekable<CharIndices>` so we need to push the
-    // characters somewhere. A custom `Peekable<CharIndices>` implementation could avoid this
-    // problem.
-    let mut ret = String::new();
-
+fn parse_int_or_float(chars: &mut Peekable<CharIndices>, negate: bool) -> Result<Token> {
     let mut hex = false;
 
     if let Some((_, '0')) = chars.peek() {
         let _ = chars.next();
         if let Some((_, 'x')) = chars.peek() {
             let _ = chars.next();
-            hex = true;
+            let i = i64::try_from(parse_hex(chars)).unwrap();
+            return Ok(Some(Token::Int(if negate { -i } else { i })));
         } else {
-            ret.push('0');
+            // Ignoring 0
         }
     }
+
+    let dec = parse_dec(chars);
+
+    if let Some((_, '.')) = chars.peek() {
+        let _ = chars.next();
+        let float = parse_dec(chars);
+        let str = format!("{}.{}", dec, float);
+        match str.parse::<f64>() {
+            Ok(f) => {
+                let f = if negate { -f } else { f };
+                Ok(Some(Token::Float(f)))
+            }
+            Err(_) => Err(LexerError::CantParseFloat(str)),
+        }
+    } else {
+        let dec = i64::try_from(dec).unwrap();
+        Ok(Some(Token::Int(if negate { -dec } else { dec })))
+    }
+}
+
+// Consumes at least one character
+fn parse_dec(chars: &mut Peekable<CharIndices>) -> u64 {
+    let mut i = 0;
 
     loop {
         match chars.peek().copied() {
@@ -202,9 +216,10 @@ fn parse_int(
                 break;
             }
             Some((_, char)) => {
-                if char.is_ascii_digit() || (hex && char.is_ascii_hexdigit()) {
+                if char.is_ascii_digit() {
                     let _ = chars.next();
-                    ret.push(char);
+                    i *= 10;
+                    i += u64::from(char) - u64::from(b'0');
                 } else {
                     break;
                 }
@@ -212,10 +227,42 @@ fn parse_int(
         }
     }
 
-    match i64::from_str_radix(&ret, if hex { 16 } else { 10 }) {
-        Ok(int) => Ok(if negate { -int } else { int }),
-        Err(_) => Err(LexerError::CantParseInt(ret)),
+    i
+}
+
+fn parse_hex(chars: &mut Peekable<CharIndices>) -> u64 {
+    let mut i = 0;
+
+    loop {
+        match chars.peek().copied() {
+            None => {
+                break;
+            }
+            Some((_, char)) => {
+                if char.is_ascii_hexdigit() {
+                    let _ = chars.next();
+
+                    i *= 16;
+
+                    let c = u64::from(char);
+
+                    let d = if c >= u64::from(b'a') && c <= u64::from(b'f') {
+                        10 + c - u64::from(b'a')
+                    } else if c >= u64::from(b'A') && c <= u64::from(b'F') {
+                        10 + c - u64::from(b'A')
+                    } else {
+                        c - u64::from(b'0')
+                    };
+
+                    i += d
+                } else {
+                    break;
+                }
+            }
+        }
     }
+
+    i
 }
 
 make_enum! {
@@ -447,5 +494,29 @@ make_enum! {
 fn test_keyword_parser() {
     let mut chars = "assert_invalid".chars();
     assert_eq!(Keyword::parse(&mut chars).unwrap(), Keyword::AssertInvalid);
+    assert_eq!(chars.next(), None);
+}
+
+#[test]
+fn test_parse_int() {
+    let mut chars = "0.0".char_indices().peekable();
+    assert_eq!(
+        parse_int_or_float(&mut chars, false).unwrap().unwrap(),
+        Token::Float(0.0f64)
+    );
+    assert_eq!(chars.next(), None);
+}
+
+#[test]
+fn test_parse_dec() {
+    let mut chars = "123".char_indices().peekable();
+    assert_eq!(parse_dec(&mut chars), 123);
+    assert_eq!(chars.next(), None);
+}
+
+#[test]
+fn test_parse_hex() {
+    let mut chars = "123abc".char_indices().peekable();
+    assert_eq!(parse_hex(&mut chars), 0x123abc);
     assert_eq!(chars.next(), None);
 }
