@@ -42,6 +42,7 @@ pub enum LexerError {
     InvalidIntDigit(usize),
     CantParseInt(String),
     CantParseFloat(String),
+    UnexpectedEOF(usize),
 }
 
 pub type Result<A> = std::result::Result<Option<A>, LexerError>;
@@ -93,7 +94,56 @@ impl Token {
                         let str = parse_var(chars, idx)?;
                         return Ok(Some(Token::Var(str)));
                     }
-                    // TODO: literals
+                    'n' => {
+                        // `nan:...` notation. Handling this here only works because we don't have
+                        // any instructions or keywords starting with 'na'.
+                        let _ = chars.next();
+
+                        macro_rules! skip_char {
+                            ($c:expr) => {
+                                match chars.next() {
+                                    None => {
+                                        return Err(LexerError::UnexpectedEOF(
+                                            idx + 'a'.len_utf8(),
+                                        ));
+                                    }
+                                    Some((_, c)) if c == $c => {}
+                                    Some(_) => {
+                                        return Err(LexerError::UnknownToken(idx));
+                                    }
+                                }
+                            };
+                        }
+
+                        match chars.next() {
+                            None => {
+                                return Err(LexerError::UnexpectedEOF(idx + 'a'.len_utf8()));
+                            }
+                            Some((_, 'a')) => {
+                                // nan:...
+                                skip_char!('n');
+                                skip_char!(':');
+                                skip_char!('0');
+                                skip_char!('x');
+
+                                let payload = parse_hex(chars);
+                                // TODO: Check payload range
+                                // TODO: IIRC we need transmute here and `as f64` doesn't work, but I don't
+                                // remember why. Document it here.
+                                let f: f64 =
+                                    unsafe { std::mem::transmute((f64::NAN as u64) | payload) };
+                                return Ok(Some(Token::Float(f)));
+                            }
+                            Some((_, 'o')) => {
+                                // 'nop' instruction
+                                skip_char!('p');
+                                return Ok(Some(Token::Instr(Instr::Nop)));
+                            }
+                            Some(_) => {
+                                return Err(LexerError::UnknownToken(idx));
+                            }
+                        }
+                    }
                     _ => {
                         // Keyword or instruction. Try instruction first
                         let mut instr_chars = chars.clone();
@@ -174,8 +224,6 @@ fn parse_var(
 }
 
 fn parse_int_or_float(chars: &mut Peekable<CharIndices>, negate: bool) -> Result<Token> {
-    let mut hex = false;
-
     if let Some((_, '0')) = chars.peek() {
         let _ = chars.next();
         if let Some((_, 'x')) = chars.peek() {
@@ -268,7 +316,7 @@ fn parse_hex(chars: &mut Peekable<CharIndices>) -> u64 {
 make_enum! {
     Instr,
     "unreachable",
-    "nop",
+    "nop", // parsd with 'nan' in `Token::parse`
     "block",
     "loop",
     "if",
@@ -472,22 +520,31 @@ make_enum! {
     "assert_malformed",
     "assert_return",
     "assert_trap",
+    "binary",
     "data",
+    "elem",
     "export",
     "f32",
     "f64",
     "func",
+    "funcref",
+    "global",
     "i32",
     "i64",
     "import",
     "invoke",
+    "local",
     "memory",
     "module",
+    "mut",
     "offset",
     "param",
     "quote",
     "result",
     "start",
+    "table",
+    "then",
+    "type",
 }
 
 #[test]
