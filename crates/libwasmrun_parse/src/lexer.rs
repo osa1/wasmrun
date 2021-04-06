@@ -228,7 +228,7 @@ fn parse_int_or_float(chars: &mut Peekable<CharIndices>, negate: bool) -> Result
         let _ = chars.next();
         if let Some((_, 'x')) = chars.peek() {
             let _ = chars.next();
-            let i = i64::try_from(parse_hex(chars)).unwrap();
+            let i = u64::try_from(parse_hex(chars)).unwrap() as i64;
             return Ok(Some(Token::Int(if negate { -i } else { i })));
         } else {
             // Ignoring 0
