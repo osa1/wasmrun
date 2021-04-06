@@ -414,6 +414,7 @@ make_enum! {
     "i32.ge_s",
     "i32.ge_u",
     "i64.eqz",
+    "i64.eq",
     "i64.ne",
     "i64.lt_s",
     "i64.lt_u",
