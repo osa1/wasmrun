@@ -25,7 +25,7 @@ impl Node {
 
         let node_value = match value {
             None => quote!(None),
-            Some(expr) => quote!(Some(#expr)),
+            Some(expr) => quote!(Some((idx, #expr))),
         };
 
         // Optimize the case when the node is a leaf. Not necessary for correctness, but makes the
@@ -48,7 +48,7 @@ impl Node {
         quote!(
             match chars.next() {
                 None => #node_value,
-                Some(char) => {
+                Some((idx, char)) => {
                     match char {
                         #(#match_arms,)*
                     }

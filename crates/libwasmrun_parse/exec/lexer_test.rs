@@ -1,6 +1,6 @@
 //! Lexes all .wast files in given dir, or lexes the given file if the argument is a file
 
-use libwasmrun_parse::lexer::Token;
+use libwasmrun_parse::lexer::Lexer;
 
 use std::path::Path;
 
@@ -34,19 +34,13 @@ fn do_file(path: &Path) {
     println!("{}", path.to_string_lossy());
 
     let contents = std::fs::read_to_string(path).unwrap();
-    let mut chars = contents.char_indices().peekable();
-    loop {
-        match Token::parse(&mut chars) {
+    let lexer = Lexer::new(&contents);
+    for token in lexer {
+        match token {
             Err(err) => {
-                println!("Error: {:?}", err);
-                break;
+                panic!("Error: {:?}", err);
             }
-            Ok(None) => {
-                break;
-            }
-            Ok(Some(_)) => {
-                // println!("{:?}", token);
-            }
+            Ok(_) => {}
         }
     }
 }

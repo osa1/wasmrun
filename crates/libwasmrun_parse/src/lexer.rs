@@ -4,6 +4,11 @@ use std::convert::TryFrom;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
+// Byte index
+type Loc = usize;
+
+type Spanned<A> = Result<(Loc, A, Loc), LexerError>;
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     /// Left parenthesis (`(`)
@@ -45,125 +50,144 @@ pub enum LexerError {
     UnexpectedEOF(usize),
 }
 
-pub type Result<A> = std::result::Result<Option<A>, LexerError>;
+pub struct Lexer<'input> {
+    iter: Peekable<CharIndices<'input>>,
+}
 
-impl Token {
-    pub fn parse(chars: &mut Peekable<CharIndices>) -> Result<Token> {
+impl<'input> Lexer<'input> {
+    pub fn new(input: &'input str) -> Lexer<'input> {
+        Lexer {
+            iter: input.char_indices().peekable(),
+        }
+    }
+}
+
+impl<'input> Iterator for Lexer<'input> {
+    type Item = Spanned<Token>;
+
+    fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match chars.peek().copied() {
-                None => return Ok(None),
+            match self.iter.peek().copied() {
+                None => return None,
                 Some((idx, char)) => match char {
                     _ if char.is_whitespace() => {
-                        let _ = chars.next();
+                        let _ = self.iter.next();
                         continue;
                     }
-                    _ if char.is_ascii_digit() => return parse_int_or_float(chars, false),
+                    _ if char.is_ascii_digit() => {
+                        return Some(parse_int_or_float(&mut self.iter, false));
+                    }
                     '-' => {
-                        let _ = chars.next();
-                        return parse_int_or_float(chars, true);
+                        let _ = self.iter.next();
+                        return Some(parse_int_or_float(&mut self.iter, true));
                     }
                     ';' => {
-                        let _ = chars.next();
+                        let _ = self.iter.next();
                         loop {
-                            match chars.next() {
-                                None => return Ok(None),
+                            match self.iter.next() {
+                                None => return None,
                                 Some((_, '\n')) => break,
                                 Some((_, _)) => continue,
                             }
                         }
                     }
                     '(' => {
-                        let _ = chars.next();
-                        return Ok(Some(Token::LParen));
+                        let _ = self.iter.next();
+                        return Some(Ok((idx, Token::LParen, '('.len_utf8())));
                     }
                     ')' => {
-                        let _ = chars.next();
-                        return Ok(Some(Token::RParen));
+                        let _ = self.iter.next();
+                        return Some(Ok((idx, Token::RParen, ')'.len_utf8())));
                     }
                     '=' => {
-                        let _ = chars.next();
-                        return Ok(Some(Token::Eq));
+                        let _ = self.iter.next();
+                        return Some(Ok((idx, Token::Eq, '='.len_utf8())));
                     }
                     '"' => {
-                        let _ = chars.next();
-                        let str = parse_string(chars, idx)?;
-                        return Ok(Some(Token::String(str)));
+                        let _ = self.iter.next();
+                        return Some(
+                            parse_string(&mut self.iter, idx)
+                                .map(|(str, end)| (idx, Token::String(str), end)),
+                        );
                     }
                     '$' => {
-                        let _ = chars.next();
-                        let str = parse_var(chars, idx)?;
-                        return Ok(Some(Token::Var(str)));
+                        let _ = self.iter.next();
+                        return Some(
+                            parse_var(&mut self.iter, idx)
+                                .map(|(str, end)| (idx, Token::Var(str), end)),
+                        );
                     }
                     'n' => {
                         // `nan:...` notation. Handling this here only works because we don't have
                         // any instructions or keywords starting with 'na'.
-                        let _ = chars.next();
+                        let _ = self.iter.next();
 
                         macro_rules! skip_char {
                             ($c:expr) => {
-                                match chars.next() {
+                                match self.iter.next() {
                                     None => {
-                                        return Err(LexerError::UnexpectedEOF(
+                                        return Some(Err(LexerError::UnexpectedEOF(
                                             idx + 'a'.len_utf8(),
-                                        ));
+                                        )));
                                     }
-                                    Some((_, c)) if c == $c => {}
+                                    Some((idx, c)) if c == $c => idx,
                                     Some(_) => {
-                                        return Err(LexerError::UnknownToken(idx));
+                                        return Some(Err(LexerError::UnknownToken(idx)));
                                     }
                                 }
                             };
                         }
 
-                        match chars.next() {
+                        match self.iter.next() {
                             None => {
-                                return Err(LexerError::UnexpectedEOF(idx + 'a'.len_utf8()));
+                                return Some(Err(LexerError::UnexpectedEOF(idx + 'a'.len_utf8())));
                             }
                             Some((_, 'a')) => {
                                 // nan:...
-                                skip_char!('n');
-                                skip_char!(':');
-                                skip_char!('0');
-                                skip_char!('x');
+                                let _ = skip_char!('n');
+                                let _ = skip_char!(':');
+                                let _ = skip_char!('0');
+                                let _ = skip_char!('x');
 
-                                let payload = parse_hex(chars);
+                                let (payload, end) = parse_hex(&mut self.iter);
                                 // TODO: Check payload range
                                 // TODO: IIRC we need transmute here and `as f64` doesn't work, but I don't
                                 // remember why. Document it here.
                                 let f: f64 =
                                     unsafe { std::mem::transmute((f64::NAN as u64) | payload) };
-                                return Ok(Some(Token::Float(f)));
+                                return Some(Ok((idx, Token::Float(f), end)));
                             }
                             Some((_, 'o')) => {
                                 // 'nop' instruction
-                                skip_char!('p');
-                                return Ok(Some(Token::Instr(Instr::Nop)));
+                                let end = skip_char!('p');
+                                return Some(Ok((
+                                    idx,
+                                    Token::Instr(Instr::Nop),
+                                    end + 'p'.len_utf8(),
+                                )));
                             }
                             Some(_) => {
-                                return Err(LexerError::UnknownToken(idx));
+                                return Some(Err(LexerError::UnknownToken(idx)));
                             }
                         }
                     }
                     _ => {
                         // Keyword or instruction. Try instruction first
-                        let mut instr_chars = chars.clone();
-                        let mut instr_chars_adjusted = (&mut instr_chars).map(|(_, c)| c);
-                        match Instr::parse(&mut instr_chars_adjusted) {
-                            Some(instr) => {
-                                *chars = instr_chars;
-                                return Ok(Some(Token::Instr(instr)));
+                        let mut instr_chars = self.iter.clone();
+                        match Instr::parse(&mut instr_chars) {
+                            Some((end, instr)) => {
+                                self.iter = instr_chars;
+                                return Some(Ok((idx, Token::Instr(instr), end)));
                             }
                             None => {
                                 // Try keyword
-                                let mut keyword_chars = chars.clone();
-                                let mut keyword_chars_adjusted =
-                                    (&mut keyword_chars).map(|(_, c)| c);
-                                match Keyword::parse(&mut keyword_chars_adjusted) {
-                                    Some(kw) => {
-                                        *chars = keyword_chars;
-                                        return Ok(Some(Token::Keyword(kw)));
+                                let mut keyword_chars = self.iter.clone();
+                                match Keyword::parse(&mut keyword_chars) {
+                                    Some((end, kw)) => {
+                                        self.iter = keyword_chars;
+                                        return Some(Ok((idx, Token::Keyword(kw), end)));
                                     }
-                                    None => return Err(LexerError::UnknownToken(idx)),
+                                    None => return Some(Err(LexerError::UnknownToken(idx))),
                                 }
                             }
                         }
@@ -178,7 +202,7 @@ impl Token {
 fn parse_string(
     chars: &mut Peekable<CharIndices>,
     dquote_idx: usize,
-) -> std::result::Result<String, LexerError> {
+) -> Result<(String, Loc), LexerError> {
     let mut ret = String::new();
 
     loop {
@@ -186,8 +210,8 @@ fn parse_string(
             None => {
                 return Err(LexerError::UnterminatedString(dquote_idx));
             }
-            Some((_, '"')) => {
-                return Ok(ret);
+            Some((idx, '"')) => {
+                return Ok((ret, idx + '"'.len_utf8()));
             }
             Some((_, char)) => {
                 ret.push(char);
@@ -200,8 +224,9 @@ fn parse_string(
 fn parse_var(
     chars: &mut Peekable<CharIndices>,
     dollar_idx: usize,
-) -> std::result::Result<String, LexerError> {
+) -> Result<(String, Loc), LexerError> {
     let mut ret = String::new();
+    let mut last = 0;
 
     loop {
         match chars.next() {
@@ -209,13 +234,15 @@ fn parse_var(
                 if ret.is_empty() {
                     return Err(LexerError::EmptyVar(dollar_idx));
                 } else {
-                    return Ok(ret);
+                    assert!(last != 0);
+                    return Ok((ret, last));
                 }
             }
-            Some((_, char)) => {
+            Some((idx, char)) => {
                 if char.is_whitespace() {
-                    return Ok(ret);
+                    return Ok((ret, idx));
                 } else {
+                    last = idx + char.len_utf8();
                     ret.push(char);
                 }
             }
@@ -223,48 +250,53 @@ fn parse_var(
     }
 }
 
-fn parse_int_or_float(chars: &mut Peekable<CharIndices>, negate: bool) -> Result<Token> {
-    if let Some((_, '0')) = chars.peek() {
+fn parse_int_or_float(chars: &mut Peekable<CharIndices>, negate: bool) -> Spanned<Token> {
+    let mut begin = 0;
+
+    if let Some((begin_, '0')) = chars.peek().copied() {
         let _ = chars.next();
-        if let Some((_, 'x')) = chars.peek() {
+        if let Some((_, 'x')) = chars.peek().copied() {
             let _ = chars.next();
-            let i = u64::try_from(parse_hex(chars)).unwrap() as i64;
-            return Ok(Some(Token::Int(if negate { -i } else { i })));
+            let (u, end_idx) = parse_hex(chars);
+            let i = u64::try_from(u).unwrap() as i64;
+            return Ok((begin_, Token::Int(if negate { -i } else { i }), end_idx));
         } else {
-            // Ignoring 0
+            begin = begin_;
         }
     }
 
-    let dec = parse_dec(chars);
+    let (dec, end_idx) = parse_dec(chars);
 
     if let Some((_, '.')) = chars.peek() {
         let _ = chars.next();
-        let float = parse_dec(chars);
+        let (float, end_idx) = parse_dec(chars);
         let str = format!("{}.{}", dec, float);
         match str.parse::<f64>() {
             Ok(f) => {
                 let f = if negate { -f } else { f };
-                Ok(Some(Token::Float(f)))
+                Ok((begin, Token::Float(f), end_idx))
             }
             Err(_) => Err(LexerError::CantParseFloat(str)),
         }
     } else {
         let dec = i64::try_from(dec).unwrap();
-        Ok(Some(Token::Int(if negate { -dec } else { dec })))
+        Ok((begin, Token::Int(if negate { -dec } else { dec }), end_idx))
     }
 }
 
 // Consumes at least one character
-fn parse_dec(chars: &mut Peekable<CharIndices>) -> u64 {
+fn parse_dec(chars: &mut Peekable<CharIndices>) -> (u64, usize) {
     let mut i = 0;
+    let mut end_idx = 0;
 
     loop {
         match chars.peek().copied() {
             None => {
                 break;
             }
-            Some((_, char)) => {
+            Some((idx, char)) => {
                 if char.is_ascii_digit() {
+                    end_idx = idx + char.len_utf8();
                     let _ = chars.next();
                     i *= 10;
                     i += u64::from(char) - u64::from(b'0');
@@ -275,18 +307,20 @@ fn parse_dec(chars: &mut Peekable<CharIndices>) -> u64 {
         }
     }
 
-    i
+    (i, end_idx)
 }
 
-fn parse_hex(chars: &mut Peekable<CharIndices>) -> u64 {
+fn parse_hex(chars: &mut Peekable<CharIndices>) -> (u64, usize) {
     let mut i = 0;
+    let mut end_idx = 0;
 
     loop {
         match chars.peek().copied() {
             None => {
                 break;
             }
-            Some((_, char)) => {
+            Some((idx, char)) => {
+                end_idx = idx + char.len_utf8();
                 if char.is_ascii_hexdigit() {
                     let _ = chars.next();
 
@@ -310,7 +344,9 @@ fn parse_hex(chars: &mut Peekable<CharIndices>) -> u64 {
         }
     }
 
-    i
+    assert!(end_idx != 0); // TODO: turn this in to a lexer error
+
+    (i, end_idx)
 }
 
 make_enum! {

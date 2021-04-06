@@ -86,7 +86,7 @@ pub fn make_enum(input: TokenStream) -> TokenStream {
         }
 
         impl #enum_name {
-            pub fn parse(chars: &mut Iterator<Item=char>) -> Option<#enum_name> {
+            pub fn parse(chars: &mut Iterator<Item=(usize, char)>) -> Option<(usize, #enum_name)> {
                 #parser_body
             }
         }
