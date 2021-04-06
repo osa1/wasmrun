@@ -586,8 +586,11 @@ make_enum! {
 
 #[test]
 fn test_keyword_parser() {
-    let mut chars = "assert_invalid".chars();
-    assert_eq!(Keyword::parse(&mut chars).unwrap(), Keyword::AssertInvalid);
+    let mut chars = "assert_invalid".char_indices().peekable();
+    assert_eq!(
+        Keyword::parse(&mut chars).unwrap().1,
+        Keyword::AssertInvalid
+    );
     assert_eq!(chars.next(), None);
 }
 
@@ -595,7 +598,7 @@ fn test_keyword_parser() {
 fn test_parse_int() {
     let mut chars = "0.0".char_indices().peekable();
     assert_eq!(
-        parse_int_or_float(&mut chars, false).unwrap().unwrap(),
+        parse_int_or_float(&mut chars, false).unwrap().1,
         Token::Float(0.0f64)
     );
     assert_eq!(chars.next(), None);
@@ -604,13 +607,22 @@ fn test_parse_int() {
 #[test]
 fn test_parse_dec() {
     let mut chars = "123".char_indices().peekable();
-    assert_eq!(parse_dec(&mut chars), 123);
+    assert_eq!(parse_dec(&mut chars).0, 123);
     assert_eq!(chars.next(), None);
 }
 
 #[test]
 fn test_parse_hex() {
     let mut chars = "123abc".char_indices().peekable();
-    assert_eq!(parse_hex(&mut chars), 0x123abc);
+    assert_eq!(parse_hex(&mut chars).0, 0x123abc);
     assert_eq!(chars.next(), None);
+}
+
+#[test]
+fn test_number_parser() {
+    // 1234e-5
+    // 4242.4242
+    // 123456789e-5
+    // 0x1.fffffffffffffp+1023
+    // 0xCAFE
 }
