@@ -8,15 +8,7 @@ type Loc = usize;
 
 type Spanned<A> = Result<(Loc, A, Loc), LexerError>;
 
-// NB. this is the same as f64::NAN
-const NAN: u64 = 0b0_11111111111_1000000000000000000000000000000000000000000000000000;
-
-fn nan_payload(payload: u64) -> f64 {
-    // TODO: Check payload range
-    f64::from_bits(NAN | payload)
-}
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     /// Left parenthesis (`(`)
     LParen,
@@ -33,8 +25,8 @@ pub enum Token {
     /// Integer literal
     Int(i64),
 
-    /// Float literal, interpreted as 64-bit float
-    Float(f64),
+    /// Float literal, uninterpreted
+    Float(FloatLit),
 
     /// Variable
     Var(String),
@@ -46,32 +38,23 @@ pub enum Token {
     Keyword(Keyword),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum FloatLit {
+    Nan(Sign, u64),
+    Inf(Sign),
+    Float {
+        int: i64,
+        frac: u64,
+        hex: bool,
+        power: i64,
+    },
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Sign {
     Pos,
     Neg,
 }
-
-// PartialEq with bitwise equality for floats
-impl PartialEq for Token {
-    fn eq(&self, other: &Token) -> bool {
-        use Token::*;
-        match (self, other) {
-            (LParen, LParen) => true,
-            (RParen, RParen) => true,
-            (Eq, Eq) => true,
-            (String(str1), String(str2)) => str1 == str2,
-            (Int(i1), Int(i2)) => i1 == i2,
-            (Float(f1), Float(f2)) => f1.to_bits() == f2.to_bits(),
-            (Var(str1), Var(str2)) => str1 == str2,
-            (Instr(instr1), Instr(instr2)) => instr1 == instr2,
-            (Keyword(kw1), Keyword(kw2)) => kw1 == kw2,
-            _ => false,
-        }
-    }
-}
-
-impl Eq for Token {}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LexerError {
@@ -186,12 +169,12 @@ impl<'input> Iterator for Lexer<'input> {
                             continue;
                         }
                         _ if char.is_ascii_digit() => {
-                            return Some(self.parse_number(idx, false));
+                            return Some(self.parse_number(idx, Sign::Pos));
                         }
                         '-' | '+' => {
-                            let negate = char == '-';
+                            let sign = if char == '-' { Sign::Neg } else { Sign::Pos };
                             self.bump(); // consume sign
-                            return Some(self.parse_number(idx, negate));
+                            return Some(self.parse_number(idx, sign));
                         }
                         ';' => {
                             let _ = self.next();
@@ -231,13 +214,13 @@ impl<'input> Iterator for Lexer<'input> {
                         }
                         'n' => {
                             if self.nth_matches(1, 'a') && self.nth_matches(2, 'n') {
-                                return Some(self.parse_number(idx, false));
+                                return Some(self.parse_number(idx, Sign::Pos));
                             } else {
                                 return Some(Err(LexerError::UnknownToken(idx)));
                             }
                         }
                         'i' if self.nth_matches(1, 'n') && self.nth_matches(2, 'f') => {
-                            return Some(self.parse_number(idx, false));
+                            return Some(self.parse_number(idx, Sign::Pos));
                         }
                         _ => {
                             // Keyword or instruction. Try instruction first
@@ -314,7 +297,7 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn parse_number(&mut self, begin_idx: Loc, negate: bool) -> Spanned<Token> {
+    fn parse_number(&mut self, begin_idx: Loc, sign: Sign) -> Spanned<Token> {
         match self.peek() {
             None => return Err(LexerError::UnterminatedNumber),
             Some((_, 'i')) => {
@@ -327,11 +310,7 @@ impl<'input> Lexer<'input> {
                 }
                 Ok((
                     begin_idx,
-                    Token::Float(if negate {
-                        f64::NEG_INFINITY
-                    } else {
-                        f64::INFINITY
-                    }),
+                    Token::Float(FloatLit::Inf(sign)),
                     begin_idx + "inf".len(),
                 ))
             }
@@ -344,21 +323,29 @@ impl<'input> Lexer<'input> {
 
                 if self.expect_str(":0x") {
                     let (payload, end_idx) = self.hexnum();
-                    Ok((begin_idx, Token::Float(nan_payload(payload)), end_idx))
+                    Ok((
+                        begin_idx,
+                        Token::Float(FloatLit::Nan(sign, payload)),
+                        end_idx,
+                    ))
                 } else {
-                    Ok((begin_idx, Token::Float(f64::NAN), begin_idx + "nan".len()))
+                    Ok((
+                        begin_idx,
+                        Token::Float(FloatLit::Nan(sign, 0)),
+                        begin_idx + "nan".len(),
+                    ))
                 }
             }
             Some((idx, '0')) => {
                 if self.nth_matches(1, 'x') {
                     self.bump(); // consume '0'
                     self.bump(); // consume 'x'
-                    self.parse_hex_number(idx, negate)
+                    self.parse_hex_number(idx, sign)
                 } else {
-                    self.parse_dec_number(idx, negate)
+                    self.parse_dec_number(idx, sign)
                 }
             }
-            Some((idx, c)) if c.is_ascii_digit() => self.parse_dec_number(idx, negate),
+            Some((idx, c)) if c.is_ascii_digit() => self.parse_dec_number(idx, sign),
             _ => Err(LexerError::CantParseNumber),
         }
     }
@@ -377,42 +364,112 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn parse_dec_number(&mut self, begin_idx: Loc, negate: bool) -> Spanned<Token> {
+    fn parse_dec_number(&mut self, begin_idx: Loc, sign1: Sign) -> Spanned<Token> {
         let (num1, end1) = self.num();
         if self.next_matches('.') {
             self.bump(); // consume '.'
+            let (num2, end2) = self.num();
             if self.next_matches('e') || self.next_matches('E') {
                 self.bump(); // consume 'e' or 'E'
-                let _sign = self.parse_sign();
-                let (_num2, end2) = self.num();
-                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+                let sign2 = self.parse_sign();
+                let (num3, end3) = self.num();
+                let num3 = if sign2 == Some(Sign::Neg) {
+                    -(num3 as i64)
+                } else {
+                    num3 as i64
+                };
+                Ok((
+                    begin_idx,
+                    Token::Float(FloatLit::Float {
+                        int: if sign1 == Sign::Neg {
+                            -(num1 as i64)
+                        } else {
+                            num1 as i64
+                        },
+                        frac: num2,
+                        hex: false,
+                        power: num3,
+                    }),
+                    end3,
+                ))
             } else {
-                let (_num2, end2) = self.num();
-                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+                Ok((
+                    begin_idx,
+                    Token::Float(FloatLit::Float {
+                        int: if sign1 == Sign::Neg {
+                            -(num1 as i64)
+                        } else {
+                            num1 as i64
+                        },
+                        frac: num2,
+                        hex: false,
+                        power: 0,
+                    }),
+                    end2,
+                ))
             }
         } else {
             let num = num1 as i64;
-            let num = if negate && num >> 63 == 0 { -num } else { num };
+            let num = if sign1 == Sign::Neg && num >> 63 == 0 {
+                -num
+            } else {
+                num
+            };
             Ok((begin_idx, Token::Int(num), end1))
         }
     }
 
-    fn parse_hex_number(&mut self, begin_idx: Loc, negate: bool) -> Spanned<Token> {
+    fn parse_hex_number(&mut self, begin_idx: Loc, sign1: Sign) -> Spanned<Token> {
         let (num1, end1) = self.hexnum();
         if self.next_matches('.') {
             self.bump(); // consume '.'
+            let (num2, end2) = self.hexnum();
             if self.next_matches('p') || self.next_matches('P') {
                 self.bump(); // consume 'p' or 'P'
-                let _sign = self.parse_sign();
-                let (_num2, end2) = self.hexnum();
-                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+                let sign2 = self.parse_sign();
+                let (num3, end3) = self.hexnum();
+                let num3 = if sign2 == Some(Sign::Neg) {
+                    -(num3 as i64)
+                } else {
+                    num3 as i64
+                };
+                Ok((
+                    begin_idx,
+                    Token::Float(FloatLit::Float {
+                        int: if sign1 == Sign::Neg {
+                            -(num1 as i64)
+                        } else {
+                            num1 as i64
+                        },
+                        frac: num2,
+                        hex: true,
+                        power: num3,
+                    }),
+                    end3,
+                ))
             } else {
-                let (_num2, end2) = self.hexnum();
-                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+                Ok((
+                    begin_idx,
+                    Token::Float(FloatLit::Float {
+                        int: if sign1 == Sign::Neg {
+                            -(num1 as i64)
+                        } else {
+                            num1 as i64
+                        },
+                        frac: num2,
+                        hex: true,
+                        power: 0,
+                    }),
+                    end2,
+                ))
             }
         } else {
             let num = num1 as i64;
-            let num = if negate && num >> 63 == 0 { -num } else { num };
+            let num = if sign1 == Sign::Neg && num >> 63 == 0 {
+                -num
+            } else {
+                num
+            };
             Ok((begin_idx, Token::Int(num), end1))
         }
     }
@@ -792,21 +849,64 @@ mod tests {
             "nan +nan -nan
              nan:0x400000 nan:0x200000 -nan:0x7fffff
              inf -inf
-             0x0.0p0",
+             0x0.0p0
+             0x1.921fb6p+2",
         );
 
-        assert_eq!(next_token(&mut lexer), Token::Float(f64::NAN));
-        assert_eq!(next_token(&mut lexer), Token::Float(f64::NAN));
-        assert_eq!(next_token(&mut lexer), Token::Float(f64::NAN));
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Pos, 0))
+        );
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Pos, 0))
+        );
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Neg, 0))
+        );
 
-        assert_eq!(next_token(&mut lexer), Token::Float(nan_payload(0x400000)));
-        assert_eq!(next_token(&mut lexer), Token::Float(nan_payload(0x200000)));
-        assert_eq!(next_token(&mut lexer), Token::Float(nan_payload(0x7fffff)));
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Pos, 0x400000))
+        );
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Pos, 0x200000))
+        );
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Neg, 0x7fffff))
+        );
 
-        assert_eq!(next_token(&mut lexer), Token::Float(f64::INFINITY));
-        assert_eq!(next_token(&mut lexer), Token::Float(f64::NEG_INFINITY));
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Inf(Sign::Pos))
+        );
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Inf(Sign::Neg))
+        );
 
-        assert_eq!(next_token(&mut lexer), Token::Float(0.0f64));
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Float {
+                int: 0,
+                frac: 0,
+                hex: true,
+                power: 0,
+            })
+        );
+
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Float {
+                int: 1,
+                frac: 0x921fb6,
+                hex: true,
+                power: 2,
+            })
+        );
 
         assert_eq!(lexer.next_token(), None);
     }
