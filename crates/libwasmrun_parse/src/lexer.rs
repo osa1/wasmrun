@@ -1,6 +1,5 @@
 use libwasmrun_parse_macros::make_enum;
 
-use std::convert::TryFrom;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
@@ -39,14 +38,14 @@ pub enum Token {
     Keyword(Keyword),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LexerError {
     UnterminatedString(usize),
+    UnterminatedNumber,
     EmptyVar(usize),
     UnknownToken(usize),
     InvalidIntDigit(usize),
-    CantParseInt(String),
-    CantParseFloat(String),
+    CantParseNumber,
     UnexpectedEOF(usize),
 }
 
@@ -60,6 +59,43 @@ impl<'input> Lexer<'input> {
             iter: input.char_indices().peekable(),
         }
     }
+
+    pub fn next_token(&mut self) -> Option<Spanned<Token>> {
+        <Self as Iterator>::next(self)
+    }
+
+    fn next(&mut self) -> Option<(usize, char)> {
+        self.iter.next()
+    }
+
+    fn bump(&mut self) {
+        let _ = self.next();
+    }
+
+    fn peek(&mut self) -> Option<(usize, char)> {
+        self.iter.peek().copied()
+    }
+
+    // NB. this peeks
+    fn nth(&mut self, n: usize) -> Option<(usize, char)> {
+        self.iter.clone().nth(n)
+    }
+
+    // NB. this peeks
+    fn next_matches(&mut self, expected: char) -> bool {
+        match self.peek() {
+            None => false,
+            Some((_, c)) => c == expected,
+        }
+    }
+
+    // NB. this peeks
+    fn nth_matches(&mut self, n: usize, expected: char) -> bool {
+        match self.nth(n) {
+            None => false,
+            Some((_, c)) => c == expected,
+        }
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -67,286 +103,368 @@ impl<'input> Iterator for Lexer<'input> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match self.iter.peek().copied() {
+            match self.peek() {
                 None => return None,
-                Some((idx, char)) => match char {
-                    _ if char.is_whitespace() => {
-                        let _ = self.iter.next();
-                        continue;
-                    }
-                    _ if char.is_ascii_digit() => {
-                        return Some(parse_int_or_float(&mut self.iter, false));
-                    }
-                    '-' => {
-                        let _ = self.iter.next();
-                        return Some(parse_int_or_float(&mut self.iter, true));
-                    }
-                    ';' => {
-                        let _ = self.iter.next();
-                        loop {
-                            match self.iter.next() {
-                                None => return None,
-                                Some((_, '\n')) => break,
-                                Some((_, _)) => continue,
-                            }
-                        }
-                    }
-                    '(' => {
-                        let _ = self.iter.next();
-                        return Some(Ok((idx, Token::LParen, '('.len_utf8())));
-                    }
-                    ')' => {
-                        let _ = self.iter.next();
-                        return Some(Ok((idx, Token::RParen, ')'.len_utf8())));
-                    }
-                    '=' => {
-                        let _ = self.iter.next();
-                        return Some(Ok((idx, Token::Eq, '='.len_utf8())));
-                    }
-                    '"' => {
-                        let _ = self.iter.next();
-                        return Some(
-                            parse_string(&mut self.iter, idx)
-                                .map(|(str, end)| (idx, Token::String(str), end)),
-                        );
-                    }
-                    '$' => {
-                        let _ = self.iter.next();
-                        return Some(
-                            parse_var(&mut self.iter, idx)
-                                .map(|(str, end)| (idx, Token::Var(str), end)),
-                        );
-                    }
-                    'n' => {
-                        // `nan:...` notation. Handling this here only works because we don't have
-                        // any instructions or keywords starting with 'na'.
-                        let _ = self.iter.next();
-
-                        macro_rules! skip_char {
-                            ($c:expr) => {
-                                match self.iter.next() {
-                                    None => {
-                                        return Some(Err(LexerError::UnexpectedEOF(
-                                            idx + 'a'.len_utf8(),
-                                        )));
-                                    }
-                                    Some((idx, c)) if c == $c => idx,
-                                    Some(_) => {
-                                        return Some(Err(LexerError::UnknownToken(idx)));
-                                    }
+                Some((idx, char)) => {
+                    macro_rules! skip_char {
+                        ($c:expr) => {
+                            match self.next() {
+                                None => {
+                                    return Some(Err(LexerError::UnexpectedEOF(
+                                        idx + 'a'.len_utf8(),
+                                    )));
                                 }
-                            };
-                        }
-
-                        match self.iter.next() {
-                            None => {
-                                return Some(Err(LexerError::UnexpectedEOF(idx + 'a'.len_utf8())));
+                                Some((idx, c)) if c == $c => idx,
+                                Some(_) => {
+                                    return Some(Err(LexerError::UnknownToken(idx)));
+                                }
                             }
-                            Some((_, 'a')) => {
-                                // nan:...
-                                let _ = skip_char!('n');
-                                let _ = skip_char!(':');
-                                let _ = skip_char!('0');
-                                let _ = skip_char!('x');
-
-                                let (payload, end) = parse_hex(&mut self.iter);
-                                // TODO: Check payload range
-                                // TODO: IIRC we need transmute here and `as f64` doesn't work, but I don't
-                                // remember why. Document it here.
-                                let f: f64 =
-                                    unsafe { std::mem::transmute((f64::NAN as u64) | payload) };
-                                return Some(Ok((idx, Token::Float(f), end)));
-                            }
-                            Some((_, 'o')) => {
-                                // 'nop' instruction
-                                let end = skip_char!('p');
-                                return Some(Ok((
-                                    idx,
-                                    Token::Instr(Instr::Nop),
-                                    end + 'p'.len_utf8(),
-                                )));
-                            }
-                            Some(_) => {
-                                return Some(Err(LexerError::UnknownToken(idx)));
-                            }
-                        }
+                        };
                     }
-                    _ => {
-                        // Keyword or instruction. Try instruction first
-                        let mut instr_chars = self.iter.clone();
-                        match Instr::parse(&mut instr_chars) {
-                            Some((end, instr)) => {
-                                self.iter = instr_chars;
-                                return Some(Ok((idx, Token::Instr(instr), end)));
-                            }
-                            None => {
-                                // Try keyword
-                                let mut keyword_chars = self.iter.clone();
-                                match Keyword::parse(&mut keyword_chars) {
-                                    Some((end, kw)) => {
-                                        self.iter = keyword_chars;
-                                        return Some(Ok((idx, Token::Keyword(kw), end)));
-                                    }
-                                    None => return Some(Err(LexerError::UnknownToken(idx))),
+
+                    match char {
+                        _ if char.is_whitespace() => {
+                            let _ = self.next();
+                            continue;
+                        }
+                        _ if char.is_ascii_digit() => {
+                            return Some(self.parse_number(idx, false));
+                        }
+                        '-' | '+' => {
+                            let negate = char == '-';
+                            self.bump(); // consume sign
+                            return Some(self.parse_number(idx, negate));
+                        }
+                        ';' => {
+                            let _ = self.next();
+                            loop {
+                                match self.next() {
+                                    None => return None,
+                                    Some((_, '\n')) => break,
+                                    Some((_, _)) => continue,
                                 }
                             }
                         }
+                        '(' => {
+                            let _ = self.next();
+                            return Some(Ok((idx, Token::LParen, '('.len_utf8())));
+                        }
+                        ')' => {
+                            let _ = self.next();
+                            return Some(Ok((idx, Token::RParen, ')'.len_utf8())));
+                        }
+                        '=' => {
+                            let _ = self.next();
+                            return Some(Ok((idx, Token::Eq, '='.len_utf8())));
+                        }
+                        '"' => {
+                            let _ = self.next();
+                            return Some(
+                                self.parse_string(idx)
+                                    .map(|(str, end)| (idx, Token::String(str), end)),
+                            );
+                        }
+                        '$' => {
+                            let _ = self.next();
+                            return Some(
+                                self.parse_var(idx)
+                                    .map(|(str, end)| (idx, Token::Var(str), end)),
+                            );
+                        }
+                        'n' => {
+                            // `nan:...` notation. Handling this here only works because we don't have
+                            // any instructions or keywords starting with 'na'.
+                            let _ = self.next();
+
+                            match self.next() {
+                                None => {
+                                    return Some(Err(LexerError::UnexpectedEOF(
+                                        idx + 'a'.len_utf8(),
+                                    )));
+                                }
+                                Some((_, 'a')) => {
+                                    // nan:...
+                                    let _ = skip_char!('n');
+                                    let _ = skip_char!(':');
+                                    let _ = skip_char!('0');
+                                    let _ = skip_char!('x');
+
+                                    let (payload, end) = self.hexnum();
+                                    // TODO: Check payload range
+                                    // TODO: IIRC we need transmute here and `as f64` doesn't work, but I don't
+                                    // remember why. Document it here.
+                                    let f: f64 =
+                                        unsafe { std::mem::transmute((f64::NAN as u64) | payload) };
+                                    return Some(Ok((idx, Token::Float(f), end)));
+                                }
+                                Some((_, 'o')) => {
+                                    // 'nop' instruction
+                                    let end = skip_char!('p');
+                                    return Some(Ok((
+                                        idx,
+                                        Token::Instr(Instr::Nop),
+                                        end + 'p'.len_utf8(),
+                                    )));
+                                }
+                                Some(_) => {
+                                    return Some(Err(LexerError::UnknownToken(idx)));
+                                }
+                            }
+                        }
+                        _ => {
+                            // Keyword or instruction. Try instruction first
+                            let mut instr_chars = self.iter.clone();
+                            match Instr::parse(&mut instr_chars) {
+                                Some((end, instr)) => {
+                                    self.iter = instr_chars;
+                                    return Some(Ok((idx, Token::Instr(instr), end)));
+                                }
+                                None => {
+                                    // Try keyword
+                                    let mut keyword_chars = self.iter.clone();
+                                    match Keyword::parse(&mut keyword_chars) {
+                                        Some((end, kw)) => {
+                                            self.iter = keyword_chars;
+                                            return Some(Ok((idx, Token::Keyword(kw), end)));
+                                        }
+                                        None => return Some(Err(LexerError::UnknownToken(idx))),
+                                    }
+                                }
+                            }
+                        }
                     }
-                },
-            }
-        }
-    }
-}
-
-/// Assumes that the initial '"' is consumed. Consumes the closing '"' and returns index after it.
-fn parse_string(
-    chars: &mut Peekable<CharIndices>,
-    dquote_idx: usize,
-) -> Result<(String, Loc), LexerError> {
-    let mut ret = String::new();
-
-    loop {
-        match chars.next() {
-            None => {
-                return Err(LexerError::UnterminatedString(dquote_idx));
-            }
-            Some((idx, '"')) => {
-                return Ok((ret, idx + '"'.len_utf8()));
-            }
-            Some((_, char)) => {
-                ret.push(char);
-            }
-        }
-    }
-}
-
-/// Assumes that the initial '$' is consumed.
-fn parse_var(
-    chars: &mut Peekable<CharIndices>,
-    dollar_idx: usize,
-) -> Result<(String, Loc), LexerError> {
-    let mut ret = String::new();
-    let mut last = 0;
-
-    loop {
-        match chars.next() {
-            None => {
-                if ret.is_empty() {
-                    return Err(LexerError::EmptyVar(dollar_idx));
-                } else {
-                    assert!(last != 0);
-                    return Ok((ret, last));
                 }
             }
-            Some((idx, char)) => {
-                if char.is_whitespace() {
-                    return Ok((ret, idx));
-                } else {
-                    last = idx + char.len_utf8();
+        }
+    }
+}
+
+enum Sign {
+    Pos,
+    Neg,
+}
+
+impl<'input> Lexer<'input> {
+    /// Assumes that the initial '"' is consumed. Consumes the closing '"' and returns index after it.
+    fn parse_string(&mut self, dquote_idx: Loc) -> Result<(String, Loc), LexerError> {
+        let mut ret = String::new();
+
+        loop {
+            match self.next() {
+                None => {
+                    return Err(LexerError::UnterminatedString(dquote_idx));
+                }
+                Some((idx, '"')) => {
+                    return Ok((ret, idx + '"'.len_utf8()));
+                }
+                Some((_, char)) => {
                     ret.push(char);
                 }
             }
         }
     }
-}
 
-fn parse_int_or_float(chars: &mut Peekable<CharIndices>, negate: bool) -> Spanned<Token> {
-    let mut begin = 0;
+    /// Assumes that the initial '$' is consumed.
+    fn parse_var(&mut self, dollar_idx: Loc) -> Result<(String, Loc), LexerError> {
+        let mut ret = String::new();
+        let mut last = 0;
 
-    if let Some((begin_, '0')) = chars.peek().copied() {
-        let _ = chars.next();
-        if let Some((_, 'x')) = chars.peek().copied() {
-            let _ = chars.next();
-            let (u, end_idx) = parse_hex(chars);
-            let i = u64::try_from(u).unwrap() as i64;
-            return Ok((begin_, Token::Int(if negate { -i } else { i }), end_idx));
-        } else {
-            begin = begin_;
-        }
-    }
-
-    let (dec, end_idx) = parse_dec(chars);
-
-    if let Some((_, '.')) = chars.peek() {
-        let _ = chars.next();
-        let (float, end_idx) = parse_dec(chars);
-        let str = format!("{}.{}", dec, float);
-        match str.parse::<f64>() {
-            Ok(f) => {
-                let f = if negate { -f } else { f };
-                Ok((begin, Token::Float(f), end_idx))
-            }
-            Err(_) => Err(LexerError::CantParseFloat(str)),
-        }
-    } else {
-        let dec = i64::try_from(dec).unwrap();
-        Ok((begin, Token::Int(if negate { -dec } else { dec }), end_idx))
-    }
-}
-
-// Consumes at least one character
-fn parse_dec(chars: &mut Peekable<CharIndices>) -> (u64, usize) {
-    let mut i = 0;
-    let mut end_idx = 0;
-
-    loop {
-        match chars.peek().copied() {
-            None => {
-                break;
-            }
-            Some((idx, char)) => {
-                if char.is_ascii_digit() {
-                    end_idx = idx + char.len_utf8();
-                    let _ = chars.next();
-                    i *= 10;
-                    i += u64::from(char) - u64::from(b'0');
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-
-    (i, end_idx)
-}
-
-fn parse_hex(chars: &mut Peekable<CharIndices>) -> (u64, usize) {
-    let mut i = 0;
-    let mut end_idx = 0;
-
-    loop {
-        match chars.peek().copied() {
-            None => {
-                break;
-            }
-            Some((idx, char)) => {
-                end_idx = idx + char.len_utf8();
-                if char.is_ascii_hexdigit() {
-                    let _ = chars.next();
-
-                    i *= 16;
-
-                    let c = u64::from(char);
-
-                    let d = if c >= u64::from(b'a') && c <= u64::from(b'f') {
-                        10 + c - u64::from(b'a')
-                    } else if c >= u64::from(b'A') && c <= u64::from(b'F') {
-                        10 + c - u64::from(b'A')
+        loop {
+            match self.next() {
+                None => {
+                    if ret.is_empty() {
+                        return Err(LexerError::EmptyVar(dollar_idx));
                     } else {
-                        c - u64::from(b'0')
-                    };
-
-                    i += d
-                } else {
-                    break;
+                        assert!(last != 0);
+                        return Ok((ret, last));
+                    }
+                }
+                Some((idx, char)) => {
+                    if char.is_whitespace() {
+                        return Ok((ret, idx));
+                    } else {
+                        last = idx + char.len_utf8();
+                        ret.push(char);
+                    }
                 }
             }
         }
     }
 
-    assert!(end_idx != 0); // TODO: turn this in to a lexer error
+    fn parse_number(&mut self, begin_idx: Loc, negate: bool) -> Spanned<Token> {
+        match self.peek() {
+            None => return Err(LexerError::UnterminatedNumber),
+            Some((_, 'i')) => {
+                self.bump(); // consume 'i'
+                if !self.next_matches('n') {
+                    return Err(LexerError::CantParseNumber);
+                }
+                self.bump(); // consume 'n'
+                if !self.next_matches('f') {
+                    return Err(LexerError::CantParseNumber);
+                }
+                self.bump(); // consume 'f'
+                return Ok((
+                    begin_idx,
+                    Token::Float(if negate {
+                        f64::NEG_INFINITY
+                    } else {
+                        f64::INFINITY
+                    }),
+                    begin_idx + "inf".len(),
+                ));
+            }
+            Some((_, 'n')) => {
+                self.bump(); // consume 'n'
+                if !self.next_matches('a') {
+                    return Err(LexerError::CantParseNumber);
+                }
+                self.bump(); // consume 'a'
+                if !self.next_matches('n') {
+                    return Err(LexerError::CantParseNumber);
+                }
+                todo!()
+            }
+            Some((idx, '0')) => {
+                if self.nth_matches(1, 'x') {
+                    self.bump(); // consume '0'
+                    self.bump(); // consume 'x'
+                    self.parse_hex_number(idx, negate)
+                } else {
+                    self.parse_dec_number(idx, negate)
+                }
+            }
+            Some((idx, c)) if c.is_ascii_digit() => self.parse_dec_number(idx, negate),
+            _ => {
+                return Err(LexerError::CantParseNumber);
+            }
+        }
+    }
 
-    (i, end_idx)
+    fn parse_sign(&mut self) -> Option<Sign> {
+        match self.peek() {
+            Some((_, '+')) => {
+                self.bump();
+                Some(Sign::Pos)
+            }
+            Some((_, '-')) => {
+                self.bump();
+                Some(Sign::Neg)
+            }
+            _ => None,
+        }
+    }
+
+    fn parse_dec_number(&mut self, begin_idx: Loc, negate: bool) -> Spanned<Token> {
+        let (num1, end1) = self.num();
+        if self.next_matches('.') {
+            self.bump(); // consume '.'
+            if self.next_matches('e') || self.next_matches('E') {
+                self.bump(); // consume 'e' or 'E'
+                let _sign = self.parse_sign();
+                let (_num2, end2) = self.num();
+                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+            } else {
+                let (_num2, end2) = self.num();
+                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+            }
+        } else {
+            let num = num1 as i64;
+            let num = if negate { -num } else { num };
+            Ok((begin_idx, Token::Int(num), end1))
+        }
+    }
+
+    fn parse_hex_number(&mut self, begin_idx: Loc, negate: bool) -> Spanned<Token> {
+        let (num1, end1) = self.hexnum();
+        if self.next_matches('.') {
+            self.bump(); // consume '.'
+            if self.next_matches('p') || self.next_matches('P') {
+                self.bump(); // consume 'p' or 'P'
+                let _sign = self.parse_sign();
+                let (_num2, end2) = self.hexnum();
+                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+            } else {
+                let (_num2, end2) = self.hexnum();
+                Ok((begin_idx, Token::Float(0.0f64), end2)) // TODO
+            }
+        } else {
+            let num = num1 as i64;
+            let num = if negate { -num } else { num };
+            Ok((begin_idx, Token::Int(num), end1))
+        }
+    }
+
+    // 'num' production: https://webassembly.github.io/spec/core/text/values.html#text-num
+    fn num(&mut self) -> (u64, usize) {
+        let mut i = 0;
+        let mut end_idx = 0;
+
+        loop {
+            match self.peek() {
+                None => {
+                    break;
+                }
+                Some((idx, char)) => {
+                    if char.is_ascii_digit() {
+                        end_idx = idx + char.len_utf8();
+                        self.bump();
+                        i *= 10;
+                        i += u64::from(char) - u64::from(b'0');
+                    } else if char == '_' {
+                        self.bump();
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        (i, end_idx)
+    }
+
+    // 'hexnum' production: https://webassembly.github.io/spec/core/text/values.html#text-hexnum
+    fn hexnum(&mut self) -> (u64, usize) {
+        let mut i = 0;
+        let mut end_idx = 0;
+
+        loop {
+            match self.peek() {
+                None => {
+                    break;
+                }
+                Some((idx, char)) => {
+                    if char.is_ascii_hexdigit() {
+                        end_idx = idx + char.len_utf8();
+                        self.bump();
+
+                        i *= 16;
+
+                        let c = u64::from(char);
+
+                        let d = if c >= u64::from(b'a') && c <= u64::from(b'f') {
+                            10 + c - u64::from(b'a')
+                        } else if c >= u64::from(b'A') && c <= u64::from(b'F') {
+                            10 + c - u64::from(b'A')
+                        } else {
+                            c - u64::from(b'0')
+                        };
+
+                        i += d
+                    } else if char == '_' {
+                        end_idx = idx + char.len_utf8();
+                        self.bump();
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        assert!(end_idx != 0); // TODO: turn this in to a lexer error
+
+        (i, end_idx)
+    }
 }
 
 make_enum! {
@@ -584,45 +702,62 @@ make_enum! {
     "type",
 }
 
-#[test]
-fn test_keyword_parser() {
-    let mut chars = "assert_invalid".char_indices().peekable();
-    assert_eq!(
-        Keyword::parse(&mut chars).unwrap().1,
-        Keyword::AssertInvalid
-    );
-    assert_eq!(chars.next(), None);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_parse_int() {
-    let mut chars = "0.0".char_indices().peekable();
-    assert_eq!(
-        parse_int_or_float(&mut chars, false).unwrap().1,
-        Token::Float(0.0f64)
-    );
-    assert_eq!(chars.next(), None);
-}
+    fn next_token(lexer: &mut Lexer<'_>) -> Token {
+        lexer.next_token().unwrap().unwrap().1
+    }
 
-#[test]
-fn test_parse_dec() {
-    let mut chars = "123".char_indices().peekable();
-    assert_eq!(parse_dec(&mut chars).0, 123);
-    assert_eq!(chars.next(), None);
-}
+    #[test]
+    fn keyword() {
+        let mut lexer = Lexer::new("assert_invalid");
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Keyword(Keyword::AssertInvalid)
+        );
+        assert_eq!(lexer.next_token(), None);
+    }
 
-#[test]
-fn test_parse_hex() {
-    let mut chars = "123abc".char_indices().peekable();
-    assert_eq!(parse_hex(&mut chars).0, 0x123abc);
-    assert_eq!(chars.next(), None);
-}
+    #[test]
+    fn instruction() {
+        let mut lexer = Lexer::new("i32.add");
+        assert_eq!(next_token(&mut lexer), Token::Instr(Instr::I32Add));
+        assert_eq!(lexer.next_token(), None);
+    }
 
-#[test]
-fn test_number_parser() {
-    // 1234e-5
-    // 4242.4242
-    // 123456789e-5
-    // 0x1.fffffffffffffp+1023
-    // 0xCAFE
+    #[test]
+    fn int() {
+        let mut lexer = Lexer::new(
+            "0 1 -1 +1 0xF +0xF -0xF \
+            0x0bAdD00D 0xffffffff 0x7fffffff -0x7fffffff \
+            0x0CABBA6E0ba66a6e \
+            0xffffffffffffffff 0x7fffffffffffffff -0x7fffffffffffffff -0x8000000000000000 \
+            0x8000000000000000",
+        );
+        assert_eq!(next_token(&mut lexer), Token::Int(0));
+        assert_eq!(next_token(&mut lexer), Token::Int(1));
+        assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        assert_eq!(next_token(&mut lexer), Token::Int(1));
+        assert_eq!(next_token(&mut lexer), Token::Int(15));
+        assert_eq!(next_token(&mut lexer), Token::Int(15));
+        assert_eq!(next_token(&mut lexer), Token::Int(-15));
+
+        assert_eq!(next_token(&mut lexer), Token::Int(195940365));
+        assert_eq!(next_token(&mut lexer), Token::Int(4294967295));
+        assert_eq!(next_token(&mut lexer), Token::Int(2147483647));
+        assert_eq!(next_token(&mut lexer), Token::Int(-2147483647));
+
+        assert_eq!(next_token(&mut lexer), Token::Int(913028331277281902));
+
+        assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        assert_eq!(next_token(&mut lexer), Token::Int(9223372036854775807));
+        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775807));
+        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775808));
+
+        assert_eq!(next_token(&mut lexer), Token::Int(-1));
+
+        assert_eq!(lexer.next_token(), None);
+    }
 }
