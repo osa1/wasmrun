@@ -107,14 +107,6 @@ impl<'input> Lexer<'input> {
     }
 
     // NB. this peeks
-    fn next_matches(&mut self, expected: char) -> bool {
-        match self.peek() {
-            None => false,
-            Some((_, c)) => c == expected,
-        }
-    }
-
-    // NB. this peeks
     fn nth_matches(&mut self, n: usize, expected: char) -> bool {
         match self.nth(n) {
             None => false,
@@ -125,11 +117,16 @@ impl<'input> Lexer<'input> {
     /// Reads next character, bumps cursor if it's as expected and returns `true`. Returns `false`
     /// otherwise, without bumping the cursor.
     fn expect(&mut self, expected: char) -> bool {
-        if self.next_matches(expected) {
-            self.bump();
-            true
-        } else {
-            false
+        match self.peek() {
+            None => false,
+            Some((_, c)) => {
+                if c == expected {
+                    self.bump();
+                    true
+                } else {
+                    false
+                }
+            }
         }
     }
 
@@ -366,11 +363,9 @@ impl<'input> Lexer<'input> {
 
     fn parse_dec_number(&mut self, begin_idx: Loc, sign1: Sign) -> Spanned<Token> {
         let (num1, end1) = self.num();
-        if self.next_matches('.') {
-            self.bump(); // consume '.'
+        if self.expect('.') {
             let (num2, end2) = self.num();
-            if self.next_matches('e') || self.next_matches('E') {
-                self.bump(); // consume 'e' or 'E'
+            if self.expect('e') || self.expect('E') {
                 let sign2 = self.parse_sign();
                 let (num3, end3) = self.num();
                 let num3 = if sign2 == Some(Sign::Neg) {
@@ -421,11 +416,9 @@ impl<'input> Lexer<'input> {
 
     fn parse_hex_number(&mut self, begin_idx: Loc, sign1: Sign) -> Spanned<Token> {
         let (num1, end1) = self.hexnum();
-        if self.next_matches('.') {
-            self.bump(); // consume '.'
+        if self.expect('.') {
             let (num2, end2) = self.hexnum();
-            if self.next_matches('p') || self.next_matches('P') {
-                self.bump(); // consume 'p' or 'P'
+            if self.expect('p') || self.expect('P') {
                 let sign2 = self.parse_sign();
                 let (num3, end3) = self.hexnum();
                 let num3 = if sign2 == Some(Sign::Neg) {
@@ -541,6 +534,8 @@ impl<'input> Lexer<'input> {
         }
 
         assert!(end_idx != 0); // TODO: turn this in to a lexer error
+
+        println!("hexnum returning {:#x}", i);
 
         (i, end_idx)
     }
@@ -809,36 +804,36 @@ mod tests {
     #[test]
     fn int() {
         let mut lexer = Lexer::new(
-            "0 1 -1 +1 0xF +0xF -0xF \
-             0x0bAdD00D 0xffffffff 0x7fffffff -0x7fffffff \
-             0x0CABBA6E0ba66a6e \
-             0xffffffffffffffff 0x7fffffffffffffff -0x7fffffffffffffff -0x8000000000000000 \
-             0x8000000000000000",
+            // "0 1 -1 +1 0xF +0xF -0xF \
+            //  0x0bAdD00D 0xffffffff 0x7fffffff -0x7fffffff \
+            //  0x0CABBA6E0ba66a6e \
+            //  0xffffffffffffffff 0x7fffffffffffffff -0x7fffffffffffffff -0x8000000000000000 \
+            "0x8000000000000000",
         );
 
-        assert_eq!(next_token(&mut lexer), Token::Int(0));
-        assert_eq!(next_token(&mut lexer), Token::Int(1));
-        assert_eq!(next_token(&mut lexer), Token::Int(-1));
-        assert_eq!(next_token(&mut lexer), Token::Int(1));
-        assert_eq!(next_token(&mut lexer), Token::Int(15));
-        assert_eq!(next_token(&mut lexer), Token::Int(15));
-        assert_eq!(next_token(&mut lexer), Token::Int(-15));
+        // assert_eq!(next_token(&mut lexer), Token::Int(0));
+        // assert_eq!(next_token(&mut lexer), Token::Int(1));
+        // assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        // assert_eq!(next_token(&mut lexer), Token::Int(1));
+        // assert_eq!(next_token(&mut lexer), Token::Int(15));
+        // assert_eq!(next_token(&mut lexer), Token::Int(15));
+        // assert_eq!(next_token(&mut lexer), Token::Int(-15));
 
-        assert_eq!(next_token(&mut lexer), Token::Int(195940365));
-        assert_eq!(next_token(&mut lexer), Token::Int(4294967295));
-        assert_eq!(next_token(&mut lexer), Token::Int(2147483647));
-        assert_eq!(next_token(&mut lexer), Token::Int(-2147483647));
+        // assert_eq!(next_token(&mut lexer), Token::Int(195940365));
+        // assert_eq!(next_token(&mut lexer), Token::Int(4294967295));
+        // assert_eq!(next_token(&mut lexer), Token::Int(2147483647));
+        // assert_eq!(next_token(&mut lexer), Token::Int(-2147483647));
 
-        assert_eq!(next_token(&mut lexer), Token::Int(913028331277281902));
+        // assert_eq!(next_token(&mut lexer), Token::Int(913028331277281902));
 
-        assert_eq!(next_token(&mut lexer), Token::Int(-1));
-        assert_eq!(next_token(&mut lexer), Token::Int(9223372036854775807));
-        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775807));
-        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775808));
+        // assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        // assert_eq!(next_token(&mut lexer), Token::Int(9223372036854775807));
+        // assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775807));
+        // assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775808));
 
         // TODO: Fix and enable the rest
 
-        // assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        assert_eq!(next_token(&mut lexer), Token::Int(-1));
 
         // assert_eq!(lexer.next_token(), None);
     }
@@ -850,7 +845,8 @@ mod tests {
              nan:0x400000 nan:0x200000 -nan:0x7fffff
              inf -inf
              0x0.0p0
-             0x1.921fb6p+2",
+             0x1.921fb6p+2
+             3.4028234e-38",
         );
 
         assert_eq!(
@@ -905,6 +901,16 @@ mod tests {
                 frac: 0x921fb6,
                 hex: true,
                 power: 2,
+            })
+        );
+
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Float {
+                int: 3,
+                frac: 4028234,
+                hex: false,
+                power: -38,
             })
         );
 
