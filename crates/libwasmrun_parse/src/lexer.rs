@@ -457,12 +457,18 @@ impl<'input> Lexer<'input> {
                 ))
             }
         } else {
+            println!("num = {:#x}", num1);
+            println!("num = {:#b}", num1);
             let num = num1 as i64;
+            println!("num = {:#x}", num);
+            println!("num = {:#b}", num);
             let num = if sign1 == Sign::Neg && num >> 63 == 0 {
                 -num
             } else {
                 num
             };
+            println!("num = {:#x}", num);
+            println!("num = {:#b}", num);
             Ok((begin_idx, Token::Int(num), end1))
         }
     }
@@ -804,38 +810,36 @@ mod tests {
     #[test]
     fn int() {
         let mut lexer = Lexer::new(
-            // "0 1 -1 +1 0xF +0xF -0xF \
-            //  0x0bAdD00D 0xffffffff 0x7fffffff -0x7fffffff \
-            //  0x0CABBA6E0ba66a6e \
-            //  0xffffffffffffffff 0x7fffffffffffffff -0x7fffffffffffffff -0x8000000000000000 \
-            "0x8000000000000000",
+            "0 1 -1 +1 0xF +0xF -0xF \
+             0x0bAdD00D 0xffffffff 0x7fffffff -0x7fffffff \
+             0x0CABBA6E0ba66a6e \
+             0xffffffffffffffff 0x7fffffffffffffff -0x7fffffffffffffff -0x8000000000000000 \
+             0x8000000000000000",
         );
 
-        // assert_eq!(next_token(&mut lexer), Token::Int(0));
-        // assert_eq!(next_token(&mut lexer), Token::Int(1));
-        // assert_eq!(next_token(&mut lexer), Token::Int(-1));
-        // assert_eq!(next_token(&mut lexer), Token::Int(1));
-        // assert_eq!(next_token(&mut lexer), Token::Int(15));
-        // assert_eq!(next_token(&mut lexer), Token::Int(15));
-        // assert_eq!(next_token(&mut lexer), Token::Int(-15));
+        assert_eq!(next_token(&mut lexer), Token::Int(0));
+        assert_eq!(next_token(&mut lexer), Token::Int(1));
+        assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        assert_eq!(next_token(&mut lexer), Token::Int(1));
+        assert_eq!(next_token(&mut lexer), Token::Int(15));
+        assert_eq!(next_token(&mut lexer), Token::Int(15));
+        assert_eq!(next_token(&mut lexer), Token::Int(-15));
 
-        // assert_eq!(next_token(&mut lexer), Token::Int(195940365));
-        // assert_eq!(next_token(&mut lexer), Token::Int(4294967295));
-        // assert_eq!(next_token(&mut lexer), Token::Int(2147483647));
-        // assert_eq!(next_token(&mut lexer), Token::Int(-2147483647));
+        assert_eq!(next_token(&mut lexer), Token::Int(195940365));
+        assert_eq!(next_token(&mut lexer), Token::Int(4294967295));
+        assert_eq!(next_token(&mut lexer), Token::Int(2147483647));
+        assert_eq!(next_token(&mut lexer), Token::Int(-2147483647));
 
-        // assert_eq!(next_token(&mut lexer), Token::Int(913028331277281902));
-
-        // assert_eq!(next_token(&mut lexer), Token::Int(-1));
-        // assert_eq!(next_token(&mut lexer), Token::Int(9223372036854775807));
-        // assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775807));
-        // assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775808));
-
-        // TODO: Fix and enable the rest
+        assert_eq!(next_token(&mut lexer), Token::Int(913028331277281902));
 
         assert_eq!(next_token(&mut lexer), Token::Int(-1));
+        assert_eq!(next_token(&mut lexer), Token::Int(9223372036854775807));
+        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775807));
+        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775808));
 
-        // assert_eq!(lexer.next_token(), None);
+        assert_eq!(next_token(&mut lexer), Token::Int(-9223372036854775808));
+
+        assert_eq!(lexer.next_token(), None);
     }
 
     #[test]
