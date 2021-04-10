@@ -20,7 +20,7 @@ pub enum Token {
     Eq,
 
     /// String literal
-    String(String),
+    String(Vec<u8>),
 
     /// Integer literal
     Int(i64),
@@ -70,6 +70,13 @@ impl LexerError {
         }
     }
 
+    fn invalid_string_escape(loc: Loc) -> Self {
+        Self {
+            kind: LexerErrorKind::InvalidStringEscape,
+            loc,
+        }
+    }
+
     fn unterminated_number(loc: Loc) -> Self {
         Self {
             kind: LexerErrorKind::UnterminatedNumber,
@@ -102,6 +109,7 @@ impl LexerError {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LexerErrorKind {
     UnterminatedString,
+    InvalidStringEscape,
     UnterminatedNumber,
     EmptyVar,
     UnknownToken,
@@ -251,11 +259,18 @@ impl<'input> Iterator for Lexer<'input> {
                             );
                         }
                         'n' if self.nth_matches(1, 'a') && self.nth_matches(2, 'n') => {
+                            // TODO: Do we need to distinguish canonical and arithmetic?
                             if self.expect_str("nan:canonical") {
                                 return Some(Ok((
                                     idx,
                                     Token::Float(FloatLit::Nan(Sign::Pos, 0)),
                                     idx + "an:canonical".len(),
+                                )));
+                            } else if self.expect_str("nan:arithmetic") {
+                                return Some(Ok((
+                                    idx,
+                                    Token::Float(FloatLit::Nan(Sign::Pos, 0)),
+                                    idx + "an:arithmetic".len(),
                                 )));
                             } else {
                                 return Some(self.parse_number(idx, Sign::Pos));
@@ -294,19 +309,60 @@ impl<'input> Iterator for Lexer<'input> {
 
 impl<'input> Lexer<'input> {
     /// Assumes that the initial '"' is consumed. Consumes the closing '"' and returns index after it.
-    fn parse_string(&mut self, dquote_idx: Loc) -> Result<(String, Loc), LexerError> {
-        let mut ret = String::new();
+    fn parse_string(&mut self, dquote_idx: Loc) -> Result<(Vec<u8>, Loc), LexerError> {
+        let mut ret: Vec<u8> = vec![];
+
+        fn push_char(vec: &mut Vec<u8>, c: char) {
+            let len = vec.len();
+            for _ in 0..c.len_utf8() {
+                vec.push(0);
+            }
+            c.encode_utf8(&mut vec[len..]);
+        }
 
         loop {
             match self.next() {
                 None => {
                     return Err(LexerError::unterminated_string(dquote_idx));
                 }
+                Some((idx, '\\')) => match self.peek() {
+                    Some((_, 't')) => {
+                        self.bump();
+                        push_char(&mut ret, '\t');
+                    }
+                    Some((_, 'n')) => {
+                        self.bump();
+                        push_char(&mut ret, '\n');
+                    }
+                    Some((_, 'r')) => {
+                        self.bump();
+                        push_char(&mut ret, '\r');
+                    }
+                    Some((_, '"')) => {
+                        self.bump();
+                        push_char(&mut ret, '"');
+                    }
+                    Some((_, '\'')) => {
+                        self.bump();
+                        push_char(&mut ret, '\'');
+                    }
+                    Some((_, '\\')) => {
+                        self.bump();
+                        push_char(&mut ret, '\\');
+                    }
+                    Some((_, other)) if other.is_ascii_hexdigit() => {
+                        let (num, _) = self.hexnum();
+                        ret.extend_from_slice(&num.to_be_bytes());
+                    }
+                    _ => {
+                        return Err(LexerError::invalid_string_escape(idx));
+                    }
+                },
                 Some((idx, '"')) => {
                     return Ok((ret, idx + '"'.len_utf8()));
                 }
                 Some((_, char)) => {
-                    ret.push(char);
+                    push_char(&mut ret, char);
                 }
             }
         }
@@ -843,6 +899,7 @@ make_enum! {
     "assert_malformed",
     "assert_return",
     "assert_trap",
+    "assert_unlinkable",
     "binary",
     "data",
     "elem",
@@ -853,6 +910,7 @@ make_enum! {
     "f64",
     "func",
     "funcref",
+    "get",
     "global",
     "i32",
     "i64",
@@ -865,6 +923,7 @@ make_enum! {
     "offset",
     "param",
     "quote",
+    "register",
     "result",
     "start",
     "table",
@@ -1024,6 +1083,13 @@ mod tests {
             })
         );
 
+        assert_eq!(lexer.next_token(), None);
+    }
+
+    #[test]
+    fn string() {
+        let mut lexer = Lexer::new("\"\\\"test\\\"\"");
+        assert_eq!(next_token(&mut lexer), Token::String(b"\"test\"".to_vec()));
         assert_eq!(lexer.next_token(), None);
     }
 }
