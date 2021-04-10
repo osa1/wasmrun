@@ -2,6 +2,7 @@
 
 use libwasmrun_parse::lexer::Lexer;
 
+use std::borrow::Borrow;
 use std::path::Path;
 
 fn main() {
@@ -26,7 +27,15 @@ fn do_dir(path: &Path) {
             Ok(file) => file,
         };
 
-        do_file(&file.path());
+        match file.path().extension() {
+            None => {
+                println!("Skipping {}", file.path().to_string_lossy());
+            }
+            Some(path) => match path.to_string_lossy().borrow() {
+                "wast" => do_file(&file.path()),
+                _ => println!("Skipping {}", file.path().to_string_lossy()),
+            },
+        }
     }
 }
 
