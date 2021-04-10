@@ -211,7 +211,7 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((idx, char)) => {
                     match char {
                         _ if char.is_whitespace() => {
-                            let _ = self.next();
+                            self.bump();
                             continue;
                         }
                         _ if char.is_ascii_digit() => {
@@ -223,7 +223,7 @@ impl<'input> Iterator for Lexer<'input> {
                             return Some(self.parse_number(idx, sign));
                         }
                         ';' => {
-                            let _ = self.next();
+                            self.bump();
                             loop {
                                 match self.next() {
                                     None => return None,
@@ -233,26 +233,30 @@ impl<'input> Iterator for Lexer<'input> {
                             }
                         }
                         '(' => {
-                            let _ = self.next();
-                            return Some(Ok((idx, Token::LParen, '('.len_utf8())));
+                            self.bump();
+                            if self.expect(';') {
+                                self.block_comment();
+                            } else {
+                                return Some(Ok((idx, Token::LParen, '('.len_utf8())));
+                            }
                         }
                         ')' => {
-                            let _ = self.next();
+                            self.bump();
                             return Some(Ok((idx, Token::RParen, ')'.len_utf8())));
                         }
                         '=' => {
-                            let _ = self.next();
+                            self.bump();
                             return Some(Ok((idx, Token::Eq, '='.len_utf8())));
                         }
                         '"' => {
-                            let _ = self.next();
+                            self.bump();
                             return Some(
                                 self.parse_string(idx)
                                     .map(|(str, end)| (idx, Token::String(str), end)),
                             );
                         }
                         '$' => {
-                            let _ = self.next();
+                            self.bump();
                             return Some(
                                 self.parse_var(idx)
                                     .map(|(str, end)| (idx, Token::Var(str), end)),
@@ -308,6 +312,29 @@ impl<'input> Iterator for Lexer<'input> {
 }
 
 impl<'input> Lexer<'input> {
+    // Consumes a block comment. Assumes "(;" is consumed.
+    fn block_comment(&mut self) {
+        let mut nesting = 1;
+        loop {
+            match self.next() {
+                Some((_, ';')) => {
+                    if matches!(self.next(), Some((_, ')'))) {
+                        nesting -= 1;
+                        if nesting == 0 {
+                            return;
+                        }
+                    }
+                }
+                Some((_, '(')) => {
+                    if matches!(self.next(), Some((_, ';'))) {
+                        nesting += 1;
+                    }
+                }
+                _ => {} // TODO: error on EOF
+            }
+        }
+    }
+
     /// Assumes that the initial '"' is consumed. Consumes the closing '"' and returns index after it.
     fn parse_string(&mut self, dquote_idx: Loc) -> Result<(Vec<u8>, Loc), LexerError> {
         let mut ret: Vec<u8> = vec![];
