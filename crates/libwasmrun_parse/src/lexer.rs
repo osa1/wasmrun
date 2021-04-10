@@ -56,15 +56,56 @@ pub enum Sign {
     Neg,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum LexerError {
-    UnterminatedString(usize),
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct LexerError {
+    kind: LexerErrorKind,
+    loc: Loc,
+}
+
+impl LexerError {
+    fn unterminated_string(loc: Loc) -> Self {
+        Self {
+            kind: LexerErrorKind::UnterminatedString,
+            loc,
+        }
+    }
+
+    fn unterminated_number(loc: Loc) -> Self {
+        Self {
+            kind: LexerErrorKind::UnterminatedNumber,
+            loc,
+        }
+    }
+
+    fn empty_var(loc: Loc) -> Self {
+        Self {
+            kind: LexerErrorKind::EmptyVar,
+            loc,
+        }
+    }
+
+    fn unknown_token(loc: Loc) -> Self {
+        Self {
+            kind: LexerErrorKind::UnknownToken,
+            loc,
+        }
+    }
+
+    fn cant_parse_number(loc: Loc) -> Self {
+        Self {
+            kind: LexerErrorKind::CantParseNumber,
+            loc,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum LexerErrorKind {
+    UnterminatedString,
     UnterminatedNumber,
-    EmptyVar(usize),
-    UnknownToken(usize),
-    InvalidIntDigit(usize),
+    EmptyVar,
+    UnknownToken,
     CantParseNumber,
-    UnexpectedEOF(usize),
 }
 
 pub struct Lexer<'input> {
@@ -213,7 +254,7 @@ impl<'input> Iterator for Lexer<'input> {
                             if self.nth_matches(1, 'a') && self.nth_matches(2, 'n') {
                                 return Some(self.parse_number(idx, Sign::Pos));
                             } else {
-                                return Some(Err(LexerError::UnknownToken(idx)));
+                                return Some(Err(LexerError::unknown_token(idx)));
                             }
                         }
                         'i' if self.nth_matches(1, 'n') && self.nth_matches(2, 'f') => {
@@ -235,7 +276,7 @@ impl<'input> Iterator for Lexer<'input> {
                                             self.iter = keyword_chars;
                                             return Some(Ok((idx, Token::Keyword(kw), end)));
                                         }
-                                        None => return Some(Err(LexerError::UnknownToken(idx))),
+                                        None => return Some(Err(LexerError::unknown_token(idx))),
                                     }
                                 }
                             }
@@ -255,7 +296,7 @@ impl<'input> Lexer<'input> {
         loop {
             match self.next() {
                 None => {
-                    return Err(LexerError::UnterminatedString(dquote_idx));
+                    return Err(LexerError::unterminated_string(dquote_idx));
                 }
                 Some((idx, '"')) => {
                     return Ok((ret, idx + '"'.len_utf8()));
@@ -276,7 +317,7 @@ impl<'input> Lexer<'input> {
             match self.next() {
                 None => {
                     if ret.is_empty() {
-                        return Err(LexerError::EmptyVar(dollar_idx));
+                        return Err(LexerError::empty_var(dollar_idx));
                     } else {
                         assert!(last != 0);
                         return Ok((ret, last));
@@ -296,14 +337,14 @@ impl<'input> Lexer<'input> {
 
     fn parse_number(&mut self, begin_idx: Loc, sign: Sign) -> Spanned<Token> {
         match self.peek() {
-            None => return Err(LexerError::UnterminatedNumber),
+            None => return Err(LexerError::unterminated_number(begin_idx)),
             Some((_, 'i')) => {
                 self.bump(); // consume 'i'
                 if !self.expect('n') {
-                    return Err(LexerError::CantParseNumber);
+                    return Err(LexerError::cant_parse_number(begin_idx));
                 }
                 if !self.expect('f') {
-                    return Err(LexerError::CantParseNumber);
+                    return Err(LexerError::cant_parse_number(begin_idx));
                 }
                 Ok((
                     begin_idx,
@@ -315,7 +356,7 @@ impl<'input> Lexer<'input> {
                 self.bump(); // consume 'n'
 
                 if !self.expect_str("an") {
-                    return Err(LexerError::CantParseNumber);
+                    return Err(LexerError::cant_parse_number(begin_idx));
                 }
 
                 if self.expect_str(":0x") {
@@ -343,7 +384,7 @@ impl<'input> Lexer<'input> {
                 }
             }
             Some((idx, c)) if c.is_ascii_digit() => self.parse_dec_number(idx, sign),
-            _ => Err(LexerError::CantParseNumber),
+            _ => Err(LexerError::cant_parse_number(begin_idx)),
         }
     }
 
