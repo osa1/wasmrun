@@ -250,12 +250,8 @@ impl<'input> Iterator for Lexer<'input> {
                                     .map(|(str, end)| (idx, Token::Var(str), end)),
                             );
                         }
-                        'n' => {
-                            if self.nth_matches(1, 'a') && self.nth_matches(2, 'n') {
-                                return Some(self.parse_number(idx, Sign::Pos));
-                            } else {
-                                return Some(Err(LexerError::unknown_token(idx)));
-                            }
+                        'n' if self.nth_matches(1, 'a') && self.nth_matches(2, 'n') => {
+                            return Some(self.parse_number(idx, Sign::Pos));
                         }
                         'i' if self.nth_matches(1, 'n') && self.nth_matches(2, 'f') => {
                             return Some(self.parse_number(idx, Sign::Pos));
@@ -835,8 +831,9 @@ mod tests {
 
     #[test]
     fn instruction() {
-        let mut lexer = Lexer::new("i32.add");
+        let mut lexer = Lexer::new("i32.add nop");
         assert_eq!(next_token(&mut lexer), Token::Instr(Instr::I32Add));
+        assert_eq!(next_token(&mut lexer), Token::Instr(Instr::Nop));
         assert_eq!(lexer.next_token(), None);
     }
 
