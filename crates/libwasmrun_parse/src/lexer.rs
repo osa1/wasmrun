@@ -653,7 +653,7 @@ impl<'input> Lexer<'input> {
                     if char.is_ascii_digit() {
                         end_idx = idx + char.len_utf8();
                         self.bump();
-                        i *= 10;
+                        i = i.wrapping_mul(10);
                         i = i.wrapping_add(u64::from(char) - u64::from(b'0'));
                     } else if char == '_' {
                         self.bump();
@@ -682,7 +682,7 @@ impl<'input> Lexer<'input> {
                         end_idx = idx + char.len_utf8();
                         self.bump();
 
-                        i *= 16;
+                        i = i.wrapping_mul(16);
 
                         let c = u64::from(char);
 
@@ -704,8 +704,6 @@ impl<'input> Lexer<'input> {
                 }
             }
         }
-
-        assert!(end_idx != 0); // TODO: turn this in to a lexer error
 
         (i, end_idx)
     }
@@ -944,6 +942,7 @@ make_enum! {
     "i64",
     "import",
     "invoke",
+    "item",
     "local",
     "memory",
     "module",
@@ -1029,7 +1028,8 @@ mod tests {
              0x0.0p0
              0x1.921fb6p+2
              3.4028234e-38
-             1234e-5",
+             1234e-5
+             0x1.p100",
         );
 
         assert_eq!(
@@ -1108,6 +1108,16 @@ mod tests {
                 frac: 0,
                 hex: false,
                 power: -5,
+            })
+        );
+
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Float {
+                int: 1,
+                frac: 0,
+                hex: true,
+                power: 256,
             })
         );
 
