@@ -498,18 +498,12 @@ impl<'input> Lexer<'input> {
                 ))
             }
         } else {
-            println!("num = {:#x}", num1);
-            println!("num = {:#b}", num1);
             let num = num1 as i64;
-            println!("num = {:#x}", num);
-            println!("num = {:#b}", num);
             let num = if sign1 == Sign::Neg && num >> 63 == 0 {
                 -num
             } else {
                 num
             };
-            println!("num = {:#x}", num);
-            println!("num = {:#b}", num);
             Ok((begin_idx, Token::Int(num), end1))
         }
     }
@@ -581,8 +575,6 @@ impl<'input> Lexer<'input> {
         }
 
         assert!(end_idx != 0); // TODO: turn this in to a lexer error
-
-        println!("hexnum returning {:#x}", i);
 
         (i, end_idx)
     }
