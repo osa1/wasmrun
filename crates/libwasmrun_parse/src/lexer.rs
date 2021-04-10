@@ -251,7 +251,15 @@ impl<'input> Iterator for Lexer<'input> {
                             );
                         }
                         'n' if self.nth_matches(1, 'a') && self.nth_matches(2, 'n') => {
-                            return Some(self.parse_number(idx, Sign::Pos));
+                            if self.expect_str("nan:canonical") {
+                                return Some(Ok((
+                                    idx,
+                                    Token::Float(FloatLit::Nan(Sign::Pos, 0)),
+                                    idx + "an:canonical".len(),
+                                )));
+                            } else {
+                                return Some(self.parse_number(idx, Sign::Pos));
+                            }
                         }
                         'i' if self.nth_matches(1, 'n') && self.nth_matches(2, 'f') => {
                             return Some(self.parse_number(idx, Sign::Pos));
@@ -440,6 +448,28 @@ impl<'input> Lexer<'input> {
                     end2,
                 ))
             }
+        } else if self.expect('e') || self.expect('E') {
+            let sign2 = self.parse_sign();
+            let (num3, end3) = self.num();
+            let num3 = if sign2 == Some(Sign::Neg) {
+                -(num3 as i64)
+            } else {
+                num3 as i64
+            };
+            Ok((
+                begin_idx,
+                Token::Float(FloatLit::Float {
+                    int: if sign1 == Sign::Neg {
+                        -(num1 as i64)
+                    } else {
+                        num1 as i64
+                    },
+                    frac: 0,
+                    hex: false,
+                    power: num3,
+                }),
+                end3,
+            ))
         } else {
             let num = num1 as i64;
             let num = if sign1 == Sign::Neg && num >> 63 == 0 {
@@ -493,6 +523,28 @@ impl<'input> Lexer<'input> {
                     end2,
                 ))
             }
+        } else if self.expect('p') || self.expect('P') {
+            let sign2 = self.parse_sign();
+            let (num3, end3) = self.hexnum();
+            let num3 = if sign2 == Some(Sign::Neg) {
+                -(num3 as i64)
+            } else {
+                num3 as i64
+            };
+            Ok((
+                begin_idx,
+                Token::Float(FloatLit::Float {
+                    int: if sign1 == Sign::Neg {
+                        -(num1 as i64)
+                    } else {
+                        num1 as i64
+                    },
+                    frac: 0,
+                    hex: true,
+                    power: num3,
+                }),
+                end3,
+            ))
         } else {
             let num = num1 as i64;
             let num = if sign1 == Sign::Neg && num >> 63 == 0 {
@@ -671,6 +723,8 @@ make_enum! {
     "i32.mul",
     "i32.div_s",
     "i32.div_u",
+    "i32.rem_s",
+    "i32.rem_u",
     "i32.and",
     "i32.or",
     "i32.xor",
@@ -719,6 +773,7 @@ make_enum! {
     "f64.nearest",
     "f64.sqrt",
     "f64.add",
+    "f64.sub",
     "f64.mul",
     "f64.div",
     "f64.min",
@@ -775,11 +830,15 @@ make_enum! {
     "table.grow",
     "table.size",
     "table.fill",
+
+    // TODO: Instructions below are not listed in the spec?
+    "ref.extern",
 }
 
 make_enum! {
     Keyword,
     "align",
+    "assert_exhaustion",
     "assert_invalid",
     "assert_malformed",
     "assert_return",
@@ -788,6 +847,8 @@ make_enum! {
     "data",
     "elem",
     "export",
+    "extern",
+    "externref",
     "f32",
     "f64",
     "func",
@@ -875,12 +936,13 @@ mod tests {
     #[test]
     fn float() {
         let mut lexer = Lexer::new(
-            "nan +nan -nan
+            "nan +nan -nan nan:canonical
              nan:0x400000 nan:0x200000 -nan:0x7fffff
              inf -inf
              0x0.0p0
              0x1.921fb6p+2
-             3.4028234e-38",
+             3.4028234e-38
+             1234e-5",
         );
 
         assert_eq!(
@@ -894,6 +956,10 @@ mod tests {
         assert_eq!(
             next_token(&mut lexer),
             Token::Float(FloatLit::Nan(Sign::Neg, 0))
+        );
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Nan(Sign::Pos, 0))
         );
 
         assert_eq!(
@@ -945,6 +1011,16 @@ mod tests {
                 frac: 4028234,
                 hex: false,
                 power: -38,
+            })
+        );
+
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Float {
+                int: 1234,
+                frac: 0,
+                hex: false,
+                power: -5,
             })
         );
 
