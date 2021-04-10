@@ -641,8 +641,8 @@ impl<'input> Lexer<'input> {
 
     // 'num' production: https://webassembly.github.io/spec/core/text/values.html#text-num
     fn num(&mut self) -> (u64, usize) {
-        let mut i = 0;
-        let mut end_idx = 0;
+        let mut i: u64 = 0;
+        let mut end_idx: usize = 0;
 
         loop {
             match self.peek() {
@@ -654,7 +654,7 @@ impl<'input> Lexer<'input> {
                         end_idx = idx + char.len_utf8();
                         self.bump();
                         i *= 10;
-                        i += u64::from(char) - u64::from(b'0');
+                        i = i.wrapping_add(u64::from(char) - u64::from(b'0'));
                     } else if char == '_' {
                         self.bump();
                     } else {
@@ -669,8 +669,8 @@ impl<'input> Lexer<'input> {
 
     // 'hexnum' production: https://webassembly.github.io/spec/core/text/values.html#text-hexnum
     fn hexnum(&mut self) -> (u64, usize) {
-        let mut i = 0;
-        let mut end_idx = 0;
+        let mut i: u64 = 0;
+        let mut end_idx: usize = 0;
 
         loop {
             match self.peek() {
@@ -694,7 +694,7 @@ impl<'input> Lexer<'input> {
                             c - u64::from(b'0')
                         };
 
-                        i += d
+                        i = i.wrapping_add(d);
                     } else if char == '_' {
                         end_idx = idx + char.len_utf8();
                         self.bump();
