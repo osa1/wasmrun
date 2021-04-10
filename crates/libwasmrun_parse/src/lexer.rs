@@ -43,7 +43,8 @@ pub enum FloatLit {
     Nan(Sign, u64),
     Inf(Sign),
     Float {
-        int: i64,
+        sign: Sign,
+        int: u64,
         frac: u64,
         hex: bool,
         power: i64,
@@ -504,11 +505,8 @@ impl<'input> Lexer<'input> {
                 Ok((
                     begin_idx,
                     Token::Float(FloatLit::Float {
-                        int: if sign1 == Sign::Neg {
-                            -(num1 as i64)
-                        } else {
-                            num1 as i64
-                        },
+                        sign: sign1,
+                        int: num1,
                         frac: num2,
                         hex: false,
                         power: num3,
@@ -519,11 +517,8 @@ impl<'input> Lexer<'input> {
                 Ok((
                     begin_idx,
                     Token::Float(FloatLit::Float {
-                        int: if sign1 == Sign::Neg {
-                            -(num1 as i64)
-                        } else {
-                            num1 as i64
-                        },
+                        sign: sign1,
+                        int: num1,
                         frac: num2,
                         hex: false,
                         power: 0,
@@ -542,11 +537,8 @@ impl<'input> Lexer<'input> {
             Ok((
                 begin_idx,
                 Token::Float(FloatLit::Float {
-                    int: if sign1 == Sign::Neg {
-                        -(num1 as i64)
-                    } else {
-                        num1 as i64
-                    },
+                    sign: sign1,
+                    int: num1,
                     frac: 0,
                     hex: false,
                     power: num3,
@@ -579,11 +571,8 @@ impl<'input> Lexer<'input> {
                 Ok((
                     begin_idx,
                     Token::Float(FloatLit::Float {
-                        int: if sign1 == Sign::Neg {
-                            -(num1 as i64)
-                        } else {
-                            num1 as i64
-                        },
+                        sign: sign1,
+                        int: num1,
                         frac: num2,
                         hex: true,
                         power: num3,
@@ -594,11 +583,8 @@ impl<'input> Lexer<'input> {
                 Ok((
                     begin_idx,
                     Token::Float(FloatLit::Float {
-                        int: if sign1 == Sign::Neg {
-                            -(num1 as i64)
-                        } else {
-                            num1 as i64
-                        },
+                        sign: sign1,
+                        int: num1,
                         frac: num2,
                         hex: true,
                         power: 0,
@@ -617,11 +603,8 @@ impl<'input> Lexer<'input> {
             Ok((
                 begin_idx,
                 Token::Float(FloatLit::Float {
-                    int: if sign1 == Sign::Neg {
-                        -(num1 as i64)
-                    } else {
-                        num1 as i64
-                    },
+                    sign: sign1,
+                    int: num1,
                     frac: 0,
                     hex: true,
                     power: num3,
@@ -1074,6 +1057,7 @@ mod tests {
         assert_eq!(
             next_token(&mut lexer),
             Token::Float(FloatLit::Float {
+                sign: Sign::Pos,
                 int: 0,
                 frac: 0,
                 hex: true,
@@ -1084,6 +1068,7 @@ mod tests {
         assert_eq!(
             next_token(&mut lexer),
             Token::Float(FloatLit::Float {
+                sign: Sign::Pos,
                 int: 1,
                 frac: 0x921fb6,
                 hex: true,
@@ -1094,6 +1079,7 @@ mod tests {
         assert_eq!(
             next_token(&mut lexer),
             Token::Float(FloatLit::Float {
+                sign: Sign::Pos,
                 int: 3,
                 frac: 4028234,
                 hex: false,
@@ -1104,6 +1090,7 @@ mod tests {
         assert_eq!(
             next_token(&mut lexer),
             Token::Float(FloatLit::Float {
+                sign: Sign::Pos,
                 int: 1234,
                 frac: 0,
                 hex: false,
@@ -1114,6 +1101,7 @@ mod tests {
         assert_eq!(
             next_token(&mut lexer),
             Token::Float(FloatLit::Float {
+                sign: Sign::Pos,
                 int: 1,
                 frac: 0,
                 hex: true,
@@ -1129,5 +1117,20 @@ mod tests {
         let mut lexer = Lexer::new("\"\\\"test\\\"\"");
         assert_eq!(next_token(&mut lexer), Token::String(b"\"test\"".to_vec()));
         assert_eq!(lexer.next_token(), None);
+    }
+
+    #[test]
+    fn negate_with_overflow() {
+        let mut lexer = Lexer::new("-9223372036854775808.0");
+        assert_eq!(
+            next_token(&mut lexer),
+            Token::Float(FloatLit::Float {
+                sign: Sign::Neg,
+                int: 9223372036854775808,
+                frac: 0,
+                hex: false,
+                power: 0,
+            })
+        );
     }
 }
