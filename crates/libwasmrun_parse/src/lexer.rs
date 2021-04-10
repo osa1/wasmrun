@@ -929,6 +929,7 @@ make_enum! {
     "assert_unlinkable",
     "binary",
     "data",
+    "declare",
     "elem",
     "export",
     "extern",
