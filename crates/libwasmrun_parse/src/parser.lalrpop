@@ -18,6 +18,7 @@ extern {
         "int" => Token::Int(<i64>),
 
         "assert_return" => Token::Keyword(Keyword::AssertReturn),
+        "elem" => Token::Keyword(Keyword::Elem),
         "extern" => Token::Keyword(Keyword::Extern),
         "externref" => Token::Keyword(Keyword::Externref),
         "f32" => Token::Keyword(Keyword::F32),
@@ -74,6 +75,15 @@ pub Section: Section = {
             name: String::from_utf8(name).unwrap(),
             desc,
         }),
+
+    "(" "type" <id:"var"?> <ty:FuncType> ")" =>
+        Section::Type(TypeSection { id, ty }),
+
+    "(" "table" <id:"var"?> <limits:Limits> <ty:RefType> ")" =>
+        Section::Table(TableSection::Table { id, limits, ty }),
+
+    "(" "table" <ty:RefType> "(" "elem" <elems:"var"*> ")" ")" =>
+        Section::Table(TableSection::Elems { ty, elems }),
 
 };
 
@@ -161,6 +171,16 @@ pub ValType: ValType = {
     "func" => ValType::FuncRef,
 
 };
+
+pub FuncType: FuncType = {
+
+    "(" "func" <params:AnonParams?> <ret:Results?> ")" =>
+        FuncType {
+            params: params.unwrap_or(vec![]),
+            ret: ret.unwrap_or(vec![]),
+        },
+
+}
 
 pub Assert: Assert = {
 

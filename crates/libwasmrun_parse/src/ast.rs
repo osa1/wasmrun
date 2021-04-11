@@ -116,7 +116,17 @@ pub struct GlobalImportDesc {
 pub struct FuncSection;
 
 #[derive(Debug)]
-pub struct TableSection;
+pub enum TableSection {
+    Table {
+        id: Option<String>,
+        limits: Limits,
+        ty: RefType,
+    },
+    Elems {
+        ty: RefType,
+        elems: Vec<String>,
+    }
+}
 
 #[derive(Debug)]
 pub struct MemSection;
