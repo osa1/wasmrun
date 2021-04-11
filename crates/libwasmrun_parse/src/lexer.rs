@@ -238,16 +238,16 @@ impl<'input> Iterator for Lexer<'input> {
                             if self.expect(';') {
                                 self.block_comment();
                             } else {
-                                return Some(Ok((idx, Token::LParen, '('.len_utf8())));
+                                return Some(Ok((idx, Token::LParen, idx + '('.len_utf8())));
                             }
                         }
                         ')' => {
                             self.bump();
-                            return Some(Ok((idx, Token::RParen, ')'.len_utf8())));
+                            return Some(Ok((idx, Token::RParen, idx + ')'.len_utf8())));
                         }
                         '=' => {
                             self.bump();
-                            return Some(Ok((idx, Token::Eq, '='.len_utf8())));
+                            return Some(Ok((idx, Token::Eq, idx + '='.len_utf8())));
                         }
                         '"' => {
                             self.bump();
@@ -402,7 +402,7 @@ impl<'input> Lexer<'input> {
         let mut last = 0;
 
         loop {
-            match self.next() {
+            match self.peek() {
                 None => {
                     if ret.is_empty() {
                         return Err(LexerError::empty_var(dollar_idx));
@@ -412,11 +412,38 @@ impl<'input> Lexer<'input> {
                     }
                 }
                 Some((idx, char)) => {
-                    if char.is_whitespace() {
-                        return Ok((ret, idx));
-                    } else {
+                    if char.is_ascii_alphanumeric()
+                        || matches!(
+                            char,
+                            '!' | '#'
+                                | '$'
+                                | '%'
+                                | '&'
+                                | '`'
+                                | '*'
+                                | '+'
+                                | '-'
+                                | '.'
+                                | '/'
+                                | ':'
+                                | '<'
+                                | '='
+                                | '>'
+                                | '?'
+                                | '@'
+                                | '\\'
+                                | '^'
+                                | '_'
+                                | '\''
+                                | '|'
+                                | '~'
+                        )
+                    {
+                        self.bump();
                         last = idx + char.len_utf8();
                         ret.push(char);
+                    } else {
+                        return Ok((ret, idx));
                     }
                 }
             }
