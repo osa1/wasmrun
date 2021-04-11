@@ -3,10 +3,19 @@ name = "libwasmrun_parse"
 version = "0.1.0"
 authors = ["Ömer Sinan Ağacan <omeragacan@gmail.com>"]
 edition = "2018"
+build = "build.rs"
 
 [[bin]]
 name = "lexer_test"
 path = "exec/lexer_test.rs"
 
+[[bin]]
+name = "parser_test"
+path = "exec/parser_test.rs"
+
 [dependencies]
+lalrpop-util = "0.19.5"
 libwasmrun_parse_macros = { path = "../libwasmrun_parse_macros" }
+
+[build-dependencies]
+lalrpop = "0.19.5"

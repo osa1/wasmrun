@@ -1,0 +1,148 @@
+use std::convert::TryFrom;
+
+use crate::ast::*;
+use crate::lexer::*;
+
+grammar;
+
+extern {
+    type Location = usize;
+    type Error = LexerError;
+
+    enum Token {
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "string" => Token::String(<Vec<u8>>),
+        "var" => Token::Var(<String>),
+        "instr" => Token::Instr(_),
+        "int" => Token::Int(<i64>),
+
+        "assert_return" => Token::Keyword(Keyword::AssertReturn),
+        "extern" => Token::Keyword(Keyword::Extern),
+        "f32" => Token::Keyword(Keyword::F32),
+        "f64" => Token::Keyword(Keyword::F64),
+        "func" => Token::Keyword(Keyword::Func),
+        "i32" => Token::Keyword(Keyword::I32),
+        "i64" => Token::Keyword(Keyword::I64),
+        "import" => Token::Keyword(Keyword::Import),
+        "invoke" => Token::Keyword(Keyword::Invoke),
+        "module" => Token::Keyword(Keyword::Module),
+        "param" => Token::Keyword(Keyword::Param),
+        "result" => Token::Keyword(Keyword::Result),
+        "type" => Token::Keyword(Keyword::Type),
+
+        "i32.const" => Token::Instr(Instr::I32Const),
+        "i64.const" => Token::Instr(Instr::I64Const),
+    }
+}
+
+pub TestFile: TestFile = {
+
+    <items:ModuleOrAssert+> =>
+        items,
+
+};
+
+pub ModuleOrAssert: ModuleOrAssert = {
+
+    <m:Module> =>
+        ModuleOrAssert::Module(m),
+
+    <a:Assert> =>
+        ModuleOrAssert::Assert(a),
+
+};
+
+pub Module: Module = {
+
+    "(" "module" <sections:Section*>")" =>
+        sections,
+
+};
+
+pub Section: Section = {
+
+    "(" "import" <mod_:"string"> <name:"string"> <desc:ImportDesc>  ")" =>
+        Section::Import(ImportSection {
+            mod_: String::from_utf8(mod_).unwrap(),
+            name: String::from_utf8(name).unwrap(),
+            desc,
+        }),
+
+};
+
+pub ImportDesc: ImportDesc = {
+
+    "(" "func" <id:"var"?> <type_use:TypeUse> ")" =>
+        ImportDesc::Func(FuncImportDesc { id, type_use }),
+
+};
+
+pub TypeUse: TypeUse = {
+
+    <type_idx:TypeIdx?> <params:AnonParams?> <results:Results?> =>
+        TypeUse { type_idx, params, results },
+
+};
+
+pub TypeIdx: u64 = {
+
+    "(" "type" <type_idx:"int"> ")" =>
+        u64::try_from(type_idx).unwrap(),
+
+};
+
+pub AnonParams: Vec<Param> = {
+
+    "(" "param" <params:ValType*> ")" =>
+        params.into_iter().map(|ty| Param { id: None, ty }).collect::<Vec<_>>(),
+
+};
+
+pub Param: Param = {
+
+    "(" "param" <id:"var"?> <ty:ValType> ")" =>
+        Param { id, ty }
+
+};
+
+pub Results: Vec<ValType> = {
+
+    "(" "result" <tys:ValType*> ")" =>
+        tys,
+
+};
+
+pub ValType: ValType = {
+
+    "i32" => ValType::I32,
+    "i64" => ValType::I64,
+    "f32" => ValType::F32,
+    "f64" => ValType::F64,
+    "extern" => ValType::ExternRef,
+    "func" => ValType::FuncRef,
+
+};
+
+pub Assert: Assert = {
+
+    "(" "assert_return" "(" "invoke" <fun:"string"> <args:Value*> ")" <ret:Value> ")" =>
+        Assert::Return {
+            fun: String::from_utf8(fun).unwrap(),
+            args,
+            ret,
+        },
+
+};
+
+pub Value: Value = {
+
+    "(" "i32.const" <i:"int"> ")" =>
+        Value::I32(i32::try_from(i).unwrap()),
+
+    "(" "i64.const" <i:"int"> ")" =>
+        Value::I64(i),
+
+};
+
+

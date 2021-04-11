@@ -80,7 +80,7 @@ pub fn make_enum(input: TokenStream) -> TokenStream {
     let parser_body = tree::build_decision_tree(rules);
 
     quote!(
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Debug, PartialEq, Eq, Clone)]
         pub enum #enum_name {
             #(#variant_ids,)*
         }

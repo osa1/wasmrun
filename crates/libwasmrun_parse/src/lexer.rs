@@ -8,7 +8,7 @@ type Loc = usize;
 
 type Spanned<A> = Result<(Loc, A, Loc), LexerError>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     /// Left parenthesis (`(`)
     LParen,
