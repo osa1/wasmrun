@@ -1,3 +1,5 @@
+use crate::lexer::Instr;
+
 /// A test file is a list of modules and assertions
 pub type TestFile = Vec<ModuleOrAssert>;
 
@@ -36,6 +38,15 @@ pub struct FuncType {
     pub ret: Vec<ValType>,
 }
 
+/// A `$...` or `(export "...")
+#[derive(Debug)]
+pub enum VarOrExport {
+    /// `$...`
+    Var(String),
+    /// `(export "...")`
+    Export(String),
+}
+
 #[derive(Debug)]
 pub struct Param {
     pub id: Option<String>,
@@ -53,10 +64,22 @@ pub enum ValType {
 }
 
 #[derive(Debug)]
+pub struct MutValType {
+    pub mut_: bool,
+    pub ty: ValType,
+}
+
+#[derive(Debug)]
 pub struct ImportSection {
     pub mod_: String,
     pub name: String,
     pub desc: ImportDesc,
+}
+
+#[derive(Debug)]
+pub struct Import {
+    pub mod_: String,
+    pub name: String,
 }
 
 #[derive(Debug)]
@@ -108,8 +131,7 @@ pub struct MemImportDesc {
 #[derive(Debug)]
 pub struct GlobalImportDesc {
     pub id: Option<String>,
-    pub mut_: bool,
-    pub ty: ValType,
+    pub ty: MutValType,
 }
 
 #[derive(Debug)]
@@ -118,7 +140,7 @@ pub struct FuncSection;
 #[derive(Debug)]
 pub enum TableSection {
     Table {
-        id: Option<String>,
+        id: Option<VarOrExport>,
         limits: Limits,
         ty: RefType,
     },
@@ -129,10 +151,19 @@ pub enum TableSection {
 }
 
 #[derive(Debug)]
-pub struct MemSection;
+pub struct MemSection {
+    pub id: Option<VarOrExport>,
+    pub limits: Limits,
+}
 
 #[derive(Debug)]
-pub struct GlobalSection;
+pub struct GlobalSection {
+    pub id: Option<String>,
+    pub import: Option<Import>,
+    pub export: Option<String>,
+    pub ty: MutValType,
+    pub expr: Vec<Instr>,
+}
 
 #[derive(Debug)]
 pub struct ExportSection;

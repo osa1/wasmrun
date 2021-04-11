@@ -14,13 +14,14 @@ extern {
         ")" => Token::RParen,
         "string" => Token::String(<Vec<u8>>),
         "var" => Token::Var(<String>),
-        "instr" => Token::Instr(_),
+        "instr" => Token::Instr(<Instr>),
         "int" => Token::Int(<i64>),
 
         "assert_return" => Token::Keyword(Keyword::AssertReturn),
         "elem" => Token::Keyword(Keyword::Elem),
         "extern" => Token::Keyword(Keyword::Extern),
         "externref" => Token::Keyword(Keyword::Externref),
+        "export" => Token::Keyword(Keyword::Export),
         "f32" => Token::Keyword(Keyword::F32),
         "f64" => Token::Keyword(Keyword::F64),
         "func" => Token::Keyword(Keyword::Func),
@@ -79,11 +80,40 @@ pub Section: Section = {
     "(" "type" <id:"var"?> <ty:FuncType> ")" =>
         Section::Type(TypeSection { id, ty }),
 
-    "(" "table" <id:"var"?> <limits:Limits> <ty:RefType> ")" =>
+    "(" "table" <id:VarOrExport?> <limits:Limits> <ty:RefType> ")" =>
         Section::Table(TableSection::Table { id, limits, ty }),
 
     "(" "table" <ty:RefType> "(" "elem" <elems:"var"*> ")" ")" =>
         Section::Table(TableSection::Elems { ty, elems }),
+
+    "(" "memory" <id:VarOrExport?> <limits:Limits> ")" =>
+        Section::Mem(MemSection { id, limits }),
+
+    "(" "global" <id:"var"?> <import:Import?> <export:Export?> <ty:MutValType> <expr:"instr"*> ")" =>
+        Section::Global(GlobalSection {
+            id,
+            import,
+            export,
+            ty,
+            expr,
+        })
+
+};
+
+pub Import: Import = {
+
+    "(" "import" <mod_:"string"> <name:"string"> ")" =>
+        Import {
+            mod_: String::from_utf8(mod_).unwrap(),
+            name: String::from_utf8(name).unwrap(),
+        }
+
+};
+
+pub Export: String = {
+
+    "(" "export" <name:"string"> ")" =>
+        String::from_utf8(name).unwrap(),
 
 };
 
@@ -98,11 +128,8 @@ pub ImportDesc: ImportDesc = {
     "(" "memory" <id:"var"?> <limits:Limits> ")" =>
         ImportDesc::Mem(MemImportDesc { id, ty: limits }),
 
-    "(" "global" <id:"var"?> <ty:ValType> ")" =>
-        ImportDesc::Global(GlobalImportDesc { id, mut_: false, ty }),
-
-    "(" "global" <id:"var"?> "(" "mut" <ty:ValType> ")" ")" =>
-        ImportDesc::Global(GlobalImportDesc { id, mut_: true, ty }),
+    "(" "global" <id:"var"?> <ty:MutValType> ")" =>
+        ImportDesc::Global(GlobalImportDesc { id, ty }),
 
 };
 
@@ -172,6 +199,16 @@ pub ValType: ValType = {
 
 };
 
+pub MutValType: MutValType = {
+
+    <ty:ValType> =>
+        MutValType { mut_: false, ty },
+
+    "(" "mut" <ty:ValType> ")" =>
+        MutValType { mut_: true, ty },
+
+};
+
 pub FuncType: FuncType = {
 
     "(" "func" <params:AnonParams?> <ret:Results?> ")" =>
@@ -203,4 +240,12 @@ pub Value: Value = {
 
 };
 
+pub VarOrExport: VarOrExport = {
 
+    <var:"var"> =>
+        VarOrExport::Var(var),
+
+    "(" "export" <str:"string"> ")" =>
+        VarOrExport::Export(String::from_utf8(str).unwrap()),
+
+};
