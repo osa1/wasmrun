@@ -19,16 +19,22 @@ extern {
 
         "assert_return" => Token::Keyword(Keyword::AssertReturn),
         "extern" => Token::Keyword(Keyword::Extern),
+        "externref" => Token::Keyword(Keyword::Externref),
         "f32" => Token::Keyword(Keyword::F32),
         "f64" => Token::Keyword(Keyword::F64),
         "func" => Token::Keyword(Keyword::Func),
+        "funcref" => Token::Keyword(Keyword::Funcref),
+        "global" => Token::Keyword(Keyword::Global),
         "i32" => Token::Keyword(Keyword::I32),
         "i64" => Token::Keyword(Keyword::I64),
         "import" => Token::Keyword(Keyword::Import),
         "invoke" => Token::Keyword(Keyword::Invoke),
+        "memory" => Token::Keyword(Keyword::Memory),
         "module" => Token::Keyword(Keyword::Module),
+        "mut" => Token::Keyword(Keyword::Mut),
         "param" => Token::Keyword(Keyword::Param),
         "result" => Token::Keyword(Keyword::Result),
+        "table" => Token::Keyword(Keyword::Table),
         "type" => Token::Keyword(Keyword::Type),
 
         "i32.const" => Token::Instr(Instr::I32Const),
@@ -76,6 +82,28 @@ pub ImportDesc: ImportDesc = {
     "(" "func" <id:"var"?> <type_use:TypeUse> ")" =>
         ImportDesc::Func(FuncImportDesc { id, type_use }),
 
+    "(" "table" <id:"var"?> <limits:Limits> <ref_type:RefType> ")" =>
+        ImportDesc::Table(TableImportDesc { id, limits, ref_type }),
+
+    "(" "memory" <id:"var"?> <limits:Limits> ")" =>
+        ImportDesc::Mem(MemImportDesc { id, ty: limits }),
+
+    "(" "global" <id:"var"?> <ty:ValType> ")" =>
+        ImportDesc::Global(GlobalImportDesc { id, mut_: false, ty }),
+
+    "(" "global" <id:"var"?> "(" "mut" <ty:ValType> ")" ")" =>
+        ImportDesc::Global(GlobalImportDesc { id, mut_: true, ty }),
+
+};
+
+pub Limits: Limits = {
+
+    <min:"int"> <max:"int"?> =>
+        Limits {
+            min: u64::try_from(min).unwrap(),
+            max: max.map(|max| u64::try_from(max).unwrap()),
+        },
+
 };
 
 pub TypeUse: TypeUse = {
@@ -110,6 +138,16 @@ pub Results: Vec<ValType> = {
 
     "(" "result" <tys:ValType*> ")" =>
         tys,
+
+};
+
+pub RefType: RefType = {
+
+    "funcref" =>
+        RefType::FuncRef,
+
+    "externref" =>
+        RefType::ExternRef,
 
 };
 
