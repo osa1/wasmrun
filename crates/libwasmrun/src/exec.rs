@@ -18,7 +18,7 @@ use wasm::{Instruction, SignExtInstruction};
 
 use std::fmt;
 use std::iter;
-use std::mem::{replace, take};
+use std::mem::take;
 use std::rc::Rc;
 
 pub(crate) const PAGE_SIZE: usize = 65536;
@@ -376,10 +376,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
 
     // Allocate functions
     if let Some(code_section) = parsed_module.code_section_mut().take() {
-        for (fun_idx, fun) in replace(code_section.bodies_mut(), vec![])
-            .into_iter()
-            .enumerate()
-        {
+        for (fun_idx, fun) in take(code_section.bodies_mut()).into_iter().enumerate() {
             let function_section = parsed_module.function_section().ok_or_else(|| {
                 ExecError::Panic("Module has a code section but no function section".to_string())
             })?;
@@ -510,7 +507,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
     // Initialize exports
     if let Some(export_section) = parsed_module.export_section_mut() {
         for mut export in export_section.entries_mut().drain(..) {
-            let export_field = replace(export.field_mut(), String::new());
+            let export_field = take(export.field_mut());
             let export = match export.internal() {
                 wasm::Internal::Function(fun_idx) => {
                     let idx = FunIdx(*fun_idx);

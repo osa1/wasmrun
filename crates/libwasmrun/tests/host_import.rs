@@ -19,7 +19,7 @@ static TEST_WAST: &str = r#"
     (module
       (func $i (import "host" "add") (param i32 i32) (result i32))
       (func (export "test") (param $a i32) (param $b i32) (result i32)
-         (call $i (get_local $a) (get_local $b)))
+         (call $i (local.get $a) (local.get $b)))
       (memory 1)
       (export "mem" (memory 0)))
 "#;

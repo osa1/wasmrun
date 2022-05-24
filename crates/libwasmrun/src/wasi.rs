@@ -136,7 +136,7 @@ fn wasi_fd_write(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Valu
     );
 
     let ret = wasi_snapshot_preview1::fd_write(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         fd,
         iovs_ptr,
@@ -169,7 +169,7 @@ fn wasi_fd_read(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Value
     trace!("fd_read({}, {:#x}, {}, {:#x})", fd, iovs, iovs_len, nread);
 
     let ret = wasi_snapshot_preview1::fd_read(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         fd,
         iovs,
@@ -197,7 +197,7 @@ fn wasi_fd_prestat_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Ve
     trace!("fd_prestat_get({}, {:#x})", fd, prestat_t_ptr);
 
     let ret = wasi_snapshot_preview1::fd_prestat_get(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         fd,
         prestat_t_ptr,
@@ -225,7 +225,7 @@ fn wasi_fd_prestat_dir_name(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Resu
     trace!("fd_prestat_dir_name({}, {:#x}, {})", fd, buf_ptr, len);
 
     let ret = wasi_snapshot_preview1::fd_prestat_dir_name(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         fd,
         buf_ptr,
@@ -256,7 +256,7 @@ fn wasi_environ_sizes_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result
     );
 
     let ret = wasi_snapshot_preview1::environ_sizes_get(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         environc_ptr,
         environ_buf_size,
@@ -281,7 +281,7 @@ fn wasi_environ_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<V
     trace!("environ_get({:#x}, {:#x})", environ, environ_buf);
 
     let ret = wasi_snapshot_preview1::environ_get(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         environ,
         environ_buf,
@@ -307,7 +307,7 @@ fn wasi_args_sizes_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Ve
     );
 
     let ret = wasi_snapshot_preview1::args_sizes_get(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         argc_addr,
         argv_buf_size_addr,
@@ -330,7 +330,7 @@ fn wasi_args_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Valu
     trace!("args_get({:#x}, {:#x})", argv, argv_buf);
 
     let ret = wasi_snapshot_preview1::args_get(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         argv,
         argv_buf,
@@ -348,9 +348,8 @@ fn wasi_fd_close(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Valu
 
     trace!("fd_close({})", fd);
 
-    let ret =
-        wasi_snapshot_preview1::fd_close(&mut rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), fd)
-            .map_err(ExecError::WASI)?;
+    let ret = wasi_snapshot_preview1::fd_close(&rt.wasi_ctx, rt.store.get_mem_mut(mem_addr), fd)
+        .map_err(ExecError::WASI)?;
 
     Ok(vec![Value::I32(ret)])
 }
@@ -370,7 +369,7 @@ fn wasi_fd_filestat_get(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<V
     trace!("fd_filestat_get({}, {:#x})", fd, buf);
 
     let ret = wasi_snapshot_preview1::fd_filestat_get(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         fd,
         buf,
@@ -446,7 +445,7 @@ fn wasi_path_open(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Val
     );
 
     let ret = wasi_snapshot_preview1::path_open(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         fd,
         flags,
@@ -502,7 +501,7 @@ fn wasi_path_link(rt: &mut Runtime, mem_addr: Option<MemAddr>) -> Result<Vec<Val
     );
 
     let ret = wasi_snapshot_preview1::path_link(
-        &mut rt.wasi_ctx,
+        &rt.wasi_ctx,
         rt.store.get_mem_mut(mem_addr),
         old_fd,
         old_flags,
