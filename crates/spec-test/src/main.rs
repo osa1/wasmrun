@@ -15,57 +15,67 @@ use parity_wasm::elements as wasm;
 
 fn main() {
     let cli::Args { file } = cli::parse();
-    let file = file.as_ref().map(|s| s.as_str()).unwrap_or("tests/spec");
+    let file_path = file.as_ref().map(|s| s.as_str()).unwrap_or("tests/spec");
+    let file_meta = fs::metadata(file_path).expect("Unable to get input file or dir metadata");
 
-    let exit_code = match fs::read_dir(&file) {
-        Ok(dir_contents) => {
-            let out_file = fs::File::create("test_output").unwrap();
-            let mut out = Output {
-                file: Some(out_file),
-            };
+    if file_meta.is_dir() {
+        run_dir(file_path);
+    } else if file_meta.is_file() {
+        run_file(file_path);
+    } else {
+        eprintln!("Input file {} is not a directory or file", file_path);
+        exit(1);
+    }
+}
 
-            let mut dir_files: Vec<PathBuf> = vec![];
+fn run_dir(dir_path: &str) {
+    let dir_contents = fs::read_dir(dir_path).expect("Unable to get dir contents");
 
-            for file in dir_contents {
-                let file = file.unwrap();
-                let file_path = file.path();
-                if let Some(ext) = file_path.extension() {
-                    if ext == "wast" {
-                        dir_files.push(file_path);
-                    }
-                }
-            }
-
-            dir_files.sort();
-
-            let fails = run_spec_dir(&dir_files, &mut out);
-            let ret = if fails.is_empty() { 0 } else { 1 };
-            for (file, lines) in fails.into_iter() {
-                writeln!(&mut out, "{}: {:?}", file.to_string_lossy(), lines).unwrap();
-            }
-            ret
-        }
-        Err(_) => {
-            let mut out = Output { file: None };
-            let file_path: PathBuf = file.into();
-            match run_spec_test(&file_path, &mut out) {
-                Ok(fails) => {
-                    if fails.is_empty() {
-                        0
-                    } else {
-                        writeln!(&mut out, "{:?}", fails).unwrap();
-                        1
-                    }
-                }
-                Err(err) => {
-                    writeln!(&mut out, "{}", err).unwrap();
-                    1
-                }
-            }
-        }
+    let out_file = fs::File::create("test_output").unwrap();
+    let mut out = Output {
+        file: Some(out_file),
     };
 
-    exit(exit_code)
+    let mut dir_files: Vec<PathBuf> = vec![];
+
+    for file in dir_contents {
+        let file = file.unwrap();
+        let file_path = file.path();
+        if let Some(ext) = file_path.extension() {
+            if ext == "wast" {
+                dir_files.push(file_path);
+            }
+        }
+    }
+
+    dir_files.sort();
+
+    let fails = run_spec_dir(&dir_files, &mut out);
+    let ret = if fails.is_empty() { 0 } else { 1 };
+    for (file, lines) in fails.into_iter() {
+        writeln!(&mut out, "{}: {:?}", file.to_string_lossy(), lines).unwrap();
+    }
+    exit(ret)
+}
+
+fn run_file(file_path: &str) {
+    let mut out = Output { file: None };
+    let file_path: PathBuf = file_path.into();
+    let ret = match run_spec_test(&file_path, &mut out) {
+        Ok(fails) => {
+            if fails.is_empty() {
+                0
+            } else {
+                writeln!(&mut out, "{:?}", fails).unwrap();
+                1
+            }
+        }
+        Err(err) => {
+            writeln!(&mut out, "{}", err).unwrap();
+            1
+        }
+    };
+    exit(ret)
 }
 
 fn test_eq_val(v1: Value, v2: Value) -> bool {
