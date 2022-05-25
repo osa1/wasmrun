@@ -132,6 +132,7 @@ fn run_spec_dir(dir: &[PathBuf], out: &mut Output) -> Vec<(PathBuf, Vec<usize>)>
                     }
                     Err(err) => {
                         writeln!(out, "{}", err).unwrap();
+                        fails.push((file_path.to_owned(), vec![]));
                     }
                 }
             }
