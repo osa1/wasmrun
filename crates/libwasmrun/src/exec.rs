@@ -12,7 +12,7 @@ use crate::{HostFunDecl, MemAddr};
 
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
-use parity_wasm::elements as wasm;
+use libwasmrun_syntax::elements as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
 use wasm::{Instruction, SignExtInstruction};
 
@@ -2261,7 +2261,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .get_module(fun_module_addr)
                 .get_type(actual_fun_ty_idx);
             // NB. We can't use (==) here because of the 'form' fields of FunctionTypes. TODO:
-            // replace parity_wasm.
+            // replace libwasmrun_syntax.
             if call_instr_ty.params() != actual_ty.params()
                 || call_instr_ty.results() != actual_ty.results()
             {

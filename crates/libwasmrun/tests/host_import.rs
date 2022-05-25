@@ -1,5 +1,5 @@
 use libwasmrun::{exec, HostFunDecl, MemAddr, Result, Runtime, Value, ValueType};
-use parity_wasm as wasm;
+use libwasmrun_syntax as wasm;
 
 use std::rc::Rc;
 

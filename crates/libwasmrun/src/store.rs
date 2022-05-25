@@ -5,7 +5,7 @@ use crate::module::{Module, TypeIdx};
 use crate::value::Value;
 use crate::Result;
 
-use parity_wasm::elements::{self as wasm, IndexMap};
+use libwasmrun_syntax::elements::{self as wasm, IndexMap};
 
 use std::rc::Rc;
 

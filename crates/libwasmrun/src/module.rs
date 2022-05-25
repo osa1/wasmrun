@@ -2,7 +2,7 @@ use crate::export::{Export, ExportKind};
 use crate::store::{FunAddr, GlobalAddr, MemAddr, TableAddr};
 
 use fxhash::FxHashMap;
-use parity_wasm::elements as wasm;
+use libwasmrun_syntax::elements as wasm;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FunIdx(pub u32);

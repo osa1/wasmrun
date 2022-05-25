@@ -245,13 +245,17 @@ version = "0.1.0"
 dependencies = [
  "fxhash",
  "ieee754",
+ "libwasmrun_syntax",
  "log",
- "parity-wasm 0.45.0 (git+https://github.com/osa1/parity-wasm?rev=99253fb)",
  "wabt",
  "wasi-common",
  "wiggle",
  "wiggle-borrow",
 ]
+
+[[package]]
+name = "libwasmrun_syntax"
+version = "0.1.0"
 
 [[package]]
 name = "log"
@@ -279,16 +283,6 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
 ]
-
-[[package]]
-name = "parity-wasm"
-version = "0.45.0"
-source = "git+https://github.com/osa1/parity-wasm?rev=06feae7e#06feae7e098f5ab878bc4d843b3d008f11e88a42"
-
-[[package]]
-name = "parity-wasm"
-version = "0.45.0"
-source = "git+https://github.com/osa1/parity-wasm?rev=99253fb#99253fbbba885a18e77bf6117e16e162a3d91be4"
 
 [[package]]
 name = "pin-project-lite"
@@ -426,7 +420,7 @@ dependencies = [
  "clap",
  "fxhash",
  "libwasmrun",
- "parity-wasm 0.45.0 (git+https://github.com/osa1/parity-wasm?rev=99253fb)",
+ "libwasmrun_syntax",
  "rustc_tools_util",
  "serde",
  "serde_json",
@@ -598,8 +592,8 @@ dependencies = [
  "clap",
  "fxhash",
  "libwasmrun",
+ "libwasmrun_syntax",
  "nix",
- "parity-wasm 0.45.0 (git+https://github.com/osa1/parity-wasm?rev=06feae7e)",
  "pretty_env_logger",
  "rustc_tools_util",
 ]

@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use parity_wasm::elements as wasm;
+use libwasmrun_syntax::elements as wasm;
 
 #[derive(Clone, Copy)]
 pub enum Value {
