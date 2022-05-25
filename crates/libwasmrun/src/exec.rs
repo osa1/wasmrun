@@ -2471,7 +2471,7 @@ fn block_arity(rt: &Runtime, module_addr: ModuleAddr, ty: wasm::BlockType) -> (u
     match ty {
         wasm::BlockType::Value(_) => (0, 1),
         wasm::BlockType::NoResult => (0, 0),
-        wasm::BlockType::TypeIdx(ty_idx) => {
+        wasm::BlockType::TypeIndex(ty_idx) => {
             let ty = &rt.store.get_module(module_addr).get_type(TypeIdx(ty_idx));
             (ty.params().len() as u32, ty.results().len() as u32)
         }

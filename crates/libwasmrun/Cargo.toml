@@ -12,8 +12,7 @@ log = "0.4"
 
 [dependencies.parity-wasm]
 git = "https://github.com/osa1/parity-wasm"
-branch = "wasmrun"
-features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]
+rev = "99253fb"
 
 [dependencies.wasi-common]
 git = "https://github.com/bytecodealliance/wasmtime.git"

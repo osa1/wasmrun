@@ -14,8 +14,7 @@ serde_json = "1.0"
 
 [dependencies.parity-wasm]
 git = "https://github.com/osa1/parity-wasm"
-branch = "wasmrun"
-features = ["multi_value", "atomics", "simd", "sign_ext", "bulk"]
+rev = "99253fb"
 
 [build-dependencies]
 rustc_tools_util = "0.2"
