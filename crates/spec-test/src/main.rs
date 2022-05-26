@@ -240,9 +240,9 @@ fn run_spec_cmd(
             out.flush().unwrap();
 
             let file_path = format!("{}/{}", dir_path, filename);
-            match wasm::deserialize_file(file_path) {
+            match wasm::deserialize_file(&file_path) {
                 Err(err) => {
-                    writeln!(out, "Error while parsing module: {}", err).unwrap();
+                    writeln!(out, "Error while parsing module: {} ({})", err, file_path).unwrap();
                     *module_addr = None;
                     failing_lines.push(line);
                 }
@@ -255,7 +255,8 @@ fn run_spec_cmd(
                         }
                     }
                     Err(err) => {
-                        writeln!(out, "Unable to allocate module: {}", err).unwrap();
+                        writeln!(out, "Unable to allocate module: {} ({})", err, file_path)
+                            .unwrap();
                         *module_addr = None;
                     }
                 },
