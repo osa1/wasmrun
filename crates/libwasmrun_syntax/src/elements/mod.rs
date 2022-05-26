@@ -67,7 +67,7 @@ pub use self::{
         FunctionNameSubsection, LocalNameSubsection, ModuleNameSubsection, NameMap, NameSection,
     },
     reloc_section::{RelocSection, RelocationEntry},
-    segment::{DataSegment, ElementSegment},
+    segment::{DataSegment, ElementSegment, ElementSegmentMode},
 };
 
 /// Deserialization from serial i/o.
@@ -152,6 +152,8 @@ pub enum Error {
     UnknownNameSubsectionType(u8),
     /// Unknown reference type
     UnknownReferenceType(u8),
+    /// Unknown element kind
+    UnknownElementKind(u8),
 }
 
 impl fmt::Display for Error {
@@ -202,6 +204,7 @@ impl fmt::Display for Error {
             Error::DuplicatedNameSubsections(n) => write!(f, "Duplicated name subsections: {}", n),
             Error::UnknownNameSubsectionType(n) => write!(f, "Unknown subsection type: {}", n),
             Error::UnknownReferenceType(n) => write!(f, "Unknown reference type: {}", n),
+            Error::UnknownElementKind(n) => write!(f, "Unknown element kind: {}", n),
         }
     }
 }
@@ -245,6 +248,7 @@ impl ::std::error::Error for Error {
             Error::DuplicatedNameSubsections(_) => "Duplicated name subsections",
             Error::UnknownNameSubsectionType(_) => "Unknown name subsections type",
             Error::UnknownReferenceType(_) => "Unknown reference type",
+            Error::UnknownElementKind(_) => "Unknown element kind",
         }
     }
 }

@@ -1,4 +1,3 @@
-pub mod builder;
 pub mod elements;
 mod io;
 

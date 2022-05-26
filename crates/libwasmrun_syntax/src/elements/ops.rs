@@ -57,15 +57,16 @@ impl Deserialize for Instructions {
     }
 }
 
-/// Initialization expression.
+/// Initialization expression
 #[derive(Debug, Clone, PartialEq)]
 pub struct InitExpr(Vec<Instruction>);
 
 impl InitExpr {
-    /// New initialization expression from instruction list.
+    /// Create new initialization expression from instruction list.
     ///
-    /// `code` must end with the `Instruction::End` instruction!
+    /// `code` must end with `Instruction::End`. This invariant is checked in debug mode.
     pub fn new(code: Vec<Instruction>) -> Self {
+        debug_assert!(matches!(code.last(), Some(Instruction::End)));
         InitExpr(code)
     }
 

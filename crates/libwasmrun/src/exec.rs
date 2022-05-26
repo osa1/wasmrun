@@ -415,33 +415,30 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
     // Allocate table elements
     if let Some(element_section) = parsed_module.elements_section() {
         for elements in element_section.entries() {
-            let table_idx = TableIdx(elements.index());
-            let offset = elements
-                .offset()
-                .as_ref()
-                .map(|init_expr| get_const_expr_val(rt, &inst, init_expr.code()));
+            match &elements.mode {
+                wasm::ElementSegmentMode::Active { table_idx, offset } => {
+                    let offset = match offset.code() {
+                        &[Instruction::I32Const(offset), Instruction::End] => offset as usize,
+                        &[Instruction::I64Const(offset), Instruction::End] => offset as usize,
+                        other => todo!("Unhandled offset expression: {:?}", other),
+                    };
 
-            let offset = match offset {
-                Some(val) => match val? {
-                    Value::I32(offset) => offset as usize,
-                    Value::I64(offset) => offset as usize,
-                    val => {
-                        return Err(ExecError::Panic(format!("Weird table offset: {:?}", val)));
+                    let table = rt.store.get_table_mut(inst.get_table(TableIdx(*table_idx)));
+
+                    for (elem_idx, elem) in elements.init.iter().enumerate() {
+                        let elem_idx = offset + elem_idx;
+                        if elem_idx >= table.len() {
+                            table.resize(elem_idx + 1, None);
+                        }
+                        let func_idx = match elem.code() {
+                            &[Instruction::I32Const(func_idx), Instruction::End] => func_idx,
+                            other => todo!("Unhandled element expression: {:?}", other),
+                        };
+                        table[elem_idx] = Some(inst.get_fun(FunIdx(func_idx as u32)));
                     }
-                },
-                None => 0,
-            };
-
-            let table = rt.store.get_table_mut(inst.get_table(table_idx));
-
-            for (elem_idx, elem) in elements.members().iter().copied().enumerate() {
-                let elem_idx = offset + elem_idx;
-                if elem_idx >= table.len() {
-                    table.resize(elem_idx + 1, None);
                 }
-                *table.get_mut(elem_idx).ok_or_else(|| {
-                    ExecError::Panic(format!("Elem index out of bounds: {}", elem_idx))
-                })? = Some(inst.get_fun(FunIdx(elem)));
+                wasm::ElementSegmentMode::Passive => todo!("Passive element segments"),
+                wasm::ElementSegmentMode::Declarative => todo!("Declarative element segments"),
             }
         }
     }
@@ -2420,7 +2417,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Atomics(_) | Instruction::Simd(_) | Instruction::Bulk(_) => {
+        Instruction::Atomics(_)
+        | Instruction::Simd(_)
+        | Instruction::Bulk(_)
+        | Instruction::RefNull(_)
+        | Instruction::RefIsNull
+        | Instruction::RefFunc(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr
