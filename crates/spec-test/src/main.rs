@@ -61,6 +61,20 @@ fn run_dir(dir_path: &str) {
 fn run_file(file_path: &str) {
     let mut out = Output { file: None };
     let file_path: PathBuf = file_path.into();
+
+    match file_path.extension() {
+        Some(ext) => {
+            if ext != "wast" {
+                writeln!(out, "Spec test extension should be .wast, found: {:?}", ext).unwrap();
+                exit(1);
+            }
+        }
+        None => {
+            writeln!(out, "Spec file should have .wast extension").unwrap();
+            exit(1);
+        }
+    }
+
     let ret = match run_spec_test(&file_path, &mut out) {
         Ok(fails) => {
             if fails.is_empty() {
@@ -154,20 +168,6 @@ fn run_spec_dir(dir: &[PathBuf], out: &mut Output) -> Vec<(PathBuf, Vec<usize>)>
 
 /// Run a single file
 fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
-    match path.extension() {
-        Some(ext) => {
-            if ext != "wast" {
-                return Err(format!(
-                    "Spec test extension should be .wast, found: {:?}",
-                    ext
-                ));
-            }
-        }
-        None => {
-            return Err("Spec file should have .wast extension".to_string());
-        }
-    }
-
     let stem = path.file_stem().unwrap().to_str().unwrap();
     let dir_path = format!("specs/{}-spec", stem);
     let _ = fs::create_dir_all(&dir_path);
