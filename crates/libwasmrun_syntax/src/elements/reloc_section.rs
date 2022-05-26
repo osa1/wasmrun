@@ -177,9 +177,7 @@ pub enum RelocationEntry {
 }
 
 impl Deserialize for RelocationEntry {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(rdr: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(rdr: &mut R) -> Result<Self, Error> {
         match VarUint7::deserialize(rdr)?.into() {
             FUNCTION_INDEX_LEB => Ok(RelocationEntry::FunctionIndexLeb {
                 offset: VarUint32::deserialize(rdr)?.into(),

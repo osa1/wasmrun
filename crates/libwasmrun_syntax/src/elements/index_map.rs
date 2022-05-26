@@ -321,7 +321,6 @@ impl<'a, T: 'static> IntoIterator for &'a IndexMap<T> {
 impl<T: Deserialize> IndexMap<T>
 where
     T: Deserialize,
-    Error: From<<T as Deserialize>::Error>,
 {
     /// Deserialize a map containing simple values that support `Deserialize`.
     /// We will allocate an underlying array no larger than `max_entry_space` to

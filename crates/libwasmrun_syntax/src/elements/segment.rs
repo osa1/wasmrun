@@ -75,9 +75,7 @@ impl ElementSegment {
 }
 
 impl Deserialize for ElementSegment {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         // This piece of data was treated as `index` [of the table], but was repurposed
         // for flags in bulk-memory operations proposal.
         let flags: u32 = VarUint32::deserialize(reader)?.into();
@@ -177,9 +175,7 @@ impl DataSegment {
 }
 
 impl Deserialize for DataSegment {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u32 = VarUint32::deserialize(reader)?.into();
         let index = if flags == FLAG_MEMZERO || flags == FLAG_PASSIVE {
             0u32

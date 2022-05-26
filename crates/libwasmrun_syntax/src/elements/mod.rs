@@ -72,10 +72,8 @@ pub use self::{
 
 /// Deserialization from serial i/o.
 pub trait Deserialize: Sized {
-    /// Serialization error produced by deserialization routine.
-    type Error: From<io::Error>;
     /// Deserialize type from serial i/o
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error>;
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error>;
 }
 
 /// Deserialization/serialization error
@@ -272,9 +270,7 @@ impl From<(Vec<(usize, Error)>, Module)> for Error {
 pub struct Unparsed(pub Vec<u8>);
 
 impl Deserialize for Unparsed {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let len = VarUint32::deserialize(reader)?.into();
         let mut vec = vec![0u8; len];
         reader.read(&mut vec[..])?;
@@ -289,7 +285,7 @@ impl From<Unparsed> for Vec<u8> {
 }
 
 /// Deserialize deserializable type from buffer.
-pub fn deserialize_buffer<T: Deserialize>(contents: &[u8]) -> Result<T, T::Error> {
+pub fn deserialize_buffer<T: Deserialize>(contents: &[u8]) -> Result<T, Error> {
     let mut reader = io::Cursor::new(contents);
     let result = T::deserialize(&mut reader)?;
     if reader.position() != contents.len() {

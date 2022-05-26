@@ -57,9 +57,7 @@ pub enum Section {
 }
 
 impl Deserialize for Section {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let id = match VarUint7::deserialize(reader) {
             // todo: be more selective detecting no more section
             Err(_) => return Err(Error::UnexpectedEof),
@@ -155,9 +153,7 @@ impl io::Read for SectionReader {
     }
 }
 
-fn read_entries<R: io::Read, T: Deserialize<Error = elements::Error>>(
-    reader: &mut R,
-) -> Result<Vec<T>, elements::Error> {
+fn read_entries<R: io::Read, T: Deserialize>(reader: &mut R) -> Result<Vec<T>, elements::Error> {
     let mut section_reader = SectionReader::new(reader)?;
     let result = CountedList::<T>::deserialize(&mut section_reader)?.into_inner();
     section_reader.close()?;
@@ -199,9 +195,7 @@ impl CustomSection {
 }
 
 impl Deserialize for CustomSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let section_length: usize = u32::from(VarUint32::deserialize(reader)?) as usize;
         let buf = buffered_read!(ENTRIES_BUFFER_LENGTH, section_length, reader);
         let mut cursor = io::Cursor::new(&buf[..]);
@@ -233,9 +227,7 @@ impl TypeSection {
 }
 
 impl Deserialize for TypeSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(TypeSection(read_entries(reader)?))
     }
 }
@@ -278,9 +270,7 @@ impl ImportSection {
 }
 
 impl Deserialize for ImportSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(ImportSection(read_entries(reader)?))
     }
 }
@@ -307,9 +297,7 @@ impl FunctionSection {
 }
 
 impl Deserialize for FunctionSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(FunctionSection(read_entries(reader)?))
     }
 }
@@ -336,9 +324,7 @@ impl TableSection {
 }
 
 impl Deserialize for TableSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(TableSection(read_entries(reader)?))
     }
 }
@@ -365,9 +351,7 @@ impl MemorySection {
 }
 
 impl Deserialize for MemorySection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(MemorySection(read_entries(reader)?))
     }
 }
@@ -394,9 +378,7 @@ impl GlobalSection {
 }
 
 impl Deserialize for GlobalSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(GlobalSection(read_entries(reader)?))
     }
 }
@@ -423,9 +405,7 @@ impl ExportSection {
 }
 
 impl Deserialize for ExportSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(ExportSection(read_entries(reader)?))
     }
 }
@@ -452,9 +432,7 @@ impl CodeSection {
 }
 
 impl Deserialize for CodeSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(CodeSection(read_entries(reader)?))
     }
 }
@@ -481,9 +459,7 @@ impl ElementSection {
 }
 
 impl Deserialize for ElementSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(ElementSection(read_entries(reader)?))
     }
 }
@@ -510,9 +486,7 @@ impl DataSection {
 }
 
 impl Deserialize for DataSection {
-    type Error = Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(DataSection(read_entries(reader)?))
     }
 }

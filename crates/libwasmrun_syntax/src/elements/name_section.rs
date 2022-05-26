@@ -139,8 +139,6 @@ impl ModuleNameSubsection {
 }
 
 impl Deserialize for ModuleNameSubsection {
-    type Error = Error;
-
     fn deserialize<R: io::Read>(rdr: &mut R) -> Result<ModuleNameSubsection, Error> {
         let name = String::deserialize(rdr)?;
         Ok(ModuleNameSubsection { name })

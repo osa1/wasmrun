@@ -593,9 +593,7 @@ impl Module {
 }
 
 impl Deserialize for Module {
-    type Error = super::Error;
-
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut sections = Vec::new();
 
         let mut magic = [0u8; 4];
