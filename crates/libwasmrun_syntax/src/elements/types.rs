@@ -1,4 +1,4 @@
-use super::{CountedList, Deserialize, Error, VarInt32, VarInt7, VarUint7};
+use super::{CountedList, Deserialize, Error, Uint8, VarInt32, VarInt7, VarUint7};
 use crate::io;
 use core::fmt;
 
@@ -179,6 +179,27 @@ impl Deserialize for TableElementType {
         match val.into() {
             -0x10 => Ok(TableElementType::AnyFunc),
             _ => Err(Error::UnknownTableElementType(val.into())),
+        }
+    }
+}
+
+/// <https://webassembly.github.io/spec/core/syntax/types.html#syntax-reftype>
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ReferenceType {
+    FuncRef,
+    ExternRef,
+}
+
+impl Deserialize for ReferenceType {
+    type Error = Error;
+
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
+        let val = Uint8::deserialize(reader)?;
+
+        match val.into() {
+            0x70 => Ok(ReferenceType::FuncRef),
+            0x6F => Ok(ReferenceType::ExternRef),
+            other => Err(Error::UnknownReferenceType(other)),
         }
     }
 }

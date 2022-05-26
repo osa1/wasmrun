@@ -51,7 +51,7 @@ pub use self::{
         CodeSection, CustomSection, DataSection, ElementSection, ExportSection, FunctionSection,
         GlobalSection, ImportSection, MemorySection, Section, TableSection, TypeSection,
     },
-    types::{BlockType, FunctionType, TableElementType, Type, ValueType},
+    types::{BlockType, FunctionType, ReferenceType, TableElementType, Type, ValueType},
 };
 
 pub use self::ops::AtomicsInstruction;
@@ -81,77 +81,79 @@ pub trait Deserialize: Sized {
 /// Deserialization/serialization error
 #[derive(Debug, Clone)]
 pub enum Error {
-    /// Unexpected end of input.
+    /// Unexpected end of input
     UnexpectedEof,
-    /// Invalid magic.
+    /// Invalid magic
     InvalidMagic,
-    /// Unsupported version.
+    /// Unsupported version
     UnsupportedVersion(u32),
-    /// Inconsistence between declared and actual length.
+    /// Inconsistence between declared and actual length
     InconsistentLength {
-        /// Expected length of the definition.
+        /// Expected length of the definition
         expected: usize,
-        /// Actual length of the definition.
+        /// Actual length of the definition
         actual: usize,
     },
-    /// Other static error.
+    /// Other static error
     Other(&'static str),
-    /// Other allocated error.
+    /// Other allocated error
     HeapOther(String),
-    /// Invalid/unknown value type declaration.
+    /// Invalid/unknown value type declaration
     UnknownValueType(i8),
-    /// Invalid block type declaration.
+    /// Invalid block type declaration
     UnknownBlockType(i32),
-    /// Invalid/unknown table element type declaration.
+    /// Invalid/unknown table element type declaration
     UnknownTableElementType(i8),
-    /// Non-utf8 string.
+    /// Non-utf8 string
     NonUtf8String,
-    /// Unknown external kind code.
+    /// Unknown external kind code
     UnknownExternalKind(u8),
-    /// Unknown internal kind code.
+    /// Unknown internal kind code
     UnknownInternalKind(u8),
-    /// Unknown opcode encountered.
+    /// Unknown opcode encountered
     UnknownOpcode(u8),
-    /// Unknown SIMD opcode encountered.
+    /// Unknown SIMD opcode encountered
     UnknownSimdOpcode(u32),
-    /// Invalid VarUint1 value.
+    /// Invalid VarUint1 value
     InvalidVarUint1(u8),
-    /// Invalid VarInt32 value.
+    /// Invalid VarInt32 value
     InvalidVarInt32,
-    /// Invalid VarInt64 value.
+    /// Invalid VarInt64 value
     InvalidVarInt64,
-    /// Invalid VarUint32 value.
+    /// Invalid VarUint32 value
     InvalidVarUint32,
-    /// Invalid VarUint64 value.
+    /// Invalid VarUint64 value
     InvalidVarUint64,
-    /// Inconsistent metadata.
+    /// Inconsistent metadata
     InconsistentMetadata,
-    /// Invalid section id.
+    /// Invalid section id
     InvalidSectionId(u8),
-    /// Sections are out of order.
+    /// Sections are out of order
     SectionsOutOfOrder,
-    /// Duplicated sections.
+    /// Duplicated sections
     DuplicatedSections(u8),
-    /// Invalid memory reference (should be 0).
+    /// Invalid memory reference (should be 0)
     InvalidMemoryReference(u8),
-    /// Invalid table reference (should be 0).
+    /// Invalid table reference (should be 0)
     InvalidTableReference(u8),
-    /// Invalid value used for flags in limits type.
+    /// Invalid value used for flags in limits type
     InvalidLimitsFlags(u8),
-    /// Unknown function form (should be 0x60).
+    /// Unknown function form (should be 0x60)
     UnknownFunctionForm(u8),
-    /// Invalid varint7 (should be in -64..63 range).
+    /// Invalid varint7 (should be in -64..63 range)
     InvalidVarInt7(u8),
-    /// Number of function body entries and signatures does not match.
+    /// Number of function body entries and signatures does not match
     InconsistentCode,
-    /// Only flags 0, 1, and 2 are accepted on segments.
+    /// Only flags 0, 1, and 2 are accepted on segments
     InvalidSegmentFlags(u32),
-    /// Sum of counts of locals is greater than 2^32.
+    /// Sum of counts of locals is greater than 2^32
     TooManyLocals,
-    /// Duplicated name subsections.
+    /// Duplicated name subsections
     DuplicatedNameSubsections(u8),
-    /// Unknown name subsection type.
+    /// Unknown name subsection type
     UnknownNameSubsectionType(u8),
+    /// Unknown reference type
+    UnknownReferenceType(u8),
 }
 
 impl fmt::Display for Error {
@@ -201,6 +203,7 @@ impl fmt::Display for Error {
             Error::TooManyLocals => write!(f, "Too many locals"),
             Error::DuplicatedNameSubsections(n) => write!(f, "Duplicated name subsections: {}", n),
             Error::UnknownNameSubsectionType(n) => write!(f, "Unknown subsection type: {}", n),
+            Error::UnknownReferenceType(n) => write!(f, "Unknown reference type: {}", n),
         }
     }
 }
@@ -243,6 +246,7 @@ impl ::std::error::Error for Error {
             Error::TooManyLocals => "Too many locals",
             Error::DuplicatedNameSubsections(_) => "Duplicated name subsections",
             Error::UnknownNameSubsectionType(_) => "Unknown name subsections type",
+            Error::UnknownReferenceType(_) => "Unknown reference type",
         }
     }
 }
