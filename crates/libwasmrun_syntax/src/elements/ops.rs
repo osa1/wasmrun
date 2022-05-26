@@ -1,9 +1,10 @@
-use super::{
-    BlockType, CountedList, Deserialize, Error, Uint32, Uint64, Uint8, VarInt32, VarInt64,
-    VarUint32,
+use crate::elements::{
+    BlockType, CountedList, Deserialize, Error, ReferenceType, Uint32, Uint64, Uint8, VarInt32,
+    VarInt64, VarUint32,
 };
 use crate::io;
-use core::fmt;
+
+use std::fmt;
 
 /// List of instructions (usually inside a block section).
 #[derive(Debug, Clone, PartialEq)]
@@ -129,8 +130,8 @@ pub enum Instruction {
     GetGlobal(u32),
     SetGlobal(u32),
 
-    // All store/load instructions operate with 'memory immediates'
-    // which represented here as (flag, offset) tuple
+    // All store/load instructions operate with 'memory immediates' which represented here as
+    // (flag, offset) tuple
     I32Load(u32, u32),
     I64Load(u32, u32),
     F32Load(u32, u32),
@@ -307,6 +308,11 @@ pub enum Instruction {
     Simd(SimdInstruction),
     SignExt(SignExtInstruction),
     Bulk(BulkInstruction),
+
+    // Reference instructions
+    RefNull(ReferenceType),
+    RefIsNull,
+    RefFunc(u32), // func idx
 }
 
 #[allow(missing_docs)]
@@ -1049,6 +1055,10 @@ pub mod opcodes {
         pub const TABLE_DROP: u8 = 0x0d;
         pub const TABLE_COPY: u8 = 0x0e;
     }
+
+    pub const REF_NULL: u8 = 0xD0;
+    pub const REF_IS_NULL: u8 = 0xD1;
+    pub const REF_FUNC: u8 = 0xD2;
 }
 
 impl Deserialize for Instruction {
@@ -1384,6 +1394,10 @@ impl Deserialize for Instruction {
 
             // TODO (osa): Parses saturating ops as well
             bulk::BULK_PREFIX => return deserialize_bulk(reader),
+
+            REF_NULL => RefNull(ReferenceType::deserialize(reader)?),
+            REF_IS_NULL => RefIsNull,
+            REF_FUNC => RefFunc(VarUint32::deserialize(reader)?.into()),
 
             _ => return Err(Error::UnknownOpcode(val)),
         })
@@ -1987,6 +2001,10 @@ impl fmt::Display for Instruction {
             Simd(ref i) => i.fmt(f),
 
             Bulk(ref i) => i.fmt(f),
+
+            RefNull(ty) => write!(f, "ref.null {}", ty),
+            RefIsNull => write!(f, "ref.is_null"),
+            RefFunc(func_idx) => fmt_op!(f, "ref.func", func_idx),
         }
     }
 }

@@ -1,6 +1,7 @@
-use super::{CountedList, Deserialize, Error, Uint8, VarInt32, VarInt7, VarUint7};
+use crate::elements::{CountedList, Deserialize, Error, Uint8, VarInt32, VarInt7, VarUint7};
 use crate::io;
-use core::fmt;
+
+use std::fmt;
 
 /// Type definition in types section. Currently can be only of the function type.
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
@@ -174,7 +175,7 @@ impl Deserialize for TableElementType {
 }
 
 /// <https://webassembly.github.io/spec/core/syntax/types.html#syntax-reftype>
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ReferenceType {
     FuncRef,
     ExternRef,
@@ -188,6 +189,15 @@ impl Deserialize for ReferenceType {
             0x70 => Ok(ReferenceType::FuncRef),
             0x6F => Ok(ReferenceType::ExternRef),
             other => Err(Error::UnknownReferenceType(other)),
+        }
+    }
+}
+
+impl fmt::Display for ReferenceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ReferenceType::FuncRef => write!(f, "funcref"),
+            ReferenceType::ExternRef => write!(f, "externref"),
         }
     }
 }
