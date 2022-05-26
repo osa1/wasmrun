@@ -44,8 +44,8 @@ pub use self::{
     module::{peek_size, ImportCountType, Module},
     ops::{opcodes, BrTableData, InitExpr, Instruction, Instructions},
     primitives::{
-        CountedList, CountedListWriter, CountedWriter, Uint32, Uint64, Uint8, VarInt32, VarInt64,
-        VarInt7, VarUint1, VarUint32, VarUint64, VarUint7,
+        CountedList, Uint32, Uint64, Uint8, VarInt32, VarInt64, VarInt7, VarUint1, VarUint32,
+        VarUint64, VarUint7,
     },
     section::{
         CodeSection, CustomSection, DataSection, ElementSection, ExportSection, FunctionSection,
@@ -76,15 +76,6 @@ pub trait Deserialize: Sized {
     type Error: From<io::Error>;
     /// Deserialize type from serial i/o
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error>;
-}
-
-/// Serialization to serial i/o. Takes self by value to consume less memory
-/// (libwasmrun_syntax IR is being partially freed by filling the result buffer).
-pub trait Serialize {
-    /// Serialization error produced by serialization routine.
-    type Error: From<io::Error>;
-    /// Serialize type to serial i/o
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error>;
 }
 
 /// Deserialization/serialization error
@@ -305,26 +296,10 @@ pub fn deserialize_buffer<T: Deserialize>(contents: &[u8]) -> Result<T, T::Error
     Ok(result)
 }
 
-/// Create buffer with serialized value.
-pub fn serialize<T: Serialize>(val: T) -> Result<Vec<u8>, T::Error> {
-    let mut buf = Vec::new();
-    val.serialize(&mut buf)?;
-    Ok(buf)
-}
-
 /// Deserialize module from the file.
 pub fn deserialize_file<P: AsRef<::std::path::Path>>(p: P) -> Result<Module, Error> {
     let mut f = ::std::fs::File::open(p)
         .map_err(|e| Error::HeapOther(format!("Can't read from the file: {:?}", e)))?;
 
     Module::deserialize(&mut f)
-}
-
-/// Serialize module to the file
-pub fn serialize_to_file<P: AsRef<::std::path::Path>>(p: P, module: Module) -> Result<(), Error> {
-    let mut io = ::std::fs::File::create(p)
-        .map_err(|e| Error::HeapOther(format!("Can't create the file: {:?}", e)))?;
-
-    module.serialize(&mut io)?;
-    Ok(())
 }

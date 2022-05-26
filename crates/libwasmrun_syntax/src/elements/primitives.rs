@@ -1,5 +1,5 @@
-use super::{Deserialize, Error, Serialize};
-use crate::{elements, io};
+use super::{Deserialize, Error};
+use crate::io;
 
 const PRIMITIVES_BUFFER_LENGTH: usize = 1024;
 
@@ -62,28 +62,6 @@ impl Deserialize for VarUint32 {
     }
 }
 
-impl Serialize for VarUint32 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let mut buf = [0u8; 1];
-        let mut v = self.0;
-        loop {
-            buf[0] = (v & 0b0111_1111) as u8;
-            v >>= 7;
-            if v > 0 {
-                buf[0] |= 0b1000_0000;
-            }
-            writer.write(&buf[..])?;
-            if v == 0 {
-                break;
-            }
-        }
-
-        Ok(())
-    }
-}
-
 /// Unsigned variable-length integer, limited to 64 bits,
 /// represented by at most 9 bytes that may contain padding 0x80 bytes.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -124,28 +102,6 @@ impl Deserialize for VarUint64 {
     }
 }
 
-impl Serialize for VarUint64 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let mut buf = [0u8; 1];
-        let mut v = self.0;
-        loop {
-            buf[0] = (v & 0b0111_1111) as u8;
-            v >>= 7;
-            if v > 0 {
-                buf[0] |= 0b1000_0000;
-            }
-            writer.write(&buf[..])?;
-            if v == 0 {
-                break;
-            }
-        }
-
-        Ok(())
-    }
-}
-
 impl From<u64> for VarUint64 {
     fn from(u: u64) -> VarUint64 {
         VarUint64(u)
@@ -175,16 +131,6 @@ impl Deserialize for VarUint7 {
         let mut u8buf = [0u8; 1];
         reader.read(&mut u8buf)?;
         Ok(VarUint7(u8buf[0]))
-    }
-}
-
-impl Serialize for VarUint7 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        // todo check range?
-        writer.write(&[self.0])?;
-        Ok(())
     }
 }
 
@@ -225,21 +171,6 @@ impl Deserialize for VarInt7 {
     }
 }
 
-impl Serialize for VarInt7 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        // todo check range?
-        let mut b: u8 = self.0 as u8;
-        if self.0 < 0 {
-            b |= 0b0100_0000;
-            b &= 0b0111_1111;
-        }
-        writer.write(&[b])?;
-        Ok(())
-    }
-}
-
 /// 8-bit unsigned integer, NOT encoded in LEB128;
 /// it's just a single byte.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -264,15 +195,6 @@ impl Deserialize for Uint8 {
         let mut u8buf = [0u8; 1];
         reader.read(&mut u8buf)?;
         Ok(Uint8(u8buf[0]))
-    }
-}
-
-impl Serialize for Uint8 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        writer.write(&[self.0])?;
-        Ok(())
     }
 }
 
@@ -325,31 +247,6 @@ impl Deserialize for VarInt32 {
             }
         }
         Ok(VarInt32(res))
-    }
-}
-
-impl Serialize for VarInt32 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let mut buf = [0u8; 1];
-        let mut v = self.0;
-        let mut more = true;
-        while more {
-            buf[0] = (v & 0b0111_1111) as u8;
-            v >>= 7;
-            if (v == 0 && buf[0] & 0b0100_0000 == 0)
-                || (v == -1 && buf[0] & 0b0100_0000 == 0b0100_0000)
-            {
-                more = false
-            } else {
-                buf[0] |= 0b1000_0000
-            }
-
-            writer.write(&buf[..])?;
-        }
-
-        Ok(())
     }
 }
 
@@ -406,31 +303,6 @@ impl Deserialize for VarInt64 {
     }
 }
 
-impl Serialize for VarInt64 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let mut buf = [0u8; 1];
-        let mut v = self.0;
-        let mut more = true;
-        while more {
-            buf[0] = (v & 0b0111_1111) as u8;
-            v >>= 7;
-            if (v == 0 && buf[0] & 0b0100_0000 == 0)
-                || (v == -1 && buf[0] & 0b0100_0000 == 0b0100_0000)
-            {
-                more = false
-            } else {
-                buf[0] |= 0b1000_0000
-            }
-
-            writer.write(&buf[..])?;
-        }
-
-        Ok(())
-    }
-}
-
 /// 32-bit unsigned integer, encoded in little endian.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Uint32(u32);
@@ -452,15 +324,6 @@ impl From<Uint32> for u32 {
     }
 }
 
-impl Serialize for Uint32 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        writer.write(&self.0.to_le_bytes())?;
-        Ok(())
-    }
-}
-
 impl From<u32> for Uint32 {
     fn from(u: u32) -> Self {
         Uint32(u)
@@ -479,15 +342,6 @@ impl Deserialize for Uint64 {
         reader.read(&mut buf)?;
         // todo check range
         Ok(u64::from_le_bytes(buf).into())
-    }
-}
-
-impl Serialize for Uint64 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        writer.write(&self.0.to_le_bytes())?;
-        Ok(())
     }
 }
 
@@ -533,15 +387,6 @@ impl Deserialize for VarUint1 {
     }
 }
 
-impl Serialize for VarUint1 {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        writer.write(&[if self.0 { 1u8 } else { 0u8 }])?;
-        Ok(())
-    }
-}
-
 impl Deserialize for String {
     type Error = Error;
 
@@ -553,16 +398,6 @@ impl Deserialize for String {
         } else {
             Ok(String::new())
         }
-    }
-}
-
-impl Serialize for String {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Error> {
-        VarUint32::from(self.len()).serialize(writer)?;
-        writer.write(&self.into_bytes()[..])?;
-        Ok(())
     }
 }
 
@@ -594,84 +429,13 @@ where
     }
 }
 
-/// Helper struct to write payload which is preceded by
-/// it's own length in bytes.
-#[derive(Debug)]
-pub struct CountedWriter<'a, W: 'a + io::Write> {
-    writer: &'a mut W,
-    data: Vec<u8>,
-}
-
-impl<'a, W: 'a + io::Write> CountedWriter<'a, W> {
-    /// New counted writer on top of the given serial writer.
-    pub fn new(writer: &'a mut W) -> Self {
-        CountedWriter {
-            writer,
-            data: Vec::new(),
-        }
-    }
-
-    /// Finish counted writer routing, which writes accumulated length
-    /// and actual payload.
-    pub fn done(self) -> io::Result<()> {
-        let writer = self.writer;
-        let data = self.data;
-        VarUint32::from(data.len())
-            .serialize(writer)
-            .map_err(|_| io::Error::InvalidData)?;
-        writer.write(&data[..])?;
-        Ok(())
-    }
-}
-
-impl<'a, W: 'a + io::Write> io::Write for CountedWriter<'a, W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<()> {
-        self.data.extend_from_slice(buf);
-        Ok(())
-    }
-}
-
-/// Helper struct to write series of `T` preceded by the length of the sequence
-/// serialized as VarUint32.
-#[derive(Debug, Clone)]
-pub struct CountedListWriter<I: Serialize<Error = elements::Error>, T: IntoIterator<Item = I>>(
-    pub usize,
-    pub T,
-);
-
-impl<I: Serialize<Error = elements::Error>, T: IntoIterator<Item = I>> Serialize
-    for CountedListWriter<I, T>
-{
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let len_us = self.0;
-        let data = self.1;
-        let len: VarUint32 = len_us.into();
-        len.serialize(writer)?;
-        for data_element in data {
-            data_element.serialize(writer)?
-        }
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
     use super::{
-        super::{deserialize_buffer, Serialize},
-        CountedList, VarInt32, VarInt64, VarInt7, VarUint32, VarUint64,
+        super::deserialize_buffer, CountedList, VarInt32, VarInt64, VarInt7, VarUint32, VarUint64,
     };
     use crate::elements::Error;
-
-    fn varuint32_ser_test(val: u32, expected: Vec<u8>) {
-        let mut buf = Vec::new();
-        let v1: VarUint32 = val.into();
-        v1.serialize(&mut buf).expect("to be serialized ok");
-        assert_eq!(expected, buf);
-    }
 
     fn varuint32_de_test(dt: Vec<u8>, expected: u32) {
         let val: VarUint32 = super::super::deserialize_buffer(&dt).expect("buf to be serialized");
@@ -680,14 +444,6 @@ mod tests {
 
     fn varuint32_serde_test(dt: Vec<u8>, val: u32) {
         varuint32_de_test(dt.clone(), val);
-        varuint32_ser_test(val, dt);
-    }
-
-    fn varint32_ser_test(val: i32, expected: Vec<u8>) {
-        let mut buf = Vec::new();
-        let v1: VarInt32 = val.into();
-        v1.serialize(&mut buf).expect("to be serialized ok");
-        assert_eq!(expected, buf);
     }
 
     fn varint32_de_test(dt: Vec<u8>, expected: i32) {
@@ -697,14 +453,6 @@ mod tests {
 
     fn varint32_serde_test(dt: Vec<u8>, val: i32) {
         varint32_de_test(dt.clone(), val);
-        varint32_ser_test(val, dt);
-    }
-
-    fn varuint64_ser_test(val: u64, expected: Vec<u8>) {
-        let mut buf = Vec::new();
-        let v1: VarUint64 = val.into();
-        v1.serialize(&mut buf).expect("to be serialized ok");
-        assert_eq!(expected, buf);
     }
 
     fn varuint64_de_test(dt: Vec<u8>, expected: u64) {
@@ -714,14 +462,6 @@ mod tests {
 
     fn varuint64_serde_test(dt: Vec<u8>, val: u64) {
         varuint64_de_test(dt.clone(), val);
-        varuint64_ser_test(val, dt);
-    }
-
-    fn varint64_ser_test(val: i64, expected: Vec<u8>) {
-        let mut buf = Vec::new();
-        let v1: VarInt64 = val.into();
-        v1.serialize(&mut buf).expect("to be serialized ok");
-        assert_eq!(expected, buf);
     }
 
     fn varint64_de_test(dt: Vec<u8>, expected: i64) {
@@ -731,7 +471,6 @@ mod tests {
 
     fn varint64_serde_test(dt: Vec<u8>, val: i64) {
         varint64_de_test(dt.clone(), val);
-        varint64_ser_test(val, dt);
     }
 
     #[test]

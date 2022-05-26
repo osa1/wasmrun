@@ -8,7 +8,7 @@ use super::{
         CodeSection, CustomSection, DataSection, ElementSection, ExportSection, FunctionSection,
         GlobalSection, ImportSection, MemorySection, Section, TableSection, TypeSection,
     },
-    serialize, Deserialize, Error, External, Serialize, Uint32,
+    Deserialize, Error, External, Uint32,
 };
 
 use core::cmp;
@@ -58,11 +58,6 @@ impl Module {
     /// Construct a module from a slice.
     pub fn from_bytes<T: AsRef<[u8]>>(input: T) -> Result<Self, Error> {
         deserialize_buffer::<Module>(input.as_ref())
-    }
-
-    /// Serialize a module to a vector.
-    pub fn into_bytes(self) -> Result<Vec<u8>, Error> {
-        serialize::<Module>(self)
     }
 
     /// Destructure the module, yielding sections
@@ -660,20 +655,6 @@ impl Deserialize for Module {
     }
 }
 
-impl Serialize for Module {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, w: &mut W) -> Result<(), Self::Error> {
-        Uint32::from(self.magic).serialize(w)?;
-        Uint32::from(self.version).serialize(w)?;
-        for section in self.sections.into_iter() {
-            // todo: according to the spec the name section should appear after the data section
-            section.serialize(w)?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct PeekSection<'a> {
     cursor: usize,
@@ -744,8 +725,8 @@ pub fn peek_size(source: &[u8]) -> usize {
 mod integration_tests {
     use super::{
         super::{
-            deserialize_buffer, deserialize_file, serialize, CodeSection, ExportSection,
-            FunctionSection, Section, TypeSection,
+            deserialize_buffer, deserialize_file, CodeSection, ExportSection, FunctionSection,
+            Section, TypeSection,
         },
         Module,
     };
@@ -756,105 +737,6 @@ mod integration_tests {
 
         assert_eq!(module.version(), 1);
         assert_eq!(module.sections().len(), 8);
-    }
-
-    #[test]
-    fn serde() {
-        let module = deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        let buf = serialize(module).expect("serialization to succeed");
-
-        let module_new: Module = deserialize_buffer(&buf).expect("deserialization to succeed");
-        let module_old =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-
-        assert_eq!(module_old.sections().len(), module_new.sections().len());
-    }
-
-    #[test]
-    fn serde_type() {
-        let mut module =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        module
-            .sections_mut()
-            .retain(|x| matches!(x, &Section::Type(_)));
-
-        let buf = serialize(module).expect("serialization to succeed");
-
-        let module_new: Module = deserialize_buffer(&buf).expect("deserialization to succeed");
-        let module_old =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        assert_eq!(
-            module_old
-                .type_section()
-                .expect("type section exists")
-                .types()
-                .len(),
-            module_new
-                .type_section()
-                .expect("type section exists")
-                .types()
-                .len(),
-            "There should be equal amount of types before and after serialization"
-        );
-    }
-
-    #[test]
-    fn serde_import() {
-        let mut module =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        module
-            .sections_mut()
-            .retain(|x| matches!(x, &Section::Import(_)));
-
-        let buf = serialize(module).expect("serialization to succeed");
-
-        let module_new: Module = deserialize_buffer(&buf).expect("deserialization to succeed");
-        let module_old =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        assert_eq!(
-            module_old
-                .import_section()
-                .expect("import section exists")
-                .entries()
-                .len(),
-            module_new
-                .import_section()
-                .expect("import section exists")
-                .entries()
-                .len(),
-            "There should be equal amount of import entries before and after serialization"
-        );
-    }
-
-    #[test]
-    fn serde_code() {
-        let mut module =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        module.sections_mut().retain(|x| {
-            if let Section::Code(_) = *x {
-                return true;
-            }
-            matches!(*x, Section::Function(_))
-        });
-
-        let buf = serialize(module).expect("serialization to succeed");
-
-        let module_new: Module = deserialize_buffer(&buf).expect("deserialization to succeed");
-        let module_old =
-            deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        assert_eq!(
-            module_old
-                .code_section()
-                .expect("code section exists")
-                .bodies()
-                .len(),
-            module_new
-                .code_section()
-                .expect("code section exists")
-                .bodies()
-                .len(),
-            "There should be equal amount of function bodies before and after serialization"
-        );
     }
 
     #[test]
@@ -901,51 +783,6 @@ mod integration_tests {
 
         assert_eq!(func.code().elements().len(), 5);
         assert_eq!(I64Store(0, 32), func.code().elements()[2]);
-    }
-
-    #[test]
-    fn peek() {
-        use super::peek_size;
-
-        let module = deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
-        let mut buf = serialize(module).expect("serialization to succeed");
-
-        buf.extend_from_slice(&[1, 5, 12, 17]);
-
-        assert_eq!(peek_size(&buf), buf.len() - 4);
-    }
-
-    #[test]
-    fn peek_2() {
-        use super::peek_size;
-
-        let module =
-            deserialize_file("./res/cases/v1/offset.wasm").expect("Should be deserialized");
-        let mut buf = serialize(module).expect("serialization to succeed");
-
-        buf.extend_from_slice(&[0, 0, 0, 0, 0, 1, 5, 12, 17]);
-
-        assert_eq!(peek_size(&buf), buf.len() - 9);
-    }
-
-    #[test]
-    fn peek_3() {
-        use super::peek_size;
-
-        let module =
-            deserialize_file("./res/cases/v1/peek_sample.wasm").expect("Should be deserialized");
-        let buf = serialize(module).expect("serialization to succeed");
-
-        assert_eq!(peek_size(&buf), buf.len());
-    }
-
-    #[test]
-    fn module_default_round_trip() {
-        let module1 = Module::default();
-        let buf = serialize(module1).expect("Serialization should succeed");
-
-        let module2: Module = deserialize_buffer(&buf).expect("Deserialization should succeed");
-        assert_eq!(Module::default().magic, module2.magic);
     }
 
     #[test]
@@ -1200,17 +1037,5 @@ mod integration_tests {
         assert!(module
             .insert_section(Section::Code(CodeSection::with_bodies(vec![])))
             .is_err());
-
-        // Try serialisation roundtrip to check well-orderedness.
-        let serialized = serialize(module).expect("serialization to succeed");
-        assert!(deserialize_buffer::<Module>(&serialized).is_ok());
-    }
-
-    #[test]
-    fn serialization_roundtrip() {
-        let module = deserialize_file("./res/cases/v1/test.wasm").expect("failed to deserialize");
-        let module_copy = module.clone().into_bytes().expect("failed to serialize");
-        let module_copy = Module::from_bytes(&module_copy).expect("failed to deserialize");
-        assert_eq!(module, module_copy);
     }
 }

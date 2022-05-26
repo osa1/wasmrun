@@ -1,7 +1,4 @@
-use super::{
-    CountedList, CountedListWriter, CountedWriter, Deserialize, Error, Instructions, Serialize,
-    ValueType, VarUint32,
-};
+use super::{CountedList, Deserialize, Error, Instructions, ValueType, VarUint32};
 use crate::{elements::section::SectionReader, io};
 
 /// Function signature (type reference)
@@ -22,14 +19,6 @@ impl Func {
     /// Function signature type reference (mutable).
     pub fn type_ref_mut(&mut self) -> &mut u32 {
         &mut self.0
-    }
-}
-
-impl Serialize for Func {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        VarUint32::from(self.0).serialize(writer)
     }
 }
 
@@ -75,16 +64,6 @@ impl Deserialize for Local {
             count: count.into(),
             value_type,
         })
-    }
-}
-
-impl Serialize for Local {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        VarUint32::from(self.count).serialize(writer)?;
-        self.value_type.serialize(writer)?;
-        Ok(())
     }
 }
 
@@ -155,25 +134,5 @@ impl Deserialize for FuncBody {
             locals,
             instructions,
         })
-    }
-}
-
-impl Serialize for FuncBody {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let mut counted_writer = CountedWriter::new(writer);
-
-        let data = self.locals;
-        let counted_list =
-            CountedListWriter::<Local, _>(data.len(), data.into_iter().map(Into::into));
-        counted_list.serialize(&mut counted_writer)?;
-
-        let code = self.instructions;
-        code.serialize(&mut counted_writer)?;
-
-        counted_writer.done()?;
-
-        Ok(())
     }
 }

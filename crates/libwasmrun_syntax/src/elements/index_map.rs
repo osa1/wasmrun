@@ -1,6 +1,6 @@
 use crate::io;
 
-use super::{Deserialize, Error, Serialize, VarUint32};
+use super::{Deserialize, Error, VarUint32};
 
 use core::{
     cmp::min,
@@ -318,23 +318,6 @@ impl<'a, T: 'static> IntoIterator for &'a IndexMap<T> {
     }
 }
 
-impl<T> Serialize for IndexMap<T>
-where
-    T: Serialize,
-    Error: From<<T as Serialize>::Error>,
-{
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Self::Error> {
-        VarUint32::from(self.len()).serialize(wtr)?;
-        for (idx, value) in self {
-            VarUint32::from(idx).serialize(wtr)?;
-            value.serialize(wtr)?;
-        }
-        Ok(())
-    }
-}
-
 impl<T: Deserialize> IndexMap<T>
 where
     T: Deserialize,
@@ -353,7 +336,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::io;
 
     #[test]
     fn default_is_empty_no_matter_how_we_look_at_it() {
@@ -533,56 +515,5 @@ mod tests {
         assert_eq!(iter2.size_hint(), (0, Some(0)));
         assert_eq!(iter2.next(), None);
         assert_eq!(iter2.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn serialize_and_deserialize() {
-        let mut map = IndexMap::<String>::default();
-        map.insert(1, "val 1".to_string());
-
-        let mut output = vec![];
-        map.clone()
-            .serialize(&mut output)
-            .expect("serialize failed");
-
-        let mut input = io::Cursor::new(&output);
-        let deserialized = IndexMap::deserialize(2, &mut input).expect("deserialize failed");
-
-        assert_eq!(deserialized, map);
-    }
-
-    #[test]
-    fn deserialize_requires_elements_to_be_in_order() {
-        // Build a in-order example by hand.
-        let mut valid = vec![];
-        VarUint32::from(2u32).serialize(&mut valid).unwrap();
-        VarUint32::from(0u32).serialize(&mut valid).unwrap();
-        "val 0".to_string().serialize(&mut valid).unwrap();
-        VarUint32::from(1u32).serialize(&mut valid).unwrap();
-        "val 1".to_string().serialize(&mut valid).unwrap();
-        let map = IndexMap::<String>::deserialize(2, &mut io::Cursor::new(valid))
-            .expect("unexpected error deserializing");
-        assert_eq!(map.len(), 2);
-
-        // Build an out-of-order example by hand.
-        let mut invalid = vec![];
-        VarUint32::from(2u32).serialize(&mut invalid).unwrap();
-        VarUint32::from(1u32).serialize(&mut invalid).unwrap();
-        "val 1".to_string().serialize(&mut invalid).unwrap();
-        VarUint32::from(0u32).serialize(&mut invalid).unwrap();
-        "val 0".to_string().serialize(&mut invalid).unwrap();
-        let res = IndexMap::<String>::deserialize(2, &mut io::Cursor::new(invalid));
-        assert!(res.is_err());
-    }
-
-    #[test]
-    fn deserialize_enforces_max_idx() {
-        // Build an example with an out-of-bounds index by hand.
-        let mut invalid = vec![];
-        VarUint32::from(1u32).serialize(&mut invalid).unwrap();
-        VarUint32::from(5u32).serialize(&mut invalid).unwrap();
-        "val 5".to_string().serialize(&mut invalid).unwrap();
-        let res = IndexMap::<String>::deserialize(1, &mut io::Cursor::new(invalid));
-        assert!(res.is_err());
     }
 }

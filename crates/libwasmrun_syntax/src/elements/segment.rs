@@ -1,4 +1,4 @@
-use super::{CountedList, CountedListWriter, Deserialize, Error, InitExpr, Serialize, VarUint32};
+use super::{CountedList, Deserialize, Error, InitExpr, VarUint32};
 use crate::io;
 
 const FLAG_MEMZERO: u32 = 0;
@@ -109,33 +109,6 @@ impl Deserialize for ElementSegment {
     }
 }
 
-impl Serialize for ElementSegment {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        {
-            if self.passive {
-                VarUint32::from(FLAG_PASSIVE).serialize(writer)?;
-            } else if self.index != 0 {
-                VarUint32::from(FLAG_MEM_NONZERO).serialize(writer)?;
-                VarUint32::from(self.index).serialize(writer)?;
-            } else {
-                VarUint32::from(FLAG_MEMZERO).serialize(writer)?;
-            }
-        }
-        VarUint32::from(self.index).serialize(writer)?;
-
-        if let Some(offset) = self.offset {
-            offset.serialize(writer)?;
-        }
-        let data = self.members;
-        let counted_list =
-            CountedListWriter::<VarUint32, _>(data.len(), data.into_iter().map(Into::into));
-        counted_list.serialize(writer)?;
-        Ok(())
-    }
-}
-
 /// Data segment definition.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataSegment {
@@ -229,32 +202,5 @@ impl Deserialize for DataSegment {
             value,
             passive: flags == FLAG_PASSIVE,
         })
-    }
-}
-
-impl Serialize for DataSegment {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        {
-            if self.passive {
-                VarUint32::from(FLAG_PASSIVE).serialize(writer)?;
-            } else if self.index != 0 {
-                VarUint32::from(FLAG_MEM_NONZERO).serialize(writer)?;
-                VarUint32::from(self.index).serialize(writer)?;
-            } else {
-                VarUint32::from(FLAG_MEMZERO).serialize(writer)?;
-            }
-        }
-        VarUint32::from(self.index).serialize(writer)?;
-
-        if let Some(offset) = self.offset {
-            offset.serialize(writer)?;
-        }
-
-        let value = self.value;
-        VarUint32::from(value.len()).serialize(writer)?;
-        writer.write(&value[..])?;
-        Ok(())
     }
 }

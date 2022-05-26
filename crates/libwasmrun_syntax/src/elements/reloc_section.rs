@@ -1,9 +1,6 @@
 use crate::io;
 
-use super::{
-    CountedList, CountedListWriter, CountedWriter, Deserialize, Error, Serialize, VarInt32,
-    VarUint32, VarUint7,
-};
+use super::{CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
 
 const FUNCTION_INDEX_LEB: u8 = 0;
 const TABLE_INDEX_SLEB: u8 = 1;
@@ -91,29 +88,6 @@ impl RelocSection {
             relocation_section_name,
             entries,
         })
-    }
-}
-
-impl Serialize for RelocSection {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Error> {
-        let mut counted_writer = CountedWriter::new(wtr);
-
-        self.name.serialize(&mut counted_writer)?;
-
-        VarUint32::from(self.section_id).serialize(&mut counted_writer)?;
-
-        if let Some(relocation_section_name) = self.relocation_section_name {
-            relocation_section_name.serialize(&mut counted_writer)?;
-        }
-
-        let counted_list = CountedListWriter(self.entries.len(), self.entries.into_iter());
-        counted_list.serialize(&mut counted_writer)?;
-
-        counted_writer.done()?;
-
-        Ok(())
     }
 }
 
@@ -252,79 +226,6 @@ impl Deserialize for RelocationEntry {
 
             entry_type => Err(Error::UnknownValueType(entry_type as i8)),
         }
-    }
-}
-
-impl Serialize for RelocationEntry {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Error> {
-        match self {
-            RelocationEntry::FunctionIndexLeb { offset, index } => {
-                VarUint7::from(FUNCTION_INDEX_LEB).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-            }
-
-            RelocationEntry::TableIndexSleb { offset, index } => {
-                VarUint7::from(TABLE_INDEX_SLEB).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-            }
-
-            RelocationEntry::TableIndexI32 { offset, index } => {
-                VarUint7::from(TABLE_INDEX_I32).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-            }
-
-            RelocationEntry::MemoryAddressLeb {
-                offset,
-                index,
-                addend,
-            } => {
-                VarUint7::from(MEMORY_ADDR_LEB).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-                VarInt32::from(addend).serialize(wtr)?;
-            }
-
-            RelocationEntry::MemoryAddressSleb {
-                offset,
-                index,
-                addend,
-            } => {
-                VarUint7::from(MEMORY_ADDR_SLEB).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-                VarInt32::from(addend).serialize(wtr)?;
-            }
-
-            RelocationEntry::MemoryAddressI32 {
-                offset,
-                index,
-                addend,
-            } => {
-                VarUint7::from(MEMORY_ADDR_I32).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-                VarInt32::from(addend).serialize(wtr)?;
-            }
-
-            RelocationEntry::TypeIndexLeb { offset, index } => {
-                VarUint7::from(TYPE_INDEX_LEB).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-            }
-
-            RelocationEntry::GlobalIndexLeb { offset, index } => {
-                VarUint7::from(GLOBAL_INDEX_LEB).serialize(wtr)?;
-                VarUint32::from(offset).serialize(wtr)?;
-                VarUint32::from(index).serialize(wtr)?;
-            }
-        }
-
-        Ok(())
     }
 }
 

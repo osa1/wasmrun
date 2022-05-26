@@ -1,6 +1,5 @@
 use super::{
-    Deserialize, Error, Serialize, TableElementType, Uint8, ValueType, VarInt7, VarUint1,
-    VarUint32, VarUint7,
+    Deserialize, Error, TableElementType, Uint8, ValueType, VarUint1, VarUint32, VarUint7,
 };
 use crate::io;
 
@@ -47,16 +46,6 @@ impl Deserialize for GlobalType {
     }
 }
 
-impl Serialize for GlobalType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        self.content_type.serialize(writer)?;
-        VarUint1::from(self.is_mutable).serialize(writer)?;
-        Ok(())
-    }
-}
-
 /// Table entry
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TableType {
@@ -91,15 +80,6 @@ impl Deserialize for TableType {
         let elem_type = TableElementType::deserialize(reader)?;
         let limits = ResizableLimits::deserialize(reader)?;
         Ok(TableType { elem_type, limits })
-    }
-}
-
-impl Serialize for TableType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        self.elem_type.serialize(writer)?;
-        self.limits.serialize(writer)
     }
 }
 
@@ -166,27 +146,6 @@ impl Deserialize for ResizableLimits {
     }
 }
 
-impl Serialize for ResizableLimits {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let mut flags: u8 = 0;
-        if self.maximum.is_some() {
-            flags |= FLAG_HAS_MAX;
-        }
-
-        if self.shared {
-            flags |= FLAG_SHARED;
-        }
-        Uint8::from(flags).serialize(writer)?;
-        VarUint32::from(self.initial).serialize(writer)?;
-        if let Some(max) = self.maximum {
-            VarUint32::from(max).serialize(writer)?;
-        }
-        Ok(())
-    }
-}
-
 /// Memory entry.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct MemoryType(ResizableLimits);
@@ -219,14 +178,6 @@ impl Deserialize for MemoryType {
     }
 }
 
-impl Serialize for MemoryType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        self.0.serialize(writer)
-    }
-}
-
 /// External to local binding.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum External {
@@ -253,35 +204,6 @@ impl Deserialize for External {
             0x03 => Ok(External::Global(GlobalType::deserialize(reader)?)),
             _ => Err(Error::UnknownExternalKind(kind.into())),
         }
-    }
-}
-
-impl Serialize for External {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        use self::External::*;
-
-        match self {
-            Function(index) => {
-                VarUint7::from(0x00).serialize(writer)?;
-                VarUint32::from(index).serialize(writer)?;
-            }
-            Table(tt) => {
-                VarInt7::from(0x01).serialize(writer)?;
-                tt.serialize(writer)?;
-            }
-            Memory(mt) => {
-                VarInt7::from(0x02).serialize(writer)?;
-                mt.serialize(writer)?;
-            }
-            Global(gt) => {
-                VarInt7::from(0x03).serialize(writer)?;
-                gt.serialize(writer)?;
-            }
-        }
-
-        Ok(())
     }
 }
 
@@ -347,15 +269,5 @@ impl Deserialize for ImportEntry {
             field_str,
             external,
         })
-    }
-}
-
-impl Serialize for ImportEntry {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        self.module_str.serialize(writer)?;
-        self.field_str.serialize(writer)?;
-        self.external.serialize(writer)
     }
 }

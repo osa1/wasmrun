@@ -1,6 +1,4 @@
-use super::{
-    CountedList, CountedListWriter, Deserialize, Error, Serialize, VarInt32, VarInt7, VarUint7,
-};
+use super::{CountedList, Deserialize, Error, VarInt32, VarInt7, VarUint7};
 use crate::io;
 use core::fmt;
 
@@ -16,16 +14,6 @@ impl Deserialize for Type {
 
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Self::Error> {
         Ok(Type::Function(FunctionType::deserialize(reader)?))
-    }
-}
-
-impl Serialize for Type {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        match self {
-            Type::Function(fn_type) => fn_type.serialize(writer),
-        }
     }
 }
 
@@ -58,23 +46,6 @@ impl Deserialize for ValueType {
             -0x05 => Ok(ValueType::V128),
             _ => Err(Error::UnknownValueType(val.into())),
         }
-    }
-}
-
-impl Serialize for ValueType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let val: VarInt7 = match self {
-            ValueType::I32 => -0x01,
-            ValueType::I64 => -0x02,
-            ValueType::F32 => -0x03,
-            ValueType::F64 => -0x04,
-            ValueType::V128 => -0x05,
-        }
-        .into();
-        val.serialize(writer)?;
-        Ok(())
     }
 }
 
@@ -119,25 +90,6 @@ impl Deserialize for BlockType {
                 Ok(BlockType::TypeIndex(idx))
             }
         }
-    }
-}
-
-impl Serialize for BlockType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let val: VarInt32 = match self {
-            BlockType::NoResult => -0x40,
-            BlockType::Value(ValueType::I32) => -0x01,
-            BlockType::Value(ValueType::I64) => -0x02,
-            BlockType::Value(ValueType::F32) => -0x03,
-            BlockType::Value(ValueType::F64) => -0x04,
-            BlockType::Value(ValueType::V128) => -0x05,
-            BlockType::TypeIndex(idx) => idx as i32,
-        }
-        .into();
-        val.serialize(writer)?;
-        Ok(())
     }
 }
 
@@ -211,28 +163,6 @@ impl Deserialize for FunctionType {
     }
 }
 
-impl Serialize for FunctionType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        VarUint7::from(self.form).serialize(writer)?;
-
-        let params_counted_list = CountedListWriter::<ValueType, _>(
-            self.params.len(),
-            self.params.into_iter().map(Into::into),
-        );
-        params_counted_list.serialize(writer)?;
-
-        let results_counted_list = CountedListWriter::<ValueType, _>(
-            self.results.len(),
-            self.results.into_iter().map(Into::into),
-        );
-        results_counted_list.serialize(writer)?;
-
-        Ok(())
-    }
-}
-
 /// Table element type.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TableElementType {
@@ -250,18 +180,5 @@ impl Deserialize for TableElementType {
             -0x10 => Ok(TableElementType::AnyFunc),
             _ => Err(Error::UnknownTableElementType(val.into())),
         }
-    }
-}
-
-impl Serialize for TableElementType {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        let val: VarInt7 = match self {
-            TableElementType::AnyFunc => -0x10,
-        }
-        .into();
-        val.serialize(writer)?;
-        Ok(())
     }
 }

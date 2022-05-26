@@ -1,8 +1,6 @@
 use crate::io;
 
-use super::{
-    index_map::IndexMap, Deserialize, Error, Module, Serialize, Type, VarUint32, VarUint7,
-};
+use super::{index_map::IndexMap, Deserialize, Error, Module, Type, VarUint32, VarUint7};
 
 const NAME_TYPE_MODULE: u8 = 0;
 const NAME_TYPE_FUNCTION: u8 = 1;
@@ -117,42 +115,6 @@ impl NameSection {
     }
 }
 
-impl Serialize for NameSection {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Error> {
-        fn serialize_subsection<W: io::Write>(
-            wtr: &mut W,
-            name_type: u8,
-            name_payload: &[u8],
-        ) -> Result<(), Error> {
-            VarUint7::from(name_type).serialize(wtr)?;
-            VarUint32::from(name_payload.len()).serialize(wtr)?;
-            wtr.write(name_payload).map_err(Into::into)
-        }
-
-        if let Some(module_name_subsection) = self.module {
-            let mut buffer = vec![];
-            module_name_subsection.serialize(&mut buffer)?;
-            serialize_subsection(wtr, NAME_TYPE_MODULE, &buffer)?;
-        }
-
-        if let Some(function_name_subsection) = self.functions {
-            let mut buffer = vec![];
-            function_name_subsection.serialize(&mut buffer)?;
-            serialize_subsection(wtr, NAME_TYPE_FUNCTION, &buffer)?;
-        }
-
-        if let Some(local_name_subsection) = self.locals {
-            let mut buffer = vec![];
-            local_name_subsection.serialize(&mut buffer)?;
-            serialize_subsection(wtr, NAME_TYPE_LOCAL, &buffer)?;
-        }
-
-        Ok(())
-    }
-}
-
 /// The name of this module.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModuleNameSubsection {
@@ -173,14 +135,6 @@ impl ModuleNameSubsection {
     /// The name of this module (mutable).
     pub fn name_mut(&mut self) -> &mut String {
         &mut self.name
-    }
-}
-
-impl Serialize for ModuleNameSubsection {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Error> {
-        self.name.serialize(wtr)
     }
 }
 
@@ -217,14 +171,6 @@ impl FunctionNameSubsection {
     ) -> Result<FunctionNameSubsection, Error> {
         let names = IndexMap::deserialize(module.functions_space(), rdr)?;
         Ok(FunctionNameSubsection { names })
-    }
-}
-
-impl Serialize for FunctionNameSubsection {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Error> {
-        self.names.serialize(wtr)
     }
 }
 
@@ -288,83 +234,12 @@ impl LocalNameSubsection {
     }
 }
 
-impl Serialize for LocalNameSubsection {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, wtr: &mut W) -> Result<(), Error> {
-        self.local_names.serialize(wtr)
-    }
-}
-
 /// A map from indices to names.
 pub type NameMap = IndexMap<String>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // A helper function for the tests. Serialize a section, deserialize it,
-    // and make sure it matches the original.
-    fn serialize_test(original: NameSection) -> Vec<u8> {
-        let mut buffer = vec![];
-        original.serialize(&mut buffer).expect("serialize error");
-        buffer
-        // todo: add deserialization to this test
-    }
-
-    #[test]
-    fn serialize_module_name() {
-        let module_name_subsection = ModuleNameSubsection::new("my_mod");
-        let original = NameSection::new(Some(module_name_subsection), None, None);
-        serialize_test(original);
-    }
-
-    #[test]
-    fn serialize_function_names() {
-        let mut function_name_subsection = FunctionNameSubsection::default();
-        function_name_subsection
-            .names_mut()
-            .insert(0, "hello_world".to_string());
-        let name_section = NameSection::new(None, Some(function_name_subsection), None);
-        serialize_test(name_section);
-    }
-
-    #[test]
-    fn serialize_local_names() {
-        let mut local_name_subsection = LocalNameSubsection::default();
-        let mut locals = NameMap::default();
-        locals.insert(0, "msg".to_string());
-        local_name_subsection.local_names_mut().insert(0, locals);
-
-        let name_section = NameSection::new(None, None, Some(local_name_subsection));
-        serialize_test(name_section);
-    }
-
-    #[test]
-    fn serialize_all_subsections() {
-        let module_name_subsection = ModuleNameSubsection::new("ModuleNameSubsection");
-
-        let mut function_name_subsection = FunctionNameSubsection::default();
-        function_name_subsection
-            .names_mut()
-            .insert(0, "foo".to_string());
-        function_name_subsection
-            .names_mut()
-            .insert(1, "bar".to_string());
-
-        let mut local_name_subsection = LocalNameSubsection::default();
-        let mut locals = NameMap::default();
-        locals.insert(0, "msg1".to_string());
-        locals.insert(1, "msg2".to_string());
-        local_name_subsection.local_names_mut().insert(0, locals);
-
-        let name_section = NameSection::new(
-            Some(module_name_subsection),
-            Some(function_name_subsection),
-            Some(local_name_subsection),
-        );
-        serialize_test(name_section);
-    }
 
     #[test]
     fn deserialize_local_names() {

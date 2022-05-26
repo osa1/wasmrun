@@ -1,4 +1,4 @@
-use super::{Deserialize, Error, GlobalType, InitExpr, Serialize};
+use super::{Deserialize, Error, GlobalType, InitExpr};
 use crate::io;
 
 /// Global entry in the module.
@@ -45,14 +45,5 @@ impl Deserialize for GlobalEntry {
             global_type,
             init_expr,
         })
-    }
-}
-
-impl Serialize for GlobalEntry {
-    type Error = Error;
-
-    fn serialize<W: io::Write>(self, writer: &mut W) -> Result<(), Self::Error> {
-        self.global_type.serialize(writer)?;
-        self.init_expr.serialize(writer)
     }
 }

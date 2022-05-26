@@ -23,13 +23,6 @@ pub enum Error {
 /// IO specific Result.
 pub type Result<T> = core::result::Result<T, Error>;
 
-pub trait Write {
-    /// Write a buffer of data into this write.
-    ///
-    /// All data is written at once.
-    fn write(&mut self, buf: &[u8]) -> Result<()>;
-}
-
 pub trait Read {
     /// Read a data from this read to a buffer.
     ///
@@ -70,12 +63,6 @@ impl<T: AsRef<[u8]>> Read for Cursor<T> {
 impl<T: io::Read> Read for T {
     fn read(&mut self, buf: &mut [u8]) -> Result<()> {
         self.read_exact(buf).map_err(Error::Io)
-    }
-}
-
-impl<T: io::Write> Write for T {
-    fn write(&mut self, buf: &[u8]) -> Result<()> {
-        self.write_all(buf).map_err(Error::Io)
     }
 }
 
