@@ -55,7 +55,6 @@ pub use self::{
 };
 
 pub use self::ops::AtomicsInstruction;
-pub use self::ops::BulkInstruction;
 pub use self::ops::MemArg;
 pub use self::ops::SignExtInstruction;
 pub use self::ops::SimdInstruction;

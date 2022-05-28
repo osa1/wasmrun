@@ -308,7 +308,14 @@ pub enum Instruction {
     Atomics(AtomicsInstruction),
     Simd(SimdInstruction),
     SignExt(SignExtInstruction),
-    Bulk(BulkInstruction),
+
+    MemoryInit(u32),
+    MemoryDrop(u32),
+    MemoryCopy,
+    MemoryFill,
+    TableInit { elem_idx: u32, table_idx: u32 },
+    TableDrop(u32),
+    TableCopy,
 
     // Reference instructions
     RefNull(ReferenceType),
@@ -559,18 +566,6 @@ pub enum SignExtInstruction {
     I64Extend8S,
     I64Extend16S,
     I64Extend32S,
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum BulkInstruction {
-    MemoryInit(u32),
-    MemoryDrop(u32),
-    MemoryCopy,
-    MemoryFill,
-    TableInit { elem_idx: u32, table_idx: u32 },
-    TableDrop(u32),
-    TableCopy,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1046,16 +1041,14 @@ pub mod opcodes {
         pub const F64X2_CONVERT_U_I64X2: u32 = 0xb2;
     }
 
-    pub mod bulk {
-        pub const BULK_PREFIX: u8 = 0xfc;
-        pub const MEMORY_INIT: u8 = 0x08;
-        pub const MEMORY_DROP: u8 = 0x09;
-        pub const MEMORY_COPY: u8 = 0x0a;
-        pub const MEMORY_FILL: u8 = 0x0b;
-        pub const TABLE_INIT: u8 = 0x0c; // 12
-        pub const TABLE_DROP: u8 = 0x0d; // 13
-        pub const TABLE_COPY: u8 = 0x0e; // 14
-    }
+    pub const BULK_PREFIX: u8 = 0xfc;
+    pub const MEMORY_INIT: u8 = 0x08;
+    pub const MEMORY_DROP: u8 = 0x09;
+    pub const MEMORY_COPY: u8 = 0x0a;
+    pub const MEMORY_FILL: u8 = 0x0b;
+    pub const TABLE_INIT: u8 = 0x0c; // 12
+    pub const TABLE_DROP: u8 = 0x0d; // 13
+    pub const TABLE_COPY: u8 = 0x0e; // 14
 
     pub const REF_NULL: u8 = 0xD0;
     pub const REF_IS_NULL: u8 = 0xD1;
@@ -1394,7 +1387,7 @@ impl Deserialize for Instruction {
             simd::SIMD_PREFIX => return deserialize_simd(reader),
 
             // TODO (osa): Parses saturating ops as well
-            bulk::BULK_PREFIX => return deserialize_bulk(reader),
+            BULK_PREFIX => return deserialize_bulk(reader),
 
             REF_NULL => RefNull(ReferenceType::deserialize(reader)?),
             REF_IS_NULL => RefIsNull,
@@ -1661,7 +1654,7 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
 }
 
 fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
-    use self::{opcodes::bulk::*, opcodes::*, BulkInstruction::*, Instruction::*};
+    use self::{opcodes::*, Instruction::*};
 
     let val: u8 = Uint8::deserialize(reader)?.into();
 
@@ -1678,36 +1671,36 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
             if u8::from(Uint8::deserialize(reader)?) != 0 {
                 return Err(Error::UnknownOpcode(val));
             }
-            Bulk(MemoryInit(VarUint32::deserialize(reader)?.into()))
+            MemoryInit(VarUint32::deserialize(reader)?.into())
         }
-        MEMORY_DROP => Bulk(MemoryDrop(VarUint32::deserialize(reader)?.into())),
+        MEMORY_DROP => MemoryDrop(VarUint32::deserialize(reader)?.into()),
         MEMORY_FILL => {
             if u8::from(Uint8::deserialize(reader)?) != 0 {
                 return Err(Error::UnknownOpcode(val));
             }
-            Bulk(MemoryFill)
+            MemoryFill
         }
         MEMORY_COPY => {
             if u8::from(Uint8::deserialize(reader)?) != 0 {
                 return Err(Error::UnknownOpcode(val));
             }
-            Bulk(MemoryCopy)
+            MemoryCopy
         }
 
         TABLE_INIT => {
             let elem_idx = VarUint32::deserialize(reader)?.into();
             let table_idx = VarUint32::deserialize(reader)?.into();
-            Bulk(TableInit {
+            TableInit {
                 elem_idx,
                 table_idx,
-            })
+            }
         }
-        TABLE_DROP => Bulk(TableDrop(VarUint32::deserialize(reader)?.into())),
+        TABLE_DROP => TableDrop(VarUint32::deserialize(reader)?.into()),
         TABLE_COPY => {
             if u8::from(Uint8::deserialize(reader)?) != 0 {
                 return Err(Error::UnknownOpcode(val));
             }
-            Bulk(TableCopy)
+            TableCopy
         }
         _ => return Err(Error::UnknownOpcode(val as u8)),
     })
@@ -2003,7 +1996,16 @@ impl fmt::Display for Instruction {
 
             Simd(ref i) => i.fmt(f),
 
-            Bulk(ref i) => i.fmt(f),
+            MemoryInit(_) => write!(f, "memory.init"),
+            MemoryDrop(_) => write!(f, "memory.drop"),
+            MemoryFill => write!(f, "memory.fill"),
+            MemoryCopy => write!(f, "memory.copy"),
+            TableInit {
+                elem_idx,
+                table_idx,
+            } => write!(f, "table.init {}, {}", table_idx, elem_idx),
+            TableDrop(_) => write!(f, "table.drop"),
+            TableCopy => write!(f, "table.copy"),
 
             RefNull(ty) => write!(f, "ref.null {}", ty),
             RefIsNull => write!(f, "ref.is_null"),
@@ -2251,25 +2253,6 @@ impl fmt::Display for SimdInstruction {
             I32x4TruncUF32x4Sat => write!(f, "i32x4.trunc_u/f32x4:sat"),
             I64x2TruncSF64x2Sat => write!(f, "i64x2.trunc_s/f64x2:sat"),
             I64x2TruncUF64x2Sat => write!(f, "i64x2.trunc_u/f64x2:sat"),
-        }
-    }
-}
-
-impl fmt::Display for BulkInstruction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::BulkInstruction::*;
-
-        match *self {
-            MemoryInit(_) => write!(f, "memory.init"),
-            MemoryDrop(_) => write!(f, "memory.drop"),
-            MemoryFill => write!(f, "memory.fill"),
-            MemoryCopy => write!(f, "memory.copy"),
-            TableInit {
-                elem_idx,
-                table_idx,
-            } => write!(f, "table.init {}, {}", table_idx, elem_idx),
-            TableDrop(_) => write!(f, "table.drop"),
-            TableCopy => write!(f, "table.copy"),
         }
     }
 }

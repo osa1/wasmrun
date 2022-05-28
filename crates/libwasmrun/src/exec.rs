@@ -2434,7 +2434,13 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Atomics(_)
         | Instruction::Simd(_)
-        | Instruction::Bulk(_)
+        | Instruction::MemoryInit(_)
+        | Instruction::MemoryDrop(_)
+        | Instruction::MemoryCopy
+        | Instruction::MemoryFill
+        | Instruction::TableInit { .. }
+        | Instruction::TableDrop(_)
+        | Instruction::TableCopy
         | Instruction::RefNull(_)
         | Instruction::RefIsNull
         | Instruction::RefFunc(_) => {
