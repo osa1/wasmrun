@@ -310,12 +310,19 @@ pub enum Instruction {
     SignExt(SignExtInstruction),
 
     MemoryInit(u32),
-    MemoryDrop(u32),
+    DataDrop(u32),
     MemoryCopy,
     MemoryFill,
+
+    // Table instructions
+    TableGet(u32),
+    TableSet(u32),
+    TableSize(u32),
+    TableGrow(u32),
+    TableFill(u32),
+    TableCopy(u32, u32),
     TableInit { elem_idx: u32, table_idx: u32 },
-    TableDrop(u32),
-    TableCopy,
+    ElemDrop(u32),
 
     // Reference instructions
     RefNull(ReferenceType),
@@ -780,15 +787,14 @@ pub mod opcodes {
     pub const F32REINTERPRETI32: u8 = 0xbe;
     pub const F64REINTERPRETI64: u8 = 0xbf;
 
-    pub const TRUNC_SAT_PREFIX: u8 = 0xfc;
-    pub const I32_TRUNC_SAT_F32_S: u8 = 0;
-    pub const I32_TRUNC_SAT_F32_U: u8 = 1;
-    pub const I32_TRUNC_SAT_F64_S: u8 = 2;
-    pub const I32_TRUNC_SAT_F64_U: u8 = 3;
-    pub const I64_TRUNC_SAT_F32_S: u8 = 4;
-    pub const I64_TRUNC_SAT_F32_U: u8 = 5;
-    pub const I64_TRUNC_SAT_F64_S: u8 = 6;
-    pub const I64_TRUNC_SAT_F64_U: u8 = 7;
+    pub const I32_TRUNC_SAT_F32_S: u32 = 0; // BULK_PREFIX
+    pub const I32_TRUNC_SAT_F32_U: u32 = 1; // BULK_PREFIX
+    pub const I32_TRUNC_SAT_F64_S: u32 = 2; // BULK_PREFIX
+    pub const I32_TRUNC_SAT_F64_U: u32 = 3; // BULK_PREFIX
+    pub const I64_TRUNC_SAT_F32_S: u32 = 4; // BULK_PREFIX
+    pub const I64_TRUNC_SAT_F32_U: u32 = 5; // BULK_PREFIX
+    pub const I64_TRUNC_SAT_F64_S: u32 = 6; // BULK_PREFIX
+    pub const I64_TRUNC_SAT_F64_U: u32 = 7; // BULK_PREFIX
 
     pub mod sign_ext {
         pub const I32_EXTEND8_S: u8 = 0xc0;
@@ -1042,13 +1048,19 @@ pub mod opcodes {
     }
 
     pub const BULK_PREFIX: u8 = 0xfc;
-    pub const MEMORY_INIT: u8 = 0x08;
-    pub const MEMORY_DROP: u8 = 0x09;
-    pub const MEMORY_COPY: u8 = 0x0a;
-    pub const MEMORY_FILL: u8 = 0x0b;
-    pub const TABLE_INIT: u8 = 0x0c; // 12
-    pub const TABLE_DROP: u8 = 0x0d; // 13
-    pub const TABLE_COPY: u8 = 0x0e; // 14
+    pub const MEMORY_INIT: u32 = 8; // BULK_PREFIX
+    pub const DATA_DROP: u32 = 9; // BULK_PREFIX
+    pub const MEMORY_COPY: u32 = 10; // BULK_PREFIX
+    pub const MEMORY_FILL: u32 = 11; // BULK_PREFIX
+
+    pub const TABLE_GET: u8 = 0x25;
+    pub const TABLE_SET: u8 = 0x26;
+    pub const TABLE_INIT: u32 = 12; // BULK_PREFIX
+    pub const ELEM_DROP: u32 = 13; // BULK_PREFIX
+    pub const TABLE_COPY: u32 = 14; // BULK_PREFIX
+    pub const TABLE_GROW: u32 = 15; // BULK_PREFIX
+    pub const TABLE_SIZE: u32 = 16; // BULK_PREFIX
+    pub const TABLE_FILL: u32 = 17; // BULK_PREFIX
 
     pub const REF_NULL: u8 = 0xD0;
     pub const REF_IS_NULL: u8 = 0xD1;
@@ -1378,7 +1390,7 @@ impl Deserialize for Instruction {
                     I64_EXTEND8_S => SignExt(SignExtInstruction::I64Extend8S),
                     I64_EXTEND16_S => SignExt(SignExtInstruction::I64Extend16S),
                     I64_EXTEND32_S => SignExt(SignExtInstruction::I64Extend32S),
-                    _ => return Err(Error::UnknownOpcode(val)),
+                    _ => return Err(Error::UnknownOpcode(u32::from(val))),
                 }
             }
 
@@ -1389,11 +1401,14 @@ impl Deserialize for Instruction {
             // TODO (osa): Parses saturating ops as well
             BULK_PREFIX => return deserialize_bulk(reader),
 
+            TABLE_GET => TableGet(VarUint32::deserialize(reader)?.into()),
+            TABLE_SET => TableSet(VarUint32::deserialize(reader)?.into()),
+
             REF_NULL => RefNull(ReferenceType::deserialize(reader)?),
             REF_IS_NULL => RefIsNull,
             REF_FUNC => RefFunc(VarUint32::deserialize(reader)?.into()),
 
-            _ => return Err(Error::UnknownOpcode(val)),
+            _ => return Err(Error::UnknownOpcode(u32::from(val))),
         })
     }
 }
@@ -1479,7 +1494,7 @@ fn deserialize_atomic<R: io::Read>(reader: &mut R) -> Result<Instruction, Error>
         I64_ATOMIC_RMW_CMPXCHG16U => I64AtomicRmwCmpxchg16u(mem),
         I64_ATOMIC_RMW_CMPXCHG32U => I64AtomicRmwCmpxchg32u(mem),
 
-        _ => return Err(Error::UnknownOpcode(val)),
+        _ => return Err(Error::UnknownOpcode(u32::from(val))),
     }))
 }
 
@@ -1656,7 +1671,7 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
 fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     use self::{opcodes::*, Instruction::*};
 
-    let val: u8 = Uint8::deserialize(reader)?.into();
+    let val = VarUint32::deserialize(reader)?.into();
 
     Ok(match val {
         I32_TRUNC_SAT_F32_S => I32TruncSatSF32,
@@ -1668,25 +1683,31 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         I64_TRUNC_SAT_F64_S => I64TruncSatSF64,
         I64_TRUNC_SAT_F64_U => I64TruncSatUF64,
         MEMORY_INIT => {
-            if u8::from(Uint8::deserialize(reader)?) != 0 {
-                return Err(Error::UnknownOpcode(val));
+            let mem_idx = Uint8::deserialize(reader)?.into();
+            if mem_idx != 0 {
+                return Err(Error::InvalidMemoryReference(mem_idx));
             }
             MemoryInit(VarUint32::deserialize(reader)?.into())
         }
-        MEMORY_DROP => MemoryDrop(VarUint32::deserialize(reader)?.into()),
-        MEMORY_FILL => {
-            if u8::from(Uint8::deserialize(reader)?) != 0 {
-                return Err(Error::UnknownOpcode(val));
-            }
-            MemoryFill
-        }
+        DATA_DROP => DataDrop(VarUint32::deserialize(reader)?.into()),
         MEMORY_COPY => {
-            if u8::from(Uint8::deserialize(reader)?) != 0 {
-                return Err(Error::UnknownOpcode(val));
+            let src_mem_idx = Uint8::deserialize(reader)?.into();
+            if src_mem_idx != 0 {
+                return Err(Error::InvalidMemoryReference(src_mem_idx));
+            }
+            let dst_mem_idx = Uint8::deserialize(reader)?.into();
+            if dst_mem_idx != 0 {
+                return Err(Error::InvalidMemoryReference(dst_mem_idx));
             }
             MemoryCopy
         }
-
+        MEMORY_FILL => {
+            let mem_idx = Uint8::deserialize(reader)?.into();
+            if mem_idx != 0 {
+                return Err(Error::InvalidMemoryReference(mem_idx));
+            }
+            MemoryFill
+        }
         TABLE_INIT => {
             let elem_idx = VarUint32::deserialize(reader)?.into();
             let table_idx = VarUint32::deserialize(reader)?.into();
@@ -1695,14 +1716,16 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
                 table_idx,
             }
         }
-        TABLE_DROP => TableDrop(VarUint32::deserialize(reader)?.into()),
+        ELEM_DROP => ElemDrop(VarUint32::deserialize(reader)?.into()),
         TABLE_COPY => {
-            if u8::from(Uint8::deserialize(reader)?) != 0 {
-                return Err(Error::UnknownOpcode(val));
-            }
-            TableCopy
+            let src_table_idx = VarUint32::deserialize(reader)?.into();
+            let dst_table_idx = VarUint32::deserialize(reader)?.into();
+            TableCopy(src_table_idx, dst_table_idx)
         }
-        _ => return Err(Error::UnknownOpcode(val as u8)),
+        TABLE_GROW => TableGrow(VarUint32::deserialize(reader)?.into()),
+        TABLE_SIZE => TableSize(VarUint32::deserialize(reader)?.into()),
+        TABLE_FILL => TableFill(VarUint32::deserialize(reader)?.into()),
+        _ => return Err(Error::UnknownOpcode(val)),
     })
 }
 
@@ -1996,16 +2019,22 @@ impl fmt::Display for Instruction {
 
             Simd(ref i) => i.fmt(f),
 
-            MemoryInit(_) => write!(f, "memory.init"),
-            MemoryDrop(_) => write!(f, "memory.drop"),
+            MemoryInit(mem_idx) => fmt_op!(f, "memory.init", mem_idx),
+            DataDrop(data_idx) => fmt_op!(f, "data.drop", data_idx),
             MemoryFill => write!(f, "memory.fill"),
             MemoryCopy => write!(f, "memory.copy"),
+
+            TableGet(table_idx) => fmt_op!(f, "table.get", table_idx),
+            TableSet(table_idx) => fmt_op!(f, "table.set", table_idx),
+            TableSize(table_idx) => fmt_op!(f, "table.size", table_idx),
+            TableGrow(table_idx) => fmt_op!(f, "table.grow", table_idx),
+            TableFill(table_idx) => fmt_op!(f, "table.fill", table_idx),
+            TableCopy(src, dst) => fmt_op!(f, "table.copy", src, dst),
             TableInit {
                 elem_idx,
                 table_idx,
             } => write!(f, "table.init {}, {}", table_idx, elem_idx),
-            TableDrop(_) => write!(f, "table.drop"),
-            TableCopy => write!(f, "table.copy"),
+            ElemDrop(table_idx) => fmt_op!(f, "elem.drop", table_idx),
 
             RefNull(ty) => write!(f, "ref.null {}", ty),
             RefIsNull => write!(f, "ref.is_null"),

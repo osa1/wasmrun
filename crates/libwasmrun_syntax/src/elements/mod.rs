@@ -108,7 +108,7 @@ pub enum Error {
     /// Unknown internal kind code
     UnknownInternalKind(u8),
     /// Unknown opcode encountered
-    UnknownOpcode(u8),
+    UnknownOpcode(u32),
     /// Unknown SIMD opcode encountered
     UnknownSimdOpcode(u32),
     /// Invalid VarUint1 value
