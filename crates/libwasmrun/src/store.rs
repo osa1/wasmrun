@@ -1,9 +1,12 @@
+mod table;
+
 use crate::exec::Runtime;
 use crate::fun::{Fun, HostFun};
 use crate::mem::Mem;
 use crate::module::{Module, TypeIdx};
 use crate::value::Value;
 use crate::Result;
+pub use table::Table;
 
 use libwasmrun_syntax::elements::{self as wasm, IndexMap};
 
@@ -14,6 +17,9 @@ pub struct ModuleAddr(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FunAddr(u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ExternAddr(u32);
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TableAddr(u32);
@@ -28,7 +34,7 @@ pub(crate) struct GlobalAddr(u32);
 pub struct Store {
     modules: Vec<Module>,
     funs: Vec<Fun>,
-    tables: Vec<Vec<Option<FunAddr>>>,
+    tables: Vec<Table>,
     mems: Vec<Mem>,
     globals: Vec<Global>,
 }
@@ -88,17 +94,17 @@ impl Store {
         &self.funs[fun_addr.0 as usize]
     }
 
-    pub(crate) fn allocate_table(&mut self, table: Vec<Option<FunAddr>>) -> TableAddr {
+    pub(crate) fn allocate_table(&mut self, table: Table) -> TableAddr {
         let ret = self.tables.len() as u32;
         self.tables.push(table);
         TableAddr(ret)
     }
 
-    pub(crate) fn get_table(&self, table_addr: TableAddr) -> &[Option<FunAddr>] {
+    pub(crate) fn get_table(&self, table_addr: TableAddr) -> &Table {
         &self.tables[table_addr.0 as usize]
     }
 
-    pub(crate) fn get_table_mut(&mut self, table_addr: TableAddr) -> &mut Vec<Option<FunAddr>> {
+    pub(crate) fn get_table_mut(&mut self, table_addr: TableAddr) -> &mut Table {
         &mut self.tables[table_addr.0 as usize]
     }
 

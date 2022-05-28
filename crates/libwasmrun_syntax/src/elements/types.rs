@@ -156,24 +156,6 @@ impl Deserialize for FunctionType {
     }
 }
 
-/// Table element type.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TableElementType {
-    /// A reference to a function with any signature.
-    AnyFunc,
-}
-
-impl Deserialize for TableElementType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let val = VarInt7::deserialize(reader)?;
-
-        match val.into() {
-            -0x10 => Ok(TableElementType::AnyFunc),
-            _ => Err(Error::UnknownTableElementType(val.into())),
-        }
-    }
-}
-
 /// <https://webassembly.github.io/spec/core/syntax/types.html#syntax-reftype>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ReferenceType {

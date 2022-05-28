@@ -1,8 +1,10 @@
 #![allow(clippy::unusual_byte_groupings)]
 
-use std::fmt;
+use crate::store::{ExternAddr, FunAddr};
 
 use libwasmrun_syntax::elements as wasm;
+
+use std::fmt;
 
 #[derive(Clone, Copy)]
 pub enum Value {
@@ -10,6 +12,23 @@ pub enum Value {
     I64(i64),
     F32(f32),
     F64(f64),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Ref {
+    Null(wasm::ReferenceType),
+    Ref(FunAddr),
+    RefExtern(ExternAddr),
+}
+
+impl Ref {
+    pub fn ty(&self) -> wasm::ReferenceType {
+        match self {
+            Ref::Null(ty) => *ty,
+            Ref::Ref(_) => wasm::ReferenceType::FuncRef,
+            Ref::RefExtern(_) => wasm::ReferenceType::ExternRef,
+        }
+    }
 }
 
 // TODO: Make this a const once from_bits is a const fn

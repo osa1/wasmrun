@@ -4,8 +4,8 @@ use crate::fun::Fun;
 use crate::mem::Mem;
 use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{FunAddr, Global, ModuleAddr, Store};
-use crate::value::{self, Value};
+use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
+use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::{ExecError, Result};
 use crate::{HostFunDecl, MemAddr};
@@ -44,6 +44,8 @@ pub enum Trap {
     InvalidConvToInt,
     /// 'unreachable' instruction executed
     Unreachable,
+    /// `call_indirect` called with a extern reference table
+    CallIndirectOnExternRef,
 }
 
 impl fmt::Display for Trap {
@@ -58,6 +60,7 @@ impl fmt::Display for Trap {
             Trap::IntOverflow => "integer overflow".fmt(f),
             Trap::InvalidConvToInt => "invalid conversion to integer".fmt(f),
             Trap::Unreachable => "unreachable executed".fmt(f),
+            Trap::CallIndirectOnExternRef => "`call_indirect` with an extern ref table".fmt(f),
         }
     }
 }
@@ -209,7 +212,11 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let module_addr = rt.store.next_module_addr();
     let mut module: Module = Default::default();
 
-    let table_addr = rt.store.allocate_table(vec![None; 10]);
+    let table_addr = rt.store.allocate_table(Table::new(
+        Ref::Null(wasm::ReferenceType::FuncRef),
+        10,
+        wasm::TableType::new(wasm::ReferenceType::FuncRef, 10, None),
+    ));
     let table_idx = module.add_table(table_addr);
     module.add_export(Export::new_table("table".to_owned(), table_idx));
 
@@ -404,19 +411,23 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
 
     // Allocate tables
     if let Some(table_section) = parsed_module.table_section_mut() {
-        for table in table_section.entries_mut().drain(..) {
-            let table_addr = rt
-                .store
-                .allocate_table(vec![None; table.limits().initial() as usize]);
+        for ty @ wasm::TableType { elem_type, limits } in table_section.entries_mut().drain(..) {
+            let table = Table::new(Ref::Null(elem_type), limits.initial() as usize, ty);
+            let table_addr = rt.store.allocate_table(table);
             inst.add_table(table_addr);
         }
     }
 
     // Allocate table elements
     if let Some(element_section) = parsed_module.elements_section() {
-        for elements in element_section.entries() {
+        for elem @ wasm::ElementSegment {
+            ref_type,
+            init,
+            mode,
+        } in element_section.entries()
+        {
             // https://webassembly.github.io/spec/core/syntax/modules.html#syntax-elem
-            match &elements.mode {
+            match mode {
                 wasm::ElementSegmentMode::Active { table_idx, offset } => {
                     // Spec: "An active element segment copies its elements into a table during
                     // instantiation, as specified by a table index and a constant expression
@@ -431,28 +442,28 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
 
                     let table = rt.store.get_table_mut(inst.get_table(TableIdx(*table_idx)));
 
-                    for (elem_idx, elem) in elements.init.iter().enumerate() {
+                    for (elem_idx, elem) in init.iter().enumerate() {
                         let elem_idx = offset + elem_idx;
                         if elem_idx >= table.len() {
-                            table.resize(elem_idx + 1, None);
+                            table.resize(elem_idx + 1, Ref::Null(*ref_type));
                         }
                         let func_idx = match elem.code() {
                             &[Instruction::I32Const(func_idx), Instruction::End] => func_idx,
                             other => todo!("Unhandled element expression: {:?}", other),
                         };
-                        table[elem_idx] = Some(inst.get_fun(FunIdx(func_idx as u32)));
+                        table.set(elem_idx, Ref::Ref(inst.get_fun(FunIdx(func_idx as u32))));
                     }
                 }
                 wasm::ElementSegmentMode::Passive => {
                     // Spec: "A passive element segment’s elements can be copied to a table using
                     // the `table.init` instruction."
-                    todo!("Passive element segments: {:?}", elements)
+                    todo!("Passive element segment: {:?}", elem)
                 }
                 wasm::ElementSegmentMode::Declarative => {
                     // Spec: "A declarative element segment is not available at runtime but merely
                     // serves to forward-declare references that are formed in code with
                     // instructions like `ref.func`.
-                    todo!("Declarative element segments: {:?}", elements)
+                    todo!("Declarative element segment: {:?}", elem)
                 }
             }
         }
@@ -2254,10 +2265,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let table_addr = rt
                 .get_module(module_addr)
                 .get_table(TableIdx(u32::from(table_ref)));
+
             let fun_addr = match rt.store.get_table(table_addr).get(elem_idx as usize) {
-                Some(Some(fun_addr)) => *fun_addr,
-                Some(None) => {
+                Some(Ref::Ref(fun_addr)) => *fun_addr,
+                Some(Ref::Null(_ref_ty)) => {
                     return Err(ExecError::Trap(Trap::UninitializedElement));
+                }
+                Some(Ref::RefExtern(_extern_addr)) => {
+                    // TODO: Check table type to help with debugging
+                    return Err(ExecError::Trap(Trap::CallIndirectOnExternRef));
                 }
                 None => {
                     return Err(ExecError::Trap(Trap::UndefinedElement));

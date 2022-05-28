@@ -51,7 +51,7 @@ pub use self::{
         CodeSection, CustomSection, DataSection, ElementSection, ExportSection, FunctionSection,
         GlobalSection, ImportSection, MemorySection, Section, TableSection, TypeSection,
     },
-    types::{BlockType, FunctionType, ReferenceType, TableElementType, Type, ValueType},
+    types::{BlockType, FunctionType, ReferenceType, Type, ValueType},
 };
 
 pub use self::ops::AtomicsInstruction;

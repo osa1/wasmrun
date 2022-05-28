@@ -1,6 +1,4 @@
-use super::{
-    Deserialize, Error, TableElementType, Uint8, ValueType, VarUint1, VarUint32, VarUint7,
-};
+use super::{Deserialize, Error, ReferenceType, Uint8, ValueType, VarUint1, VarUint32, VarUint7};
 use crate::io;
 
 const FLAG_HAS_MAX: u8 = 0x01;
@@ -47,15 +45,15 @@ impl Deserialize for GlobalType {
 /// Table entry
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TableType {
-    elem_type: TableElementType,
-    limits: ResizableLimits,
+    pub elem_type: ReferenceType,
+    pub limits: ResizableLimits,
 }
 
 impl TableType {
     /// New table definition
-    pub fn new(min: u32, max: Option<u32>) -> Self {
+    pub fn new(elem_type: ReferenceType, min: u32, max: Option<u32>) -> Self {
         TableType {
-            elem_type: TableElementType::AnyFunc,
+            elem_type,
             limits: ResizableLimits::new(min, max),
         }
     }
@@ -66,14 +64,14 @@ impl TableType {
     }
 
     /// Table element type
-    pub fn elem_type(&self) -> TableElementType {
+    pub fn elem_type(&self) -> ReferenceType {
         self.elem_type
     }
 }
 
 impl Deserialize for TableType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let elem_type = TableElementType::deserialize(reader)?;
+        let elem_type = ReferenceType::deserialize(reader)?;
         let limits = ResizableLimits::deserialize(reader)?;
         Ok(TableType { elem_type, limits })
     }
