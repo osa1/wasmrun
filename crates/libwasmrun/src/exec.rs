@@ -415,8 +415,14 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
     // Allocate table elements
     if let Some(element_section) = parsed_module.elements_section() {
         for elements in element_section.entries() {
+            // https://webassembly.github.io/spec/core/syntax/modules.html#syntax-elem
             match &elements.mode {
                 wasm::ElementSegmentMode::Active { table_idx, offset } => {
+                    // Spec: "An active element segment copies its elements into a table during
+                    // instantiation, as specified by a table index and a constant expression
+                    // defining an offset into that table."
+                    // TODO: Do we need a const evaluator for stuff evaluatable in instantiation
+                    // time?
                     let offset = match offset.code() {
                         &[Instruction::I32Const(offset), Instruction::End] => offset as usize,
                         &[Instruction::I64Const(offset), Instruction::End] => offset as usize,
@@ -437,8 +443,17 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                         table[elem_idx] = Some(inst.get_fun(FunIdx(func_idx as u32)));
                     }
                 }
-                wasm::ElementSegmentMode::Passive => todo!("Passive element segments"),
-                wasm::ElementSegmentMode::Declarative => todo!("Declarative element segments"),
+                wasm::ElementSegmentMode::Passive => {
+                    // Spec: "A passive element segment’s elements can be copied to a table using
+                    // the `table.init` instruction."
+                    todo!("Passive element segments: {:?}", elements)
+                }
+                wasm::ElementSegmentMode::Declarative => {
+                    // Spec: "A declarative element segment is not available at runtime but merely
+                    // serves to forward-declare references that are formed in code with
+                    // instructions like `ref.func`.
+                    todo!("Declarative element segments: {:?}", elements)
+                }
             }
         }
     }

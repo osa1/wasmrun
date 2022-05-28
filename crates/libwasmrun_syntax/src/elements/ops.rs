@@ -568,7 +568,7 @@ pub enum BulkInstruction {
     MemoryDrop(u32),
     MemoryCopy,
     MemoryFill,
-    TableInit(u32),
+    TableInit { elem_idx: u32, table_idx: u32 },
     TableDrop(u32),
     TableCopy,
 }
@@ -1052,9 +1052,9 @@ pub mod opcodes {
         pub const MEMORY_DROP: u8 = 0x09;
         pub const MEMORY_COPY: u8 = 0x0a;
         pub const MEMORY_FILL: u8 = 0x0b;
-        pub const TABLE_INIT: u8 = 0x0c;
-        pub const TABLE_DROP: u8 = 0x0d;
-        pub const TABLE_COPY: u8 = 0x0e;
+        pub const TABLE_INIT: u8 = 0x0c; // 12
+        pub const TABLE_DROP: u8 = 0x0d; // 13
+        pub const TABLE_COPY: u8 = 0x0e; // 14
     }
 
     pub const REF_NULL: u8 = 0xD0;
@@ -1695,10 +1695,12 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         }
 
         TABLE_INIT => {
-            if u8::from(Uint8::deserialize(reader)?) != 0 {
-                return Err(Error::UnknownOpcode(val));
-            }
-            Bulk(TableInit(VarUint32::deserialize(reader)?.into()))
+            let elem_idx = VarUint32::deserialize(reader)?.into();
+            let table_idx = VarUint32::deserialize(reader)?.into();
+            Bulk(TableInit {
+                elem_idx,
+                table_idx,
+            })
         }
         TABLE_DROP => Bulk(TableDrop(VarUint32::deserialize(reader)?.into())),
         TABLE_COPY => {
@@ -2262,7 +2264,10 @@ impl fmt::Display for BulkInstruction {
             MemoryDrop(_) => write!(f, "memory.drop"),
             MemoryFill => write!(f, "memory.fill"),
             MemoryCopy => write!(f, "memory.copy"),
-            TableInit(_) => write!(f, "table.init"),
+            TableInit {
+                elem_idx,
+                table_idx,
+            } => write!(f, "table.init {}, {}", table_idx, elem_idx),
             TableDrop(_) => write!(f, "table.drop"),
             TableCopy => write!(f, "table.copy"),
         }
