@@ -460,7 +460,7 @@ impl ElementSection {
 
 impl Deserialize for ElementSection {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        Ok(ElementSection(read_entries(reader)?))
+        Ok(ElementSection(read_entries::<R, ElementSegment>(reader)?))
     }
 }
 

@@ -150,7 +150,7 @@ impl Deserialize for ElementSegment {
             }
         } else {
             // Active
-            let with_table_idx = flags & 0b10 != 0;
+            let with_table_idx = bit_1;
             let table_idx: u32 = if with_table_idx {
                 VarUint32::deserialize(reader)?.into()
             } else {
@@ -168,14 +168,13 @@ impl Deserialize for ElementSegment {
             } else {
                 // Element kind and element indices
                 let offset = InitExpr::deserialize(reader)?;
-                let element_kind = ElementKind::deserialize(reader)?;
                 let func_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
                     .into_inner()
                     .into_iter()
                     .map(Into::into)
                     .collect();
                 Ok(ElementSegment {
-                    ref_type: element_kind.to_ref_type(),
+                    ref_type: ReferenceType::FuncRef,
                     init: func_idx_vec_to_init(&func_idxs),
                     mode: ElementSegmentMode::Active { table_idx, offset },
                 })
@@ -286,4 +285,27 @@ impl Deserialize for DataSegment {
             passive: flags == FLAG_PASSIVE,
         })
     }
+}
+
+#[test]
+fn element_segment_flags_000() {
+    let section: [u8; 5] = [
+        0x00, // tag = 0
+        0x41, 0x00, // i32.const 0
+        0x0b, // end
+        0x00, // vec(funcidx) size = 0
+    ];
+
+    let mut buffer = io::Cursor::new(section);
+    assert_eq!(
+        ElementSegment::deserialize(&mut buffer).unwrap(),
+        ElementSegment {
+            ref_type: ReferenceType::FuncRef,
+            init: vec![],
+            mode: ElementSegmentMode::Active {
+                table_idx: 0,
+                offset: InitExpr::new(vec![Instruction::I32Const(0), Instruction::End]),
+            },
+        }
+    );
 }
