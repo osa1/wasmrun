@@ -12,9 +12,10 @@ pub enum Value {
     I64(i64),
     F32(f32),
     F64(f64),
+    Ref(Ref),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ref {
     Null(wasm::ReferenceType),
     Ref(FunAddr),
@@ -86,14 +87,14 @@ impl Value {
     pub fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
-            Value::I64(_) | Value::F32(_) | Value::F64(_) => panic!(),
+            Value::I64(_) | Value::F32(_) | Value::F64(_) | Value::Ref(_) => panic!(),
         }
     }
 
     pub fn expect_i64(&self) -> i64 {
         match self {
             Value::I64(i) => *i,
-            Value::I32(_) | Value::F32(_) | Value::F64(_) => panic!(),
+            Value::I32(_) | Value::F32(_) | Value::F64(_) | Value::Ref(_) => panic!(),
         }
     }
 }
@@ -105,6 +106,7 @@ impl fmt::Debug for Value {
             Value::I64(i) => write!(fmt, "{}i64", i),
             Value::F32(f) => write!(fmt, "{}f32 ({:?})", f, F32Debug(*f)),
             Value::F64(f) => write!(fmt, "{}f64 ({:?})", f, F64Debug(*f)),
+            Value::Ref(r) => r.fmt(fmt),
         }
     }
 }

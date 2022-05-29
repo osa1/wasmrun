@@ -29,8 +29,35 @@ impl Table {
         self.elems.get(idx)
     }
 
-    pub fn set(&mut self, idx: usize, elem: Ref) {
+    /// Returns whether `idx` is in range and set is successful
+    pub fn set(&mut self, idx: usize, elem: Ref) -> bool {
         debug_assert_eq!(self.ty.elem_type(), elem.ty());
-        self.elems[idx] = elem;
+        self.elems
+            .get_mut(idx)
+            .map(|elem_ref| *elem_ref = elem)
+            .is_some()
+    }
+
+    /// Returns old size of the table
+    pub fn grow(&mut self, amt: usize, elem: Ref) -> usize {
+        debug_assert_eq!(self.ty.elem_type(), elem.ty());
+        let size = self.elems.len();
+        self.elems.resize(size + amt, elem);
+        size
+    }
+
+    /// Returns whether `idx + amt` is in range and fill is successful
+    pub fn fill(&mut self, idx: usize, amt: usize, elem: Ref) -> bool {
+        debug_assert_eq!(self.ty.elem_type(), elem.ty());
+
+        if (amt + idx) as usize > self.len() {
+            return false;
+        }
+
+        for i in idx..idx + amt {
+            self.elems[i] = elem;
+        }
+
+        true
     }
 }

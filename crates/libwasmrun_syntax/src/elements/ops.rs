@@ -320,7 +320,7 @@ pub enum Instruction {
     TableSize(u32),
     TableGrow(u32),
     TableFill(u32),
-    TableCopy(u32, u32),
+    TableCopy(u32, u32), // dst, src
     TableInit { elem_idx: u32, table_idx: u32 },
     ElemDrop(u32),
 
@@ -1718,9 +1718,9 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         }
         ELEM_DROP => ElemDrop(VarUint32::deserialize(reader)?.into()),
         TABLE_COPY => {
-            let src_table_idx = VarUint32::deserialize(reader)?.into();
             let dst_table_idx = VarUint32::deserialize(reader)?.into();
-            TableCopy(src_table_idx, dst_table_idx)
+            let src_table_idx = VarUint32::deserialize(reader)?.into();
+            TableCopy(dst_table_idx, src_table_idx)
         }
         TABLE_GROW => TableGrow(VarUint32::deserialize(reader)?.into()),
         TABLE_SIZE => TableSize(VarUint32::deserialize(reader)?.into()),
@@ -2029,7 +2029,7 @@ impl fmt::Display for Instruction {
             TableSize(table_idx) => fmt_op!(f, "table.size", table_idx),
             TableGrow(table_idx) => fmt_op!(f, "table.grow", table_idx),
             TableFill(table_idx) => fmt_op!(f, "table.fill", table_idx),
-            TableCopy(src, dst) => fmt_op!(f, "table.copy", src, dst),
+            TableCopy(dst, src) => fmt_op!(f, "table.copy", dst, src),
             TableInit {
                 elem_idx,
                 table_idx,

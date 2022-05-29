@@ -1,4 +1,4 @@
-use crate::value::Value;
+use crate::value::{Ref, Value};
 use crate::{ExecError, Result};
 
 #[derive(Debug)]
@@ -95,6 +95,13 @@ impl Stack {
         match self.pop_value()? {
             Value::F64(val) => Ok(val),
             other => Err(ExecError::Panic(format!("Stack::pop_f64: {:?}", other))),
+        }
+    }
+
+    pub(crate) fn pop_ref(&mut self) -> Result<Ref> {
+        match self.pop_value()? {
+            Value::Ref(val) => Ok(val),
+            other => Err(ExecError::Panic(format!("Stack::pop_ref: {:?}", other))),
         }
     }
 

@@ -151,6 +151,10 @@ impl Runtime {
         self.stack.pop_i32()
     }
 
+    pub fn pop_ref(&mut self) -> Result<Ref> {
+        self.stack.pop_ref()
+    }
+
     pub fn push_value(&mut self, value: Value) {
         self.stack.push_value(value).unwrap()
     }
@@ -2448,19 +2452,106 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
+        // Table instructions
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::TableGet(table_idx) => {
+            let table_addr = rt.get_module(module_addr).get_table(TableIdx(table_idx));
+            let table = rt.store.get_table(table_addr);
+            let elem_idx = rt.stack.pop_i32()?;
+            let elem = match table.get(elem_idx as usize) {
+                Some(elem) => elem,
+                None => return Err(ExecError::Trap(Trap::OOBTableElementIdx)),
+            };
+            rt.stack.push_value(Value::Ref(*elem))?;
+        }
+
+        Instruction::TableSet(table_idx) => {
+            let table_addr = rt.get_module(module_addr).get_table(TableIdx(table_idx));
+            let table = rt.store.get_table_mut(table_addr);
+            let value = rt.stack.pop_ref()?;
+            let elem_idx = rt.stack.pop_i32()?;
+            if !table.set(elem_idx as usize, value) {
+                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            }
+        }
+
+        Instruction::TableSize(table_idx) => {
+            let table_addr = rt.get_module(module_addr).get_table(TableIdx(table_idx));
+            let table = rt.store.get_table_mut(table_addr);
+            let len = table.len();
+            rt.stack.push_value(Value::I32(len as i32))?;
+        }
+
+        Instruction::TableGrow(table_idx) => {
+            let table_addr = rt.get_module(module_addr).get_table(TableIdx(table_idx));
+            let table = rt.store.get_table_mut(table_addr);
+            let n = rt.stack.pop_i32()?;
+            let val = rt.stack.pop_ref()?;
+            let old_size = table.grow(n as usize, val);
+            rt.stack.push_value(Value::I32(old_size as i32))?;
+        }
+
+        Instruction::TableFill(table_idx) => {
+            let table_addr = rt.get_module(module_addr).get_table(TableIdx(table_idx));
+            let table = rt.store.get_table_mut(table_addr);
+
+            // Starting from `idx`, set `amt` elements to`val`
+            let amt = rt.stack.pop_i32()?;
+            let val = rt.stack.pop_ref()?;
+            let idx = rt.stack.pop_i32()?;
+            if !table.fill(idx as usize, amt as usize, val) {
+                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            }
+        }
+
+        Instruction::TableCopy(dst, src) => {
+            // Elements first copied into an intermediate vector to avoid borrow check issues
+            // (aliasing). Note that `dst` and `src` can be the same table.
+            let src = rt
+                .store
+                .get_table(rt.get_module(module_addr).get_table(TableIdx(src)));
+
+            // Copy `amt` elements from `src[src_idx]` to `dst[dst_idx]`
+            let amt = rt.stack.pop_i32()? as usize;
+            let src_idx = rt.stack.pop_i32()? as usize;
+            let dst_idx = rt.stack.pop_i32()? as usize;
+
+            if (src_idx + amt) as usize >= src.len() {
+                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            }
+
+            let mut elems: Vec<Ref> = Vec::with_capacity(amt);
+            for i in src_idx..src_idx + amt {
+                elems[i] = *src.get(i).unwrap(); // bounds already checked
+            }
+
+            let dst = rt
+                .store
+                .get_table_mut(rt.get_module(module_addr).get_table(TableIdx(dst)));
+
+            if (dst_idx + amt) as usize >= dst.len() {
+                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            }
+
+            for (elem_idx, elem) in elems.into_iter().enumerate() {
+                dst.set(dst_idx + elem_idx, elem); // bounds already checked
+            }
+        }
+
+        Instruction::TableInit { .. } => {
+            return Err(ExecError::Panic(format!(
+                "Instruction not implemented: {:?}",
+                instr
+            )));
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Atomics(_)
         | Instruction::Simd(_)
         | Instruction::MemoryInit(_)
         | Instruction::DataDrop(_)
         | Instruction::MemoryCopy
         | Instruction::MemoryFill
-        | Instruction::TableGet(_)
-        | Instruction::TableSet(_)
-        | Instruction::TableSize(_)
-        | Instruction::TableGrow(_)
-        | Instruction::TableFill(_)
-        | Instruction::TableCopy(_, _)
-        | Instruction::TableInit { .. }
         | Instruction::ElemDrop(_)
         | Instruction::RefNull(_)
         | Instruction::RefIsNull
