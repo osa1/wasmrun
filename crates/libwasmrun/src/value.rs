@@ -30,6 +30,13 @@ impl Ref {
             Ref::RefExtern(_) => wasm::ReferenceType::ExternRef,
         }
     }
+
+    pub fn is_null(&self) -> bool {
+        match self {
+            Ref::Null(_) => true,
+            Ref::Ref(_) | Ref::RefExtern(_) => false,
+        }
+    }
 }
 
 // TODO: Make this a const once from_bits is a const fn

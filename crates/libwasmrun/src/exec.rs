@@ -2546,16 +2546,30 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
+        // Ref instructions
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::RefNull(ref_ty) => {
+            rt.stack.push_ref(Ref::Null(ref_ty))?;
+        }
+
+        Instruction::RefIsNull => {
+            let val = rt.stack.pop_ref()?;
+            rt.stack.push_i32(if val.is_null() { 1 } else { 0 })?;
+        }
+
+        Instruction::RefFunc(fun_idx) => {
+            let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
+            rt.stack.push_ref(Ref::Ref(fun_addr))?;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Atomics(_)
         | Instruction::Simd(_)
         | Instruction::MemoryInit(_)
         | Instruction::DataDrop(_)
         | Instruction::MemoryCopy
         | Instruction::MemoryFill
-        | Instruction::ElemDrop(_)
-        | Instruction::RefNull(_)
-        | Instruction::RefIsNull
-        | Instruction::RefFunc(_) => {
+        | Instruction::ElemDrop(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr

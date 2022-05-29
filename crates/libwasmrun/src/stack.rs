@@ -1,6 +1,8 @@
 use crate::value::{Ref, Value};
 use crate::{ExecError, Result};
 
+use libwasmrun_syntax::elements as wasm;
+
 #[derive(Debug)]
 pub(crate) struct Stack(Vec<Block>);
 
@@ -124,6 +126,10 @@ impl Stack {
 
     pub(crate) fn push_f64(&mut self, f: f64) -> Result<()> {
         self.push_value(Value::F64(f))
+    }
+
+    pub(crate) fn push_ref(&mut self, r: Ref) -> Result<()> {
+        self.push_value(Value::Ref(r))
     }
 
     pub(crate) fn push_block(&mut self, cont: u32, n_args: u32, n_rets: u32) {
