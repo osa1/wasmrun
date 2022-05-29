@@ -1,10 +1,8 @@
-use super::{
-    CountedList, DataSegment, Deserialize, ElementSegment, Error, ExportEntry, External, Func,
-    FuncBody, GlobalEntry, ImportEntry, MemoryType, TableType, VarUint32, VarUint7,
+use crate::{
+    io, name_section::NameSection, reloc_section::RelocSection, types::Type, CountedList,
+    DataSegment, Deserialize, ElementSegment, Error, ExportEntry, External, Func, FuncBody,
+    GlobalEntry, ImportEntry, MemoryType, TableType, VarUint32, VarUint7,
 };
-use crate::{elements, io};
-
-use super::{name_section::NameSection, reloc_section::RelocSection, types::Type};
 
 const ENTRIES_BUFFER_LENGTH: usize = 16384;
 
@@ -122,7 +120,7 @@ pub(crate) struct SectionReader {
 }
 
 impl SectionReader {
-    pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, elements::Error> {
+    pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let length = u32::from(VarUint32::deserialize(reader)?) as usize;
         let inner_buffer = buffered_read!(ENTRIES_BUFFER_LENGTH, length, reader);
         let declared_length = inner_buffer.len();
@@ -153,7 +151,7 @@ impl io::Read for SectionReader {
     }
 }
 
-fn read_entries<R: io::Read, T: Deserialize>(reader: &mut R) -> Result<Vec<T>, elements::Error> {
+fn read_entries<R: io::Read, T: Deserialize>(reader: &mut R) -> Result<Vec<T>, Error> {
     let mut section_reader = SectionReader::new(reader)?;
     let result = CountedList::<T>::deserialize(&mut section_reader)?.into_inner();
     section_reader.close()?;

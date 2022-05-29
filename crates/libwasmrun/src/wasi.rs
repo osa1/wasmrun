@@ -29,7 +29,7 @@ use crate::store::{MemAddr, ModuleAddr, Store};
 use crate::value::Value;
 use crate::{ExecError, Result};
 
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 use wasi_common::wasi::wasi_snapshot_preview1;
 use wasm::ValueType::{I32, I64};
 

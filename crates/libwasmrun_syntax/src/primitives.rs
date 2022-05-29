@@ -408,7 +408,7 @@ mod tests {
     use super::{
         super::deserialize_buffer, CountedList, VarInt32, VarInt64, VarInt7, VarUint32, VarUint64,
     };
-    use crate::elements::Error;
+    use crate::Error;
 
     fn varuint32_de_test(dt: Vec<u8>, expected: u32) {
         let val: VarUint32 = super::super::deserialize_buffer(&dt).expect("buf to be serialized");

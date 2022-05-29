@@ -1,6 +1,6 @@
 use crate::value::Ref;
 
-use libwasmrun_syntax::elements::TableType;
+use libwasmrun_syntax::TableType;
 
 #[derive(Debug)]
 pub struct Table {

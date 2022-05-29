@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 use fxhash::FxHashMap;
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 
 fn main() {
     let cli::Args { file } = cli::parse();

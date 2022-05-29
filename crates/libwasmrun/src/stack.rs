@@ -1,8 +1,6 @@
 use crate::value::{Ref, Value};
 use crate::{ExecError, Result};
 
-use libwasmrun_syntax::elements as wasm;
-
 #[derive(Debug)]
 pub(crate) struct Stack(Vec<Block>);
 

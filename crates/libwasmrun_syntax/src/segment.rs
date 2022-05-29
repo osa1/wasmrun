@@ -1,7 +1,6 @@
-use crate::elements::{
-    CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, Uint8, VarUint32,
+use crate::{
+    io, CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, Uint8, VarUint32,
 };
-use crate::io;
 
 const FLAG_MEMZERO: u32 = 0;
 const FLAG_PASSIVE: u32 = 1;

@@ -8,7 +8,7 @@ use crate::value::Value;
 use crate::Result;
 pub use table::Table;
 
-use libwasmrun_syntax::elements::{self as wasm, IndexMap};
+use libwasmrun_syntax::{self as wasm, IndexMap};
 
 use std::rc::Rc;
 

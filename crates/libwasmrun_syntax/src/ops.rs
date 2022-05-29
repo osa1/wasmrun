@@ -1,8 +1,7 @@
-use crate::elements::{
-    BlockType, CountedList, Deserialize, Error, ReferenceType, Uint32, Uint64, Uint8, VarInt32,
+use crate::{
+    io, BlockType, CountedList, Deserialize, Error, ReferenceType, Uint32, Uint64, Uint8, VarInt32,
     VarInt64, VarUint32,
 };
-use crate::io;
 
 use std::fmt;
 

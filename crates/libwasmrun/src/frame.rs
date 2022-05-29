@@ -3,7 +3,7 @@ use crate::store::FunAddr;
 use crate::value::Value;
 use crate::{ExecError, Result};
 
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 
 use std::iter::repeat;
 

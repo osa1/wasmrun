@@ -1,5 +1,4 @@
-use crate::elements::{CountedList, Deserialize, Error, Uint8, VarInt32, VarInt7, VarUint7};
-use crate::io;
+use crate::{io, CountedList, Deserialize, Error, Uint8, VarInt32, VarInt7, VarUint7};
 
 use std::fmt;
 

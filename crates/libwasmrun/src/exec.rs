@@ -12,7 +12,7 @@ use crate::{HostFunDecl, MemAddr};
 
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
 use wasm::{Instruction, SignExtInstruction};
 

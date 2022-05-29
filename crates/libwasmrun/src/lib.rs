@@ -13,7 +13,7 @@ use std::fmt::Display;
 use std::path::Path;
 use std::rc::Rc;
 
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 
 pub use exec::Runtime;
 pub use module::MemIdx;

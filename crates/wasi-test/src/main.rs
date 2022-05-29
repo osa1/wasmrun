@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 use std::sync::{Arc, RwLock};
 
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 
 use libwasmrun::virtfs::pipe::{ReadPipe, WritePipe};
 use libwasmrun::virtfs::{VecFileContents, VirtualDirEntry};

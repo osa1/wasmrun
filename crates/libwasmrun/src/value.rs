@@ -2,7 +2,7 @@
 
 use crate::store::{ExternAddr, FunAddr};
 
-use libwasmrun_syntax::elements as wasm;
+use libwasmrun_syntax as wasm;
 
 use std::fmt;
 

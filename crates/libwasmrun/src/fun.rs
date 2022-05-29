@@ -8,8 +8,8 @@ use std::fmt;
 use std::rc::Rc;
 
 use fxhash::FxHashMap;
-use libwasmrun_syntax::elements::Instruction;
-use libwasmrun_syntax::elements::{self as wasm, IndexMap};
+use libwasmrun_syntax::Instruction;
+use libwasmrun_syntax::{self as wasm, IndexMap};
 
 pub enum Fun {
     Wasm(WasmFun),

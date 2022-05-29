@@ -1,6 +1,4 @@
-//! Elements of the WebAssembly binary format.
-
-use crate::io;
+mod io;
 
 use core::fmt;
 
