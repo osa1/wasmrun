@@ -30,6 +30,9 @@ pub struct MemAddr(u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GlobalAddr(u32);
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct DataAddr(u32);
+
 #[derive(Default)]
 pub struct Store {
     modules: Vec<Module>,
@@ -37,6 +40,7 @@ pub struct Store {
     tables: Vec<Table>,
     mems: Vec<Mem>,
     globals: Vec<Global>,
+    datas: Vec<wasm::DataSegment>,
 }
 
 impl Store {
@@ -134,6 +138,20 @@ impl Store {
 
     pub(crate) fn get_global_mut(&mut self, global_addr: GlobalAddr) -> &mut Global {
         &mut self.globals[global_addr.0 as usize]
+    }
+
+    pub(crate) fn allocate_data(&mut self, data: wasm::DataSegment) -> DataAddr {
+        let ret = self.datas.len() as u32;
+        self.datas.push(data);
+        DataAddr(ret)
+    }
+
+    pub(crate) fn get_data(&self, data_addr: DataAddr) -> &wasm::DataSegment {
+        &self.datas[data_addr.0 as usize]
+    }
+
+    pub(crate) fn get_data_mut(&mut self, data_addr: DataAddr) -> &mut wasm::DataSegment {
+        &mut self.datas[data_addr.0 as usize]
     }
 }
 

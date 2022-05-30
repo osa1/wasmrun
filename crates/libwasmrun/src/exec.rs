@@ -514,7 +514,8 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
             // but they get an index. If this is the case then we don't need to store `DataSegment`
             // in the module instance, just store an empty vec for active segments and store
             // passive segment data.
-            inst.add_data(seg.clone());
+            let data_addr = rt.store.allocate_data(seg.clone());
+            inst.add_data(data_addr);
             match mode {
                 wasm::DataSegmentMode::Passive => {}
                 wasm::DataSegmentMode::Active { mem_idx, offset } => {
@@ -747,7 +748,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             //     data_idx, amt, src, dst
             // );
 
-            let data = rt.get_module(module_addr).get_data(DataIdx(data_idx));
+            let data_addr = rt.get_module(module_addr).get_data(DataIdx(data_idx));
+            let data = rt.store.get_data(data_addr);
 
             // TODO: Not sure if this can be active? If it can't then we don't need to store active
             // segments in module instance
@@ -764,8 +766,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             // println!("memory_init data={:?}", data);
 
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.set_range(dst as u32, &data[src..src+amt])?;
+            mem.set_range(dst as u32, &data[src..src + amt])?;
 
+            rt.ip += 1;
+        }
+
+        Instruction::DataDrop(data_idx) => {
+            let data_addr = rt.get_module(module_addr).get_data(DataIdx(data_idx));
+            let data = rt.store.get_data_mut(data_addr);
+            data.data.clear();
             rt.ip += 1;
         }
 
@@ -2622,10 +2631,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Atomics(_)
-        | Instruction::Simd(_)
-        | Instruction::DataDrop(_)
-        | Instruction::ElemDrop(_) => {
+        Instruction::Atomics(_) | Instruction::Simd(_) | Instruction::ElemDrop(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr
