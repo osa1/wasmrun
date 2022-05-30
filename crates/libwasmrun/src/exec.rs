@@ -797,10 +797,27 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::MemoryFill => {
-            return Err(ExecError::Panic(format!(
-                "Instruction not implemented: {:?}",
-                instr
-            )));
+            let amt = rt.stack.pop_i32()? as usize;
+            let val = rt.stack.pop_i32()? as u8;
+            let dst = rt.stack.pop_i32()? as usize;
+
+            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+
+            let oob = match dst.checked_add(amt) {
+                Some(copy_end) => copy_end > mem.len(),
+                None => true,
+            };
+
+            if oob {
+                return Err(ExecError::Trap(Trap::OOBMemoryAccess));
+            }
+
+            for i in 0..amt {
+                mem.mem[dst + i] = val;
+            }
+
+            rt.ip += 1;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
