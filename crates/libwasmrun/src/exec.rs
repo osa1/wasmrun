@@ -696,7 +696,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     // );
 
     match instr {
-        Instruction::GrowMemory(mem_ref) => {
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // Memory instructions
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::MemoryGrow(mem_ref) => {
             assert_eq!(mem_ref, 0);
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
@@ -716,7 +719,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::CurrentMemory(mem_ref) => {
+        Instruction::MemorySize(mem_ref) => {
             // memory.size
             assert_eq!(mem_ref, 0);
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
@@ -725,6 +728,14 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::MemoryInit(_) | Instruction::MemoryCopy | Instruction::MemoryFill => {
+            return Err(ExecError::Panic(format!(
+                "Instruction not implemented: {:?}",
+                instr
+            )));
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Nop => {
             rt.ip += 1;
         }
@@ -2565,10 +2576,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Atomics(_)
         | Instruction::Simd(_)
-        | Instruction::MemoryInit(_)
         | Instruction::DataDrop(_)
-        | Instruction::MemoryCopy
-        | Instruction::MemoryFill
         | Instruction::ElemDrop(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",

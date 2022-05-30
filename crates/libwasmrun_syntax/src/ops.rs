@@ -156,8 +156,8 @@ pub enum Instruction {
     I64Store16(u32, u32),
     I64Store32(u32, u32),
 
-    CurrentMemory(u8),
-    GrowMemory(u8),
+    MemorySize(u8),
+    MemoryGrow(u8),
 
     I32Const(i32),
     I64Const(i64),
@@ -650,8 +650,8 @@ pub mod opcodes {
     pub const I64STORE8: u8 = 0x3c;
     pub const I64STORE16: u8 = 0x3d;
     pub const I64STORE32: u8 = 0x3e;
-    pub const CURRENTMEMORY: u8 = 0x3f;
-    pub const GROWMEMORY: u8 = 0x40;
+    pub const MEMORY_SIZE: u8 = 0x3f;
+    pub const MEMORY_GROW: u8 = 0x40;
     pub const I32CONST: u8 = 0x41;
     pub const I64CONST: u8 = 0x42;
     pub const F32CONST: u8 = 0x43;
@@ -1232,19 +1232,19 @@ impl Deserialize for Instruction {
                 VarUint32::deserialize(reader)?.into(),
             ),
 
-            CURRENTMEMORY => {
+            MEMORY_SIZE => {
                 let mem_ref: u8 = Uint8::deserialize(reader)?.into();
                 if mem_ref != 0 {
                     return Err(Error::InvalidMemoryReference(mem_ref));
                 }
-                CurrentMemory(mem_ref)
+                MemorySize(mem_ref)
             }
-            GROWMEMORY => {
+            MEMORY_GROW => {
                 let mem_ref: u8 = Uint8::deserialize(reader)?.into();
                 if mem_ref != 0 {
                     return Err(Error::InvalidMemoryReference(mem_ref));
                 }
-                GrowMemory(mem_ref)
+                MemoryGrow(mem_ref)
             }
 
             I32CONST => I32Const(VarInt32::deserialize(reader)?.into()),
@@ -1852,8 +1852,8 @@ impl fmt::Display for Instruction {
             I64Store32(_, 0) => write!(f, "i64.store32"),
             I64Store32(_, offset) => write!(f, "i64.store32 offset={}", offset),
 
-            CurrentMemory(_) => fmt_op!(f, "current_memory"),
-            GrowMemory(_) => fmt_op!(f, "grow_memory"),
+            MemorySize(_) => fmt_op!(f, "memory.size"),
+            MemoryGrow(_) => fmt_op!(f, "memory.grow"),
 
             I32Const(def) => fmt_op!(f, "i32.const", def),
             I64Const(def) => fmt_op!(f, "i64.const", def),
