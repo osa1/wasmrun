@@ -786,7 +786,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem_mut(mem_addr);
 
-            if src + amt >= mem.len() || dst + amt >= mem.len() {
+            let oob = match (src.checked_add(amt), dst.checked_add(amt)) {
+                (None, _) | (_, None) => true,
+                (Some(src_end), Some(dst_end)) => src_end > mem.len() || dst_end > mem.len(),
+            };
+
+            if oob {
                 return Err(ExecError::Trap(Trap::OOBMemoryAccess));
             }
 
