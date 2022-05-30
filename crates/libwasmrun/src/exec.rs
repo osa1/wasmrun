@@ -778,7 +778,25 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::MemoryCopy | Instruction::MemoryFill => {
+        Instruction::MemoryCopy => {
+            let amt = rt.stack.pop_i32()? as usize;
+            let src = rt.stack.pop_i32()? as usize;
+            let dst = rt.stack.pop_i32()? as usize;
+
+            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+
+            if src + amt >= mem.len() || dst + amt >= mem.len() {
+                return Err(ExecError::Trap(Trap::OOBMemoryAccess));
+            }
+
+            let src_data = mem.mem[src..src + amt].to_vec();
+            mem.set_range(dst as u32, &src_data)?;
+
+            rt.ip += 1;
+        }
+
+        Instruction::MemoryFill => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr

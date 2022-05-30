@@ -7,7 +7,7 @@ use wiggle::{BorrowHandle, GuestError, GuestMemory, Region};
 use wiggle_borrow::BorrowChecker;
 
 pub struct Mem {
-    mem: Vec<u8>,
+    pub mem: Vec<u8>,
     limit: Option<u32>,
     bc: BorrowChecker,
 }
