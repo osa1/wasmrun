@@ -1682,11 +1682,12 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         I64_TRUNC_SAT_F64_S => I64TruncSatSF64,
         I64_TRUNC_SAT_F64_U => I64TruncSatUF64,
         MEMORY_INIT => {
+            let data_idx = VarUint32::deserialize(reader)?.into();
             let mem_idx = Uint8::deserialize(reader)?.into();
             if mem_idx != 0 {
                 return Err(Error::InvalidMemoryReference(mem_idx));
             }
-            MemoryInit(VarUint32::deserialize(reader)?.into())
+            MemoryInit(data_idx)
         }
         DATA_DROP => DataDrop(VarUint32::deserialize(reader)?.into()),
         MEMORY_COPY => {
