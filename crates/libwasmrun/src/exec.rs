@@ -509,11 +509,14 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
 
     // Initialize memories with 'data' section
     if let Some(data_section) = parsed_module.data_section() {
-        for wasm::DataSegment { data, mode } in data_section.entries() {
+        for seg @ wasm::DataSegment { data, mode } in data_section.entries() {
+            // TODO: I think active segments don't need to be store in the module instance or heap,
+            // but they get an index. If this is the case then we don't need to store `DataSegment`
+            // in the module instance, just store an empty vec for active segments and store
+            // passive segment data.
+            inst.add_data(seg.clone());
             match mode {
-                wasm::DataSegmentMode::Passive => {
-                    inst.add_data(data.clone());
-                }
+                wasm::DataSegmentMode::Passive => {}
                 wasm::DataSegmentMode::Active { mem_idx, offset } => {
                     // TODO: Is this a validation error? Should this be a trap?
                     assert_eq!(*mem_idx, 0);
@@ -739,15 +742,29 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let src = rt.stack.pop_i32()? as usize;
             let dst = rt.stack.pop_i32()? as usize;
 
+            // println!(
+            //     "memory_init data_idx={} amt={} src={} dst={}",
+            //     data_idx, amt, src, dst
+            // );
+
             let data = rt.get_module(module_addr).get_data(DataIdx(data_idx));
+
+            // TODO: Not sure if this can be active? If it can't then we don't need to store active
+            // segments in module instance
+            assert_eq!(data.mode, wasm::DataSegmentMode::Passive);
+
+            let data = &data.data;
 
             if src + amt > data.len() || dst + amt >= mem.len() {
                 return Err(ExecError::Trap(Trap::OOBMemoryAccess)); // FIXME trap
             }
 
             let data = data.to_vec(); // avoid aliasing
+
+            // println!("memory_init data={:?}", data);
+
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.set_range(dst as u32, &data[src..])?;
+            mem.set_range(dst as u32, &data[src..src+amt])?;
 
             rt.ip += 1;
         }

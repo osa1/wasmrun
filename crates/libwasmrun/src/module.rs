@@ -32,7 +32,7 @@ pub(crate) struct Module {
     exports: Vec<Export>,
     start: Option<FunIdx>,
     name_to_fun: FxHashMap<String, FunIdx>,
-    datas: Vec<Vec<u8>>,
+    datas: Vec<wasm::DataSegment>,
 }
 
 impl Module {
@@ -154,13 +154,13 @@ impl Module {
         self.name_to_fun.get(name).copied()
     }
 
-    pub(crate) fn add_data(&mut self, data: Vec<u8>) -> DataIdx {
+    pub(crate) fn add_data(&mut self, data: wasm::DataSegment) -> DataIdx {
         let ret = self.datas.len();
         self.datas.push(data);
         DataIdx(ret as u32)
     }
 
-    pub(crate) fn get_data(&self, data_idx: DataIdx) -> &[u8] {
+    pub(crate) fn get_data(&self, data_idx: DataIdx) -> &wasm::DataSegment {
         &self.datas[data_idx.0 as usize]
     }
 }
