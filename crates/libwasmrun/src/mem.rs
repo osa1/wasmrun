@@ -71,6 +71,10 @@ impl Mem {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.mem.len()
+    }
+
     pub fn get_len(&self, offset: u32, len: u32) -> Result<&[u8]> {
         self.get_range_exclusive(offset, offset + len)
     }

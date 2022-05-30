@@ -2,10 +2,6 @@ use crate::{
     io, CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, Uint8, VarUint32,
 };
 
-const FLAG_MEMZERO: u32 = 0;
-const FLAG_PASSIVE: u32 = 1;
-const FLAG_MEM_NONZERO: u32 = 2;
-
 const VALUES_BUFFER_LENGTH: usize = 16384;
 
 /// Entry in an element section
@@ -35,64 +31,6 @@ impl ElementKind {
         }
     }
 }
-
-/*
-impl ElementSegment {
-    /// New element segment.
-    pub fn new(index: u32, offset: Option<InitExpr>, members: Vec<u32>) -> Self {
-        ElementSegment {
-            index,
-            offset,
-            members,
-            passive: false,
-        }
-    }
-
-    /// Sequence of function indices.
-    pub fn members(&self) -> &[u32] {
-        &self.members
-    }
-
-    /// Sequence of function indices (mutable)
-    pub fn members_mut(&mut self) -> &mut Vec<u32> {
-        &mut self.members
-    }
-
-    /// Table index (currently valid only value of `0`)
-    pub fn index(&self) -> u32 {
-        self.index
-    }
-
-    /// An i32 initializer expression that computes the offset at which to place the elements.
-    ///
-    /// Note that this return `None` if the segment is `passive`.
-    pub fn offset(&self) -> &Option<InitExpr> {
-        &self.offset
-    }
-
-    /// An i32 initializer expression that computes the offset at which to place the elements (mutable)
-    ///
-    /// Note that this return `None` if the segment is `passive`.
-    pub fn offset_mut(&mut self) -> &mut Option<InitExpr> {
-        &mut self.offset
-    }
-
-    /// Whether or not this table segment is "passive"
-    pub fn passive(&self) -> bool {
-        self.passive
-    }
-
-    /// Whether or not this table segment is "passive"
-    pub fn passive_mut(&mut self) -> &mut bool {
-        &mut self.passive
-    }
-
-    /// Set whether or not this table segment is "passive"
-    pub fn set_passive(&mut self, passive: bool) {
-        self.passive = passive;
-    }
-}
-*/
 
 fn func_idx_vec_to_init(func_idxs: &[u32]) -> Vec<InitExpr> {
     func_idxs
@@ -195,94 +133,50 @@ impl Deserialize for ElementKind {
 /// Data segment definition.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataSegment {
-    index: u32,
-    offset: Option<InitExpr>,
-    value: Vec<u8>,
-    passive: bool,
+    pub data: Vec<u8>,
+    pub mode: DataSegmentMode,
 }
 
-impl DataSegment {
-    /// New data segments.
-    pub fn new(index: u32, offset: Option<InitExpr>, value: Vec<u8>) -> Self {
-        DataSegment {
-            index,
-            offset,
-            value,
-            passive: false,
-        }
-    }
-
-    /// Linear memory index (currently the only valid value is `0`).
-    pub fn index(&self) -> u32 {
-        self.index
-    }
-
-    /// An i32 initializer expression that computes the offset at which to place the data.
-    ///
-    /// Note that this return `None` if the segment is `passive`.
-    pub fn offset(&self) -> &Option<InitExpr> {
-        &self.offset
-    }
-
-    /// An i32 initializer expression that computes the offset at which to place the data (mutable)
-    ///
-    /// Note that this return `None` if the segment is `passive`.
-    pub fn offset_mut(&mut self) -> &mut Option<InitExpr> {
-        &mut self.offset
-    }
-
-    /// Initial value of the data segment.
-    pub fn value(&self) -> &[u8] {
-        &self.value
-    }
-
-    /// Initial value of the data segment (mutable).
-    pub fn value_mut(&mut self) -> &mut Vec<u8> {
-        &mut self.value
-    }
-}
-
-impl DataSegment {
-    /// Whether or not this data segment is "passive".
-    pub fn passive(&self) -> bool {
-        self.passive
-    }
-
-    /// Whether or not this data segment is "passive" (mutable).
-    pub fn passive_mut(&mut self) -> &mut bool {
-        &mut self.passive
-    }
-
-    /// Set whether or not this table segment is "passive"
-    pub fn set_passive(&mut self, passive: bool) {
-        self.passive = passive;
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub enum DataSegmentMode {
+    Passive,
+    Active { mem_idx: usize, offset: InitExpr },
 }
 
 impl Deserialize for DataSegment {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u32 = VarUint32::deserialize(reader)?.into();
-        let index = if flags == FLAG_MEMZERO || flags == FLAG_PASSIVE {
-            0u32
-        } else if flags == FLAG_MEM_NONZERO {
-            VarUint32::deserialize(reader)?.into()
-        } else {
+        if flags >> 2 != 0 {
             return Err(Error::InvalidSegmentFlags(flags));
-        };
-        let offset = if flags == FLAG_PASSIVE {
-            None
-        } else {
-            Some(InitExpr::deserialize(reader)?)
-        };
-        let value_len = u32::from(VarUint32::deserialize(reader)?) as usize;
-        let value = buffered_read!(VALUES_BUFFER_LENGTH, value_len, reader);
+        }
 
-        Ok(DataSegment {
-            index,
-            offset,
-            value,
-            passive: flags == FLAG_PASSIVE,
-        })
+        let bit_0 = flags & 0b1 != 0;
+        let bit_1 = flags & 0b10 != 0;
+
+        let passive = bit_0;
+        let explicit_memory_idx = bit_1;
+
+        if passive {
+            let data_len = u32::from(VarUint32::deserialize(reader)?) as usize;
+            let data = buffered_read!(VALUES_BUFFER_LENGTH, data_len, reader);
+            Ok(DataSegment {
+                data,
+                mode: DataSegmentMode::Passive,
+            })
+        } else {
+            let mem_idx = if explicit_memory_idx {
+                VarUint32::deserialize(reader)?.into()
+            } else {
+                0
+            };
+            let offset = InitExpr::deserialize(reader)?;
+            let data_len = u32::from(VarUint32::deserialize(reader)?) as usize;
+            let data = buffered_read!(VALUES_BUFFER_LENGTH, data_len, reader);
+            Ok(DataSegment {
+                data,
+                mode: DataSegmentMode::Active { mem_idx, offset },
+            })
+        }
     }
 }
 

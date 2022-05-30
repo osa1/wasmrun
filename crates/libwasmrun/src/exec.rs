@@ -2,7 +2,7 @@ use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
 use crate::mem::Mem;
-use crate::module::{FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
+use crate::module::{DataIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
 use crate::value::{self, Ref, Value};
@@ -509,25 +509,29 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
 
     // Initialize memories with 'data' section
     if let Some(data_section) = parsed_module.data_section() {
-        for data in data_section.entries() {
-            let mem_idx = MemIdx(data.index());
-            let offset = match data.offset() {
-                None => 0,
-                Some(offset_expr) => match get_const_expr_val(rt, &inst, offset_expr.code())? {
-                    Value::I32(offset) => offset as u32,
-                    other => {
-                        return Err(ExecError::Panic(format!(
-                            "Weird data section offset: {:?}",
-                            other
-                        )));
-                    }
-                },
-            };
-            let values = data.value();
-
-            let mem_addr = inst.get_mem(mem_idx);
-            let mem = &mut rt.store.get_mem_mut(mem_addr);
-            mem.set_range(offset, values)?;
+        for wasm::DataSegment { data, mode } in data_section.entries() {
+            match mode {
+                wasm::DataSegmentMode::Passive => {
+                    inst.add_data(data.clone());
+                }
+                wasm::DataSegmentMode::Active { mem_idx, offset } => {
+                    // TODO: Is this a validation error? Should this be a trap?
+                    assert_eq!(*mem_idx, 0);
+                    let offset = match get_const_expr_val(rt, &inst, offset.code())? {
+                        Value::I32(offset) => offset as u32,
+                        other => {
+                            // TODO: const evaluator
+                            return Err(ExecError::Panic(format!(
+                                "Weird data section offset: {:?}",
+                                other
+                            )));
+                        }
+                    };
+                    let mem_addr = inst.get_mem(MemIdx(0));
+                    let mem = &mut rt.store.get_mem_mut(mem_addr);
+                    mem.set_range(offset, data)?;
+                }
+            }
         }
     }
 
@@ -720,7 +724,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::MemorySize(mem_ref) => {
-            // memory.size
             assert_eq!(mem_ref, 0);
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
             let mem = rt.store.get_mem(mem_addr);
@@ -728,7 +731,28 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::MemoryInit(_) | Instruction::MemoryCopy | Instruction::MemoryFill => {
+        Instruction::MemoryInit(data_idx) => {
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+
+            let amt = rt.stack.pop_i32()? as usize;
+            let src = rt.stack.pop_i32()? as usize;
+            let dst = rt.stack.pop_i32()? as usize;
+
+            let data = rt.get_module(module_addr).get_data(DataIdx(data_idx));
+
+            if src + amt > data.len() || dst + amt >= mem.len() {
+                return Err(ExecError::Trap(Trap::OOBMemoryAccess)); // FIXME trap
+            }
+
+            let data = data.to_vec(); // avoid aliasing
+            let mem = rt.store.get_mem_mut(mem_addr);
+            mem.set_range(dst as u32, &data[src..])?;
+
+            rt.ip += 1;
+        }
+
+        Instruction::MemoryCopy | Instruction::MemoryFill => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr
@@ -2474,6 +2498,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 None => return Err(ExecError::Trap(Trap::OOBTableElementIdx)),
             };
             rt.stack.push_value(Value::Ref(*elem))?;
+            rt.ip += 1;
         }
 
         Instruction::TableSet(table_idx) => {
@@ -2484,6 +2509,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             if !table.set(elem_idx as usize, value) {
                 return Err(ExecError::Trap(Trap::OOBTableElementIdx));
             }
+            rt.ip += 1;
         }
 
         Instruction::TableSize(table_idx) => {
@@ -2491,6 +2517,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let table = rt.store.get_table_mut(table_addr);
             let len = table.len();
             rt.stack.push_value(Value::I32(len as i32))?;
+            rt.ip += 1;
         }
 
         Instruction::TableGrow(table_idx) => {
@@ -2500,6 +2527,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let val = rt.stack.pop_ref()?;
             let old_size = table.grow(n as usize, val);
             rt.stack.push_value(Value::I32(old_size as i32))?;
+            rt.ip += 1;
         }
 
         Instruction::TableFill(table_idx) => {
@@ -2513,6 +2541,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             if !table.fill(idx as usize, amt as usize, val) {
                 return Err(ExecError::Trap(Trap::OOBTableElementIdx));
             }
+            rt.ip += 1;
         }
 
         Instruction::TableCopy(dst, src) => {
@@ -2547,6 +2576,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             for (elem_idx, elem) in elems.into_iter().enumerate() {
                 dst.set(dst_idx + elem_idx, elem); // bounds already checked
             }
+
+            rt.ip += 1;
         }
 
         Instruction::TableInit { .. } => {

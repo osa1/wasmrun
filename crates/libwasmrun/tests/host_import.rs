@@ -27,7 +27,7 @@ static TEST_WAST: &str = r#"
 #[test]
 fn test_importing_host_fn() {
     let wasm = wabt::wat2wasm(TEST_WAST).unwrap();
-    let module: wasm::elements::Module = wasm::deserialize_buffer(&wasm).unwrap();
+    let module: wasm::Module = wasm::deserialize_buffer(&wasm).unwrap();
 
     let mut rt = Runtime::new();
 

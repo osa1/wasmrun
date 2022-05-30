@@ -64,7 +64,7 @@ pub use self::{
         FunctionNameSubsection, LocalNameSubsection, ModuleNameSubsection, NameMap, NameSection,
     },
     reloc_section::{RelocSection, RelocationEntry},
-    segment::{DataSegment, ElementSegment, ElementSegmentMode},
+    segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
 };
 
 /// Deserialization from serial i/o.

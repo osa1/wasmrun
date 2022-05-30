@@ -19,6 +19,9 @@ pub struct MemIdx(pub u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TypeIdx(pub u32);
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct DataIdx(pub u32);
+
 #[derive(Debug, Default)]
 pub(crate) struct Module {
     types: Vec<wasm::FunctionType>,
@@ -29,6 +32,7 @@ pub(crate) struct Module {
     exports: Vec<Export>,
     start: Option<FunIdx>,
     name_to_fun: FxHashMap<String, FunIdx>,
+    datas: Vec<Vec<u8>>,
 }
 
 impl Module {
@@ -148,5 +152,15 @@ impl Module {
 
     pub(crate) fn get_fun_name(&self, name: &str) -> Option<FunIdx> {
         self.name_to_fun.get(name).copied()
+    }
+
+    pub(crate) fn add_data(&mut self, data: Vec<u8>) -> DataIdx {
+        let ret = self.datas.len();
+        self.datas.push(data);
+        DataIdx(ret as u32)
+    }
+
+    pub(crate) fn get_data(&self, data_idx: DataIdx) -> &[u8] {
+        &self.datas[data_idx.0 as usize]
     }
 }
