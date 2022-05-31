@@ -94,7 +94,7 @@ pub enum Error {
     /// Other allocated error
     HeapOther(String),
     /// Invalid/unknown value type declaration
-    UnknownValueType(i8),
+    UnknownValueType(u8),
     /// Invalid block type declaration
     UnknownBlockType(i32),
     /// Invalid/unknown table element type declaration

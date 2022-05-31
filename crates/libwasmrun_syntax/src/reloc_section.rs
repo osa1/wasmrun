@@ -222,7 +222,7 @@ impl Deserialize for RelocationEntry {
                 index: VarUint32::deserialize(rdr)?.into(),
             }),
 
-            entry_type => Err(Error::UnknownValueType(entry_type as i8)),
+            entry_type => Err(Error::UnknownValueType(entry_type)),
         }
     }
 }

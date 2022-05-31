@@ -1,4 +1,4 @@
-use crate::{io, CountedList, Deserialize, Error, Uint8, VarInt32, VarInt7, VarUint7};
+use crate::{io, CountedList, Deserialize, Error, Uint8, VarInt32, VarUint7};
 
 use std::fmt;
 
@@ -28,18 +28,24 @@ pub enum ValueType {
     F64,
     /// 128-bit SIMD register
     V128,
+    /// Reference to an embedder object
+    ExternRef,
+    /// Reference to a function
+    FuncRef,
 }
 
 impl Deserialize for ValueType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let val = VarInt7::deserialize(reader)?;
+        let val = VarUint7::deserialize(reader)?;
 
         match val.into() {
-            -0x01 => Ok(ValueType::I32),
-            -0x02 => Ok(ValueType::I64),
-            -0x03 => Ok(ValueType::F32),
-            -0x04 => Ok(ValueType::F64),
-            -0x05 => Ok(ValueType::V128),
+            0x7f => Ok(ValueType::I32),
+            0x7e => Ok(ValueType::I64),
+            0x7d => Ok(ValueType::F32),
+            0x7c => Ok(ValueType::F64),
+            0x7b => Ok(ValueType::V128),
+            0x70 => Ok(ValueType::FuncRef),
+            0x6f => Ok(ValueType::ExternRef),
             _ => Err(Error::UnknownValueType(val.into())),
         }
     }
@@ -53,6 +59,8 @@ impl fmt::Display for ValueType {
             ValueType::F32 => write!(f, "f32"),
             ValueType::F64 => write!(f, "f64"),
             ValueType::V128 => write!(f, "v128"),
+            ValueType::ExternRef => write!(f, "externref"),
+            ValueType::FuncRef => write!(f, "funcref"),
         }
     }
 }
