@@ -461,13 +461,19 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                 wasm::ElementSegmentMode::Passive => {
                     // Spec: "A passive element segment’s elements can be copied to a table using
                     // the `table.init` instruction."
-                    todo!("Passive element segment: {:?}", elem)
+                    return Err(ExecError::Panic(format!(
+                        "TODO: Passive element segment: {:?}",
+                        elem
+                    )));
                 }
                 wasm::ElementSegmentMode::Declarative => {
                     // Spec: "A declarative element segment is not available at runtime but merely
                     // serves to forward-declare references that are formed in code with
                     // instructions like `ref.func`.
-                    todo!("Declarative element segment: {:?}", elem)
+                    return Err(ExecError::Panic(format!(
+                        "TODO: Declarative element segment: {:?}",
+                        elem
+                    )));
                 }
             }
         }
