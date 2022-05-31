@@ -452,7 +452,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                             table.resize(elem_idx + 1, Ref::Null(*ref_type));
                         }
                         let func_idx = match elem.code() {
-                            &[Instruction::I32Const(func_idx), Instruction::End] => func_idx,
+                            &[Instruction::RefFunc(func_idx), Instruction::End] => func_idx,
                             other => todo!("Unhandled element expression: {:?}", other),
                         };
                         table.set(elem_idx, Ref::Ref(inst.get_fun(FunIdx(func_idx as u32))));
