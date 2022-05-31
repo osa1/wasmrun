@@ -751,14 +751,14 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let data_addr = rt.get_module(module_addr).get_data(DataIdx(data_idx));
             let data = rt.store.get_data(data_addr);
 
-            // TODO: Not sure if this can be active? If it can't then we don't need to store active
-            // segments in module instance
-            assert_eq!(data.mode, wasm::DataSegmentMode::Passive);
+            // TODO: Active data segments can also be used after instantiation, but I think (?) the
+            // offset expression is not used. Maybe store just the data?
+            // assert_eq!(data.mode, wasm::DataSegmentMode::Passive);
 
             let data = &data.data;
 
-            if src + amt > data.len() || dst + amt >= mem.len() {
-                return Err(ExecError::Trap(Trap::OOBMemoryAccess)); // FIXME trap
+            if src + amt > data.len() || dst + amt > mem.len() {
+                return Err(ExecError::Trap(Trap::OOBMemoryAccess));
             }
 
             let data = data.to_vec(); // avoid aliasing
