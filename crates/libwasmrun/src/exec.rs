@@ -533,6 +533,16 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     };
                     let mem_addr = inst.get_mem(MemIdx(0));
                     let mem = &mut rt.store.get_mem_mut(mem_addr);
+
+                    // memory.init amt=`data.len()` src=0 dst=`offset`
+                    let amt = data.len();
+                    let src = 0;
+                    let dst = offset as usize;
+
+                    if src + amt > data.len() || dst + amt > mem.len() {
+                        return Err(ExecError::Trap(Trap::OOBMemoryAccess));
+                    }
+
                     mem.set_range(offset, data)?;
                 }
             }
