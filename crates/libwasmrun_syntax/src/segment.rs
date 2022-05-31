@@ -95,10 +95,9 @@ impl Deserialize for ElementSegment {
             };
             if element_type_and_expr {
                 let offset = InitExpr::deserialize(reader)?;
-                let ref_type = ReferenceType::deserialize(reader)?;
                 let init = CountedList::<InitExpr>::deserialize(reader)?.into_inner();
                 Ok(ElementSegment {
-                    ref_type,
+                    ref_type: ReferenceType::FuncRef,
                     init,
                     mode: ElementSegmentMode::Active { table_idx, offset },
                 })
