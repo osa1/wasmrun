@@ -544,6 +544,9 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     }
 
                     mem.set_range(offset, data)?;
+
+                    // data.drop
+                    rt.store.get_data_mut(data_addr).data.clear();
                 }
             }
         }
