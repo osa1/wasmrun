@@ -16,7 +16,6 @@ use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
 use wasm::{Instruction, SignExtInstruction};
 
-use std::convert::TryFrom;
 use std::fmt;
 use std::iter;
 use std::mem::take;
@@ -426,7 +425,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
     // Allocate table elements
     if let Some(element_section) = parsed_module.elements_section() {
         for elem @ wasm::ElementSegment {
-            ref_type,
+            ref_type: _,
             init,
             mode,
         } in element_section.entries()
@@ -445,6 +444,20 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     let offset = match offset.code() {
                         &[Instruction::I32Const(offset), Instruction::End] => offset as usize,
                         &[Instruction::I64Const(offset), Instruction::End] => offset as usize,
+                        &[Instruction::GetGlobal(global_idx), Instruction::End] => {
+                            let global_addr = inst.get_global(GlobalIdx(global_idx));
+                            let global = rt.store.get_global(global_addr).value;
+                            match global {
+                                Value::I32(offset) => offset as usize,
+                                Value::I64(offset) => offset as usize,
+                                Value::F32(_) | Value::F64(_) | Value::Ref(_) => {
+                                    return Err(ExecError::Panic(format!(
+                                        "Offset global value: {:?}",
+                                        global
+                                    )))
+                                }
+                            }
+                        }
                         other => {
                             return Err(ExecError::Panic(format!(
                                 "Unhandled offset expression: {:?}",
@@ -458,18 +471,13 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     for (elem_idx, elem) in init.iter().enumerate() {
                         let elem_idx = offset + elem_idx;
                         if elem_idx >= table.len() {
-                            match elem_idx
-                                .checked_add(1)
-                                .and_then(|new_len| u32::try_from(new_len).ok())
-                            {
-                                Some(new_len) => {
-                                    table.resize(new_len as usize, Ref::Null(*ref_type))
-                                }
-                                None => return Err(ExecError::Trap(Trap::OOBTableElementIdx)),
-                            }
+                            return Err(ExecError::Trap(Trap::OOBTableElementIdx));
                         }
-                        let func_idx = match elem.code() {
-                            &[Instruction::RefFunc(func_idx), Instruction::End] => func_idx,
+                        let elem = match elem.code() {
+                            &[Instruction::RefFunc(func_idx), Instruction::End] => {
+                                Ref::Ref(inst.get_fun(FunIdx(func_idx)))
+                            }
+                            &[Instruction::RefNull(ref_ty), Instruction::End] => Ref::Null(ref_ty),
                             other => {
                                 return Err(ExecError::Panic(format!(
                                     "Unhandled element expression: {:?}",
@@ -477,7 +485,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                                 )))
                             }
                         };
-                        table.set(elem_idx, Ref::Ref(inst.get_fun(FunIdx(func_idx as u32))));
+                        table.set(elem_idx, elem);
                     }
                 }
                 wasm::ElementSegmentMode::Passive => {
@@ -489,10 +497,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     // Spec: "A declarative element segment is not available at runtime but merely
                     // serves to forward-declare references that are formed in code with
                     // instructions like `ref.func`.
-                    return Err(ExecError::Panic(format!(
-                        "TODO: Declarative element segment: {:?}",
-                        elem
-                    )));
+                    // TODO: not sure what to do with declarative segments..
                 }
             }
         }
