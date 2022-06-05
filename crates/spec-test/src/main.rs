@@ -195,10 +195,12 @@ fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
         }
     }
 
-    let spec = spec::parse_test_spec(&spec_json_path);
+    let spec = match spec::parse_test_spec(&spec_json_path) {
+        Ok(spec) => spec,
+        Err(lines) => return Ok(lines),
+    };
 
     let mut failing_lines = vec![];
-
     let mut rt = Runtime::new_test();
     let mut module_addr: Option<ModuleAddr> = None;
     let mut modules = Default::default();
@@ -301,7 +303,13 @@ fn run_spec_cmd(
             out.flush().unwrap();
 
             let module_addr = match name {
-                Some(name) => modules.get(&name).unwrap(),
+                Some(name) => match modules.get(&name) {
+                    Some(module_addr) => module_addr,
+                    None => {
+                        writeln!(out, "module not available; skipping").unwrap();
+                        return;
+                    }
+                },
                 None => match module_addr {
                     Some(module_addr) => module_addr,
                     None => {

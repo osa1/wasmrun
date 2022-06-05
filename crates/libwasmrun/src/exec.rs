@@ -16,6 +16,7 @@ use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
 use wasm::{Instruction, SignExtInstruction};
 
+use std::convert::TryFrom;
 use std::fmt;
 use std::iter;
 use std::mem::take;
@@ -444,7 +445,12 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     let offset = match offset.code() {
                         &[Instruction::I32Const(offset), Instruction::End] => offset as usize,
                         &[Instruction::I64Const(offset), Instruction::End] => offset as usize,
-                        other => todo!("Unhandled offset expression: {:?}", other),
+                        other => {
+                            return Err(ExecError::Panic(format!(
+                                "Unhandled offset expression: {:?}",
+                                other
+                            )))
+                        }
                     };
 
                     let table = rt.store.get_table_mut(inst.get_table(TableIdx(*table_idx)));
@@ -452,11 +458,24 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                     for (elem_idx, elem) in init.iter().enumerate() {
                         let elem_idx = offset + elem_idx;
                         if elem_idx >= table.len() {
-                            table.resize(elem_idx + 1, Ref::Null(*ref_type));
+                            match elem_idx
+                                .checked_add(1)
+                                .and_then(|new_len| u32::try_from(new_len).ok())
+                            {
+                                Some(new_len) => {
+                                    table.resize(new_len as usize, Ref::Null(*ref_type))
+                                }
+                                None => return Err(ExecError::Trap(Trap::OOBTableElementIdx)),
+                            }
                         }
                         let func_idx = match elem.code() {
                             &[Instruction::RefFunc(func_idx), Instruction::End] => func_idx,
-                            other => todo!("Unhandled element expression: {:?}", other),
+                            other => {
+                                return Err(ExecError::Panic(format!(
+                                    "Unhandled element expression: {:?}",
+                                    other
+                                )))
+                            }
                         };
                         table.set(elem_idx, Ref::Ref(inst.get_fun(FunIdx(func_idx as u32))));
                     }

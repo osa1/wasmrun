@@ -55,7 +55,9 @@ pub enum ActionKind {
     GetGlobal,
 }
 
-pub fn parse_test_spec(file: &str) -> TestSpec {
+pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
+    let mut failing_lines: Vec<usize> = vec![];
+
     let file_contents = read_to_string(file).unwrap();
     let TestSpecDe {
         source_filename,
@@ -63,7 +65,7 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
     } = serde_json::from_str(&file_contents).unwrap();
 
     let mut commands_ = vec![];
-    for command_de in commands {
+    'command_loop: for command_de in commands {
         match command_de.typ.as_ref() {
             "module" => commands_.push(Command::Module {
                 line: command_de.line,
@@ -84,19 +86,39 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     "get" => ActionKind::GetGlobal,
                     other => panic!("Unknown action type: {}", other),
                 };
+                let mut args = Vec::with_capacity(action.args.len());
+                for value in action.args.into_iter() {
+                    match parse_value(value) {
+                        Ok(value) => {
+                            args.push(value);
+                        }
+                        Err(err) => {
+                            println!("{}", err);
+                            failing_lines.push(command_de.line);
+                            continue 'command_loop;
+                        }
+                    }
+                }
                 commands_.push(Command::AssertReturn {
                     line: command_de.line,
                     kind: action_kind,
                     module: action.module,
                     func: action.field,
-                    args: action.args.into_iter().map(parse_value).collect(),
+                    args,
                     expected: if action_kind != ActionKind::Trap {
-                        command_de
-                            .expected
-                            .unwrap()
-                            .into_iter()
-                            .map(parse_value)
-                            .collect()
+                        let expected = command_de.expected.unwrap();
+                        let mut values = Vec::with_capacity(expected.len());
+                        for value in expected {
+                            match parse_value(value) {
+                                Ok(value) => values.push(value),
+                                Err(err) => {
+                                    println!("{}", err);
+                                    failing_lines.push(command_de.line);
+                                    continue 'command_loop;
+                                }
+                            }
+                        }
+                        values
                     } else {
                         vec![]
                     },
@@ -116,12 +138,23 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
                     todo!("Unknown action type: {}", action.typ);
                 }
                 // Basically assert_return, we the function doesn't return anything
+                let mut args = Vec::with_capacity(action.args.len());
+                for arg in action.args {
+                    match parse_value(arg) {
+                        Ok(value) => args.push(value),
+                        Err(err) => {
+                            println!("{}", err);
+                            failing_lines.push(command_de.line);
+                            continue 'command_loop;
+                        }
+                    }
+                }
                 commands_.push(Command::AssertReturn {
                     line: command_de.line,
                     kind: ActionKind::Invoke,
                     module: action.module,
                     func: action.field,
-                    args: action.args.into_iter().map(parse_value).collect(),
+                    args,
                     expected: vec![],
                     err_msg: command_de.text,
                 });
@@ -139,22 +172,25 @@ pub fn parse_test_spec(file: &str) -> TestSpec {
             "assert_invalid" | "assert_malformed" => {
                 // We don't want to test this stuff, skip
             }
-            other => todo!("Unknown command type: {}", other),
+            other => {
+                println!("Unknown command type: {}", other);
+                failing_lines.push(command_de.line);
+            }
         }
     }
 
-    TestSpec {
+    Ok(TestSpec {
         source_filename,
         commands: commands_,
-    }
+    })
 }
 
-fn parse_value(value_de: ValueDe) -> Value {
+fn parse_value(value_de: ValueDe) -> Result<Value, String> {
     let str = match &value_de.value {
         Some(str) => str,
         None => panic!("{:?}", value_de),
     };
-    match value_de.typ.as_ref() {
+    Ok(match value_de.typ.as_ref() {
         "i32" => Value::I32(parse_str::<ParseIntError, u32>(str) as i32),
         "i64" => Value::I64(parse_str::<ParseIntError, u64>(str) as i64),
         "f32" => {
@@ -181,8 +217,8 @@ fn parse_value(value_de: ValueDe) -> Value {
                 Value::F64(f_64)
             }
         }
-        other => todo!("Unknown value type: {}", other),
-    }
+        other => return Err(format!("Unknown value type: {}", other)),
+    })
 }
 
 fn parse_str<E: Display, A: FromStr<Err = E>>(s: &str) -> A {
