@@ -1,5 +1,5 @@
 use crate::export::{Export, ExportKind};
-use crate::store::{DataAddr, FunAddr, GlobalAddr, MemAddr, TableAddr};
+use crate::store::{DataAddr, ElemAddr, FunAddr, GlobalAddr, MemAddr, TableAddr};
 
 use fxhash::FxHashMap;
 use libwasmrun_syntax as wasm;
@@ -22,6 +22,9 @@ pub(crate) struct TypeIdx(pub u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct DataIdx(pub u32);
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ElemIdx(pub u32);
+
 #[derive(Debug, Default)]
 pub(crate) struct Module {
     types: Vec<wasm::FunctionType>,
@@ -33,6 +36,7 @@ pub(crate) struct Module {
     start: Option<FunIdx>,
     name_to_fun: FxHashMap<String, FunIdx>,
     datas: Vec<DataAddr>,
+    elems: Vec<ElemAddr>,
 }
 
 impl Module {
@@ -162,5 +166,15 @@ impl Module {
 
     pub(crate) fn get_data(&self, data_idx: DataIdx) -> DataAddr {
         self.datas[data_idx.0 as usize]
+    }
+
+    pub(crate) fn add_elem(&mut self, elem: ElemAddr) -> ElemIdx {
+        let ret = self.elems.len();
+        self.elems.push(elem);
+        ElemIdx(ret as u32)
+    }
+
+    pub(crate) fn get_elem(&self, elem_idx: ElemIdx) -> ElemAddr {
+        self.elems[elem_idx.0 as usize]
     }
 }

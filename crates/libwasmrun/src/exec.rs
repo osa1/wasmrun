@@ -2,7 +2,7 @@ use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
 use crate::mem::Mem;
-use crate::module::{DataIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
+use crate::module::{DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
 use crate::value::{self, Ref, Value};
@@ -430,6 +430,9 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
             mode,
         } in element_section.entries()
         {
+            let elem_addr = rt.store.allocate_elem(elem.clone());
+            inst.add_elem(elem_addr);
+
             // https://webassembly.github.io/spec/core/syntax/modules.html#syntax-elem
             match mode {
                 wasm::ElementSegmentMode::Active { table_idx, offset } => {
@@ -461,10 +464,7 @@ pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<
                 wasm::ElementSegmentMode::Passive => {
                     // Spec: "A passive element segment’s elements can be copied to a table using
                     // the `table.init` instruction."
-                    return Err(ExecError::Panic(format!(
-                        "TODO: Passive element segment: {:?}",
-                        elem
-                    )));
+                    // I think we just store it somewhere so that it can be used in `table.init`?
                 }
                 wasm::ElementSegmentMode::Declarative => {
                     // Spec: "A declarative element segment is not available at runtime but merely
@@ -2641,20 +2641,20 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let src_idx = rt.stack.pop_i32()? as usize;
             let dst_idx = rt.stack.pop_i32()? as usize;
 
-            if (src_idx + amt) as usize >= src.len() {
+            if (src_idx + amt) as usize > src.len() {
                 return Err(ExecError::Trap(Trap::OOBTableElementIdx));
             }
 
             let mut elems: Vec<Ref> = Vec::with_capacity(amt);
             for i in src_idx..src_idx + amt {
-                elems[i] = *src.get(i).unwrap(); // bounds already checked
+                elems.push(*src.get(i).unwrap()); // bounds already checked
             }
 
             let dst = rt
                 .store
                 .get_table_mut(rt.get_module(module_addr).get_table(TableIdx(dst)));
 
-            if (dst_idx + amt) as usize >= dst.len() {
+            if (dst_idx + amt) as usize > dst.len() {
                 return Err(ExecError::Trap(Trap::OOBTableElementIdx));
             }
 
@@ -2665,11 +2665,61 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::TableInit { .. } => {
-            return Err(ExecError::Panic(format!(
-                "Instruction not implemented: {:?}",
-                instr
-            )));
+        Instruction::TableInit {
+            elem_idx,
+            table_idx,
+        } => {
+            let table_addr = rt.get_module(module_addr).get_table(TableIdx(table_idx));
+            let table = rt.store.get_table(table_addr);
+
+            let elem_addr = rt.get_module(module_addr).get_elem(ElemIdx(elem_idx));
+            let elem = rt.store.get_elem(elem_addr);
+
+            let amt = rt.stack.pop_i32()? as usize;
+            let src = rt.stack.pop_i32()? as usize;
+            let dst = rt.stack.pop_i32()? as usize;
+
+            let oob_src = match src.checked_add(amt) {
+                Some(src) => src > elem.init.len(),
+                None => true,
+            };
+
+            let oob_dst = match dst.checked_add(amt) {
+                Some(dst) => dst > table.len(),
+                None => true,
+            };
+
+            if oob_src || oob_dst {
+                // TODO: Not sure about the kind of trap
+                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            }
+
+            let mut fun_addrs: Vec<Ref> = Vec::with_capacity(amt);
+
+            for i in 0..amt {
+                let elem: &wasm::InitExpr = &elem.init[src + i];
+                match elem.code() {
+                    &[Instruction::RefFunc(fun_idx), Instruction::End] => {
+                        let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
+                        fun_addrs.push(Ref::Ref(fun_addr));
+                    }
+                    _ => todo!(),
+                }
+            }
+
+            let table = rt.store.get_table_mut(table_addr);
+            for (addr_idx, addr) in fun_addrs.into_iter().enumerate() {
+                table.set(dst + addr_idx, addr);
+            }
+
+            rt.ip += 1;
+        }
+
+        Instruction::ElemDrop(elem_idx) => {
+            let elem_addr = rt.get_module(module_addr).get_elem(ElemIdx(elem_idx));
+            let elem = rt.store.get_elem_mut(elem_addr);
+            elem.init.clear();
+            rt.ip += 1;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -2690,7 +2740,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Atomics(_) | Instruction::Simd(_) | Instruction::ElemDrop(_) => {
+        Instruction::Atomics(_) | Instruction::Simd(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr
