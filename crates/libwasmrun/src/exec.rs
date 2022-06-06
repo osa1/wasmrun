@@ -2588,7 +2588,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let elem_idx = rt.stack.pop_i32()?;
             let elem = match table.get(elem_idx as usize) {
                 Some(elem) => elem,
-                None => return Err(ExecError::Trap(Trap::ElementOOB)),
+                None => return Err(ExecError::Trap(Trap::OOBTableAccess)),
             };
             rt.stack.push_value(Value::Ref(*elem))?;
             rt.ip += 1;
@@ -2616,8 +2616,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let table = rt.store.get_table_mut(table_addr);
             let n = rt.stack.pop_i32()?;
             let val = rt.stack.pop_ref()?;
-            let old_size = table.grow(n as usize, val);
-            rt.stack.push_value(Value::I32(old_size as i32))?;
+            let ret = match table.grow(n as usize, val) {
+                Some(old_size) => old_size as i32,
+                None => -1,
+            };
+            rt.stack.push_value(Value::I32(ret))?;
             rt.ip += 1;
         }
 

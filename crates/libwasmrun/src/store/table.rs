@@ -39,16 +39,26 @@ impl Table {
                 *elem_ref = elem;
                 Ok(())
             }
-            None => Err(ExecError::Trap(Trap::ElementOOB)),
+            None => Err(ExecError::Trap(Trap::OOBTableAccess)),
         }
     }
 
     /// Returns old size of the table
-    pub fn grow(&mut self, amt: usize, elem: Ref) -> usize {
+    pub fn grow(&mut self, amt: usize, elem: Ref) -> Option<usize> {
         debug_assert_eq!(self.ty.elem_type(), elem.ty());
-        let size = self.elems.len();
-        self.elems.resize(size + amt, elem);
-        size
+        let old_size = self.elems.len();
+        let new_size = match old_size.checked_add(amt) {
+            Some(new_size) => new_size,
+            None => return None,
+        };
+        if let Some(max_size) = self.ty.limits().maximum() {
+            if new_size > max_size as usize {
+                return None;
+            }
+        }
+
+        self.elems.resize(new_size, elem);
+        Some(old_size)
     }
 
     /// Returns whether `idx + amt` is in range and fill is successful
