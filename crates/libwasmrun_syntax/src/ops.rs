@@ -1,6 +1,6 @@
 use crate::{
-    io, BlockType, CountedList, Deserialize, Error, ReferenceType, Uint32, Uint64, Uint8, VarInt32,
-    VarInt64, VarUint32,
+    io, BlockType, CountedList, Deserialize, Error, ReferenceType, Uint32, Uint64, Uint8,
+    ValueType, VarInt32, VarInt64, VarUint32,
 };
 
 use std::fmt;
@@ -122,7 +122,7 @@ pub enum Instruction {
     CallIndirect(u32, u8),
 
     Drop,
-    Select,
+    Select(Option<Vec<ValueType>>),
 
     GetLocal(u32),
     SetLocal(u32),
@@ -618,7 +618,8 @@ pub mod opcodes {
     pub const CALL: u8 = 0x10;
     pub const CALLINDIRECT: u8 = 0x11;
     pub const DROP: u8 = 0x1a;
-    pub const SELECT: u8 = 0x1b;
+    pub const SELECT_1: u8 = 0x1b;
+    pub const SELECT_2: u8 = 0x1c;
     pub const GETLOCAL: u8 = 0x20;
     pub const SETLOCAL: u8 = 0x21;
     pub const TEELOCAL: u8 = 0x22;
@@ -1102,7 +1103,12 @@ impl Deserialize for Instruction {
                 CallIndirect(signature, table_ref)
             }
             DROP => Drop,
-            SELECT => Select,
+            SELECT_1 => Select(None),
+            SELECT_2 => {
+                let tys: Vec<ValueType> =
+                    CountedList::<ValueType>::deserialize(reader)?.into_inner();
+                Select(Some(tys))
+            }
 
             GETLOCAL => GetLocal(VarUint32::deserialize(reader)?.into()),
             SETLOCAL => SetLocal(VarUint32::deserialize(reader)?.into()),
@@ -1770,7 +1776,8 @@ impl fmt::Display for Instruction {
             Call(index) => fmt_op!(f, "call", index),
             CallIndirect(index, _) => fmt_op!(f, "call_indirect", index),
             Drop => fmt_op!(f, "drop"),
-            Select => fmt_op!(f, "select"),
+            Select(None) => fmt_op!(f, "select"),
+            Select(Some(ref tys)) => write!(f, "select {:?}", tys),
             GetLocal(index) => fmt_op!(f, "get_local", index),
             SetLocal(index) => fmt_op!(f, "set_local", index),
             TeeLocal(index) => fmt_op!(f, "tee_local", index),

@@ -856,7 +856,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::Select => {
+        Instruction::Select(_) => {
             let select = rt.stack.pop_i32()?;
             let val2 = rt.stack.pop_value()?;
             let val1 = rt.stack.pop_value()?;
