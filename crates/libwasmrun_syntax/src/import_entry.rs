@@ -98,6 +98,7 @@ impl ResizableLimits {
     pub fn initial(&self) -> u32 {
         self.initial
     }
+
     /// Maximum size.
     pub fn maximum(&self) -> Option<u32> {
         self.maximum

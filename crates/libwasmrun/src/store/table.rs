@@ -12,10 +12,10 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn new(elem: Ref, size: usize, ty: TableType) -> Table {
+    pub fn new(elem: Ref, ty: TableType) -> Table {
         Table {
             ty,
-            elems: vec![elem; size],
+            elems: vec![elem; ty.limits().initial() as usize],
         }
     }
 

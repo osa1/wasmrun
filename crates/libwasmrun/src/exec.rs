@@ -222,7 +222,6 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
 
     let table_addr = rt.store.allocate_table(Table::new(
         Ref::Null(wasm::ReferenceType::FuncRef),
-        10,
         wasm::TableType::new(wasm::ReferenceType::FuncRef, 10, None),
     ));
     let table_idx = module.add_table(table_addr);
@@ -419,8 +418,8 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
     // Allocate tables
     if let Some(table_section) = parsed_module.table_section_mut() {
-        for ty @ wasm::TableType { elem_type, limits } in table_section.entries_mut().drain(..) {
-            let table = Table::new(Ref::Null(elem_type), limits.initial() as usize, ty);
+        for ty @ wasm::TableType { elem_type, .. } in table_section.entries_mut().drain(..) {
+            let table = Table::new(Ref::Null(elem_type), ty);
             let table_addr = rt.store.allocate_table(table);
             inst.add_table(table_addr);
         }
