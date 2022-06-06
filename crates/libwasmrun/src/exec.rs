@@ -443,12 +443,11 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     // instantiation, as specified by a table index and a constant expression
                     // defining an offset into that table."
                     let offset = eval_const_expr(rt, &inst, offset.code())?.expect_i32() as usize;
-
-                    let table = rt.store.get_table_mut(inst.get_table(TableIdx(*table_idx)));
+                    let table_addr = inst.get_table(TableIdx(*table_idx));
 
                     for (elem_idx, elem) in init.iter().enumerate() {
                         let elem_idx = offset + elem_idx;
-                        if elem_idx >= table.len() {
+                        if elem_idx >= rt.store.get_table(table_addr).len() {
                             return Err(ExecError::Trap(Trap::ElementOOB));
                         }
                         let elem = match elem.code() {
@@ -463,7 +462,10 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                                 )))
                             }
                         };
-                        table.set(elem_idx, elem)?;
+                        rt.store.get_table_mut(table_addr).set(elem_idx, elem)?;
+
+                        // elem.drop
+                        rt.store.get_elem_mut(elem_addr).init.clear();
                     }
                 }
                 wasm::ElementSegmentMode::Passive => {
@@ -2714,7 +2716,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             if oob_src || oob_dst {
                 // TODO: Not sure about the kind of trap
-                return Err(ExecError::Trap(Trap::ElementOOB));
+                return Err(ExecError::Trap(Trap::OOBTableAccess));
             }
 
             let mut fun_addrs: Vec<Ref> = Vec::with_capacity(amt);
