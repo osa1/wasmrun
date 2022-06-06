@@ -444,10 +444,21 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     // defining an offset into that table."
                     let offset = eval_const_expr(rt, &inst, offset.code())?.expect_i32() as usize;
                     let table_addr = inst.get_table(TableIdx(*table_idx));
+                    let table_len = rt.store.get_table(table_addr).len();
+
+                    // table.init
+                    let oob_dst = match offset.checked_add(init.len()) {
+                        Some(dst) => dst > table_len,
+                        None => true,
+                    };
+
+                    if oob_dst {
+                        return Err(ExecError::Trap(Trap::OOBTableAccess));
+                    }
 
                     for (elem_idx, elem) in init.iter().enumerate() {
                         let elem_idx = offset + elem_idx;
-                        if elem_idx >= rt.store.get_table(table_addr).len() {
+                        if elem_idx >= table_len {
                             return Err(ExecError::Trap(Trap::ElementOOB));
                         }
                         let elem = match elem.code() {
@@ -2634,7 +2645,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let val = rt.stack.pop_ref()?;
             let idx = rt.stack.pop_i32()?;
             if !table.fill(idx as usize, amt as usize, val) {
-                return Err(ExecError::Trap(Trap::ElementOOB));
+                return Err(ExecError::Trap(Trap::OOBTableAccess));
             }
             rt.ip += 1;
         }
@@ -2715,7 +2726,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             };
 
             if oob_src || oob_dst {
-                // TODO: Not sure about the kind of trap
                 return Err(ExecError::Trap(Trap::OOBTableAccess));
             }
 
