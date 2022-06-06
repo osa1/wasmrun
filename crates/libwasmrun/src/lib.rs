@@ -17,8 +17,8 @@ use libwasmrun_syntax as wasm;
 
 pub use exec::Runtime;
 pub use module::MemIdx;
-pub use store::MemAddr;
-pub use value::Value;
+pub use store::{ExternAddr, MemAddr};
+pub use value::{Ref, Value};
 pub use wasi_common::{virtfs, Handle, WasiCtx, WasiCtxBuilder};
 pub use wasm::Module;
 pub use wasm::ValueType;

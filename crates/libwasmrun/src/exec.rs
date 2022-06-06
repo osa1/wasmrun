@@ -7,8 +7,8 @@ use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
 use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
+use crate::HostFunDecl;
 use crate::{ExecError, Result};
-use crate::{HostFunDecl, MemAddr};
 
 use fxhash::FxHashMap;
 use ieee754::Ieee754;
@@ -139,8 +139,9 @@ impl Runtime {
         self.store.get_module(addr)
     }
 
-    pub fn get_module_mem_addr(&self, module_addr: ModuleAddr, mem_idx: MemIdx) -> MemAddr {
-        self.store.get_module(module_addr).get_mem(mem_idx)
+    // Used in spec tests to resolve `ref.func` arguments to test functions
+    pub fn get_module_fun_addr(&self, module_addr: ModuleAddr, fun_idx: u32) -> FunAddr {
+        self.store.get_module(module_addr).get_fun(FunIdx(fun_idx))
     }
 
     pub fn pop_value(&mut self) -> Option<Value> {

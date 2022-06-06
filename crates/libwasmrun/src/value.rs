@@ -87,7 +87,9 @@ impl Value {
             wasm::ValueType::I64 => Value::default_i64(),
             wasm::ValueType::F32 => Value::default_f32(),
             wasm::ValueType::F64 => Value::default_f64(),
-            wasm::ValueType::V128 | wasm::ValueType::FuncRef | wasm::ValueType::ExternRef => {
+            wasm::ValueType::FuncRef => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
+            wasm::ValueType::ExternRef => Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef)),
+            wasm::ValueType::V128 => {
                 todo!("Unsupported value type: {:?}", ty)
             }
         }

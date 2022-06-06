@@ -3,7 +3,7 @@ mod spec;
 
 use libwasmrun::exec::{self, Runtime, Trap};
 use libwasmrun::store::ModuleAddr;
-use libwasmrun::{ExecError, Value};
+use libwasmrun::{ExecError, ExternAddr, Ref, Value};
 
 use std::fs;
 use std::io::{self, Write};
@@ -355,6 +355,8 @@ fn run_spec_cmd(
                 },
             };
 
+            let expected = eval_values(&expected, rt, module_addr);
+
             match rt.get_global(module_addr, &func) {
                 None => {
                     writeln!(out, "can't find global {:?}", func).unwrap();
@@ -410,6 +412,9 @@ fn run_spec_cmd(
                     }
                 },
             };
+
+            let args = eval_values(&args, rt, module_addr);
+            let expected = eval_values(&expected, rt, module_addr);
 
             rt.clear_stack();
             for arg in args {
@@ -514,6 +519,29 @@ fn run_spec_cmd(
             }
         }
     }
+}
+
+fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Value {
+    match value {
+        spec::Value::I32(a) => Value::I32(*a),
+        spec::Value::I64(a) => Value::I64(*a),
+        spec::Value::F32(a) => Value::F32(*a),
+        spec::Value::F64(a) => Value::F64(*a),
+        spec::Value::NullRef(ty) => Value::Ref(Ref::Null(*ty)),
+        spec::Value::FuncRef(fun_idx) => {
+            // I can't find the spec for this, but for references the only sensible thing is to
+            // resolve the indices using the last registered module.
+            Value::Ref(Ref::Ref(rt.get_module_fun_addr(module_addr, *fun_idx)))
+        }
+        spec::Value::ExternRef(extern_addr) => Value::Ref(Ref::RefExtern(ExternAddr(*extern_addr))),
+    }
+}
+
+fn eval_values(values: &[spec::Value], rt: &Runtime, module_addr: ModuleAddr) -> Vec<Value> {
+    values
+        .iter()
+        .map(|value| eval_value(value, rt, module_addr))
+        .collect()
 }
 
 fn trap_expected_msg(trap: Trap) -> &'static str {

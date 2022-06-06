@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use libwasmrun::Value;
+use libwasmrun_syntax as wasm;
 
 use serde::Deserialize;
 
@@ -53,6 +53,17 @@ pub enum ActionKind {
     Trap,
     /// Get a global
     GetGlobal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Value {
+    I32(i32),
+    I64(i64),
+    F32(f32),
+    F64(f64),
+    NullRef(wasm::ReferenceType),
+    FuncRef(u32),
+    ExternRef(u32),
 }
 
 pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
@@ -215,6 +226,22 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                 let i_64 = parse_str::<ParseIntError, u64>(str) as i64;
                 let f_64: f64 = unsafe { ::std::mem::transmute(i_64) };
                 Value::F64(f_64)
+            }
+        }
+        "externref" => {
+            if str == "null" {
+                Value::NullRef(wasm::ReferenceType::ExternRef)
+            } else {
+                let idx = parse_str::<ParseIntError, u32>(str);
+                Value::ExternRef(idx)
+            }
+        }
+        "funcref" => {
+            if str == "null" {
+                Value::NullRef(wasm::ReferenceType::FuncRef)
+            } else {
+                let idx = parse_str::<ParseIntError, u32>(str);
+                Value::FuncRef(idx)
             }
         }
         other => return Err(format!("Unknown value type: {}", other)),
