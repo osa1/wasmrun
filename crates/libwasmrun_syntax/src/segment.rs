@@ -93,8 +93,8 @@ impl Deserialize for ElementSegment {
             } else {
                 0
             };
+            let offset = InitExpr::deserialize(reader)?;
             if element_type_and_expr {
-                let offset = InitExpr::deserialize(reader)?;
                 let init = CountedList::<InitExpr>::deserialize(reader)?.into_inner();
                 Ok(ElementSegment {
                     ref_type: ReferenceType::FuncRef,
@@ -103,7 +103,7 @@ impl Deserialize for ElementSegment {
                 })
             } else {
                 // Element kind and element indices
-                let offset = InitExpr::deserialize(reader)?;
+                let _elem_kind = ElementKind::deserialize(reader)?;
                 let func_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
                     .into_inner()
                     .into_iter()
