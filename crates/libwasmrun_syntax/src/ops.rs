@@ -1102,10 +1102,6 @@ impl Deserialize for Instruction {
             CALLINDIRECT => {
                 let signature: u32 = VarUint32::deserialize(reader)?.into();
                 let table_ref: u8 = Uint8::deserialize(reader)?.into();
-                if table_ref != 0 {
-                    return Err(Error::InvalidTableReference(table_ref));
-                }
-
                 CallIndirect(signature, table_ref)
             }
             DROP => Drop,

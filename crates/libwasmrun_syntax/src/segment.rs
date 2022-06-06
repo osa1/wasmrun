@@ -44,78 +44,129 @@ impl Deserialize for ElementSegment {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u32 = VarUint32::deserialize(reader)?.into();
 
-        let bit_0 = flags & 0b1 != 0;
-        let bit_1 = flags & 0b10 != 0;
-        let bit_2 = flags & 0b100 != 0;
+        // Parsing every tag value separately is easier as I don't have to deal with exceptions,
+        // (https://github.com/WebAssembly/spec/issues/1487) just follow the spec.
+        Ok(match flags {
+            0 => {
+                let offset = InitExpr::deserialize(reader)?;
 
-        // Passive or declarative if set, active otherwise
-        let passive_or_declarative = bit_0;
+                let fun_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
+                    .into_inner()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
 
-        // Use element type and expr instead of element kind and element indices
-        let element_type_and_expr = bit_2;
+                ElementSegment {
+                    ref_type: ReferenceType::FuncRef,
+                    init: func_idx_vec_to_init(&fun_idxs),
+                    mode: ElementSegmentMode::Active {
+                        table_idx: 0,
+                        offset,
+                    },
+                }
+            }
 
-        if passive_or_declarative {
-            let declerative = bit_1;
-            if element_type_and_expr {
-                let element_type = ReferenceType::deserialize(reader)?;
+            1 => {
+                let elem_kind = ElementKind::deserialize(reader)?;
+
+                let fun_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
+                    .into_inner()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+
+                ElementSegment {
+                    ref_type: elem_kind.to_ref_type(),
+                    init: func_idx_vec_to_init(&fun_idxs),
+                    mode: ElementSegmentMode::Passive,
+                }
+            }
+
+            2 => {
+                let table_idx: u32 = VarUint32::deserialize(reader)?.into();
+                let offset = InitExpr::deserialize(reader)?;
+                let elem_kind = ElementKind::deserialize(reader)?;
+
+                let fun_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
+                    .into_inner()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+
+                ElementSegment {
+                    ref_type: elem_kind.to_ref_type(),
+                    init: func_idx_vec_to_init(&fun_idxs),
+                    mode: ElementSegmentMode::Active { table_idx, offset },
+                }
+            }
+
+            3 => {
+                let elem_kind = ElementKind::deserialize(reader)?;
+
+                let fun_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
+                    .into_inner()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+
+                ElementSegment {
+                    ref_type: elem_kind.to_ref_type(),
+                    init: func_idx_vec_to_init(&fun_idxs),
+                    mode: ElementSegmentMode::Declarative,
+                }
+            }
+
+            4 => {
+                let offset = InitExpr::deserialize(reader)?;
                 let init: Vec<InitExpr> = CountedList::deserialize(reader)?.into_inner();
-                Ok(ElementSegment {
-                    ref_type: element_type,
-                    init,
-                    mode: if declerative {
-                        ElementSegmentMode::Declarative
-                    } else {
-                        ElementSegmentMode::Passive
-                    },
-                })
-            } else {
-                let element_kind = ElementKind::deserialize(reader)?;
-                let func_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
-                    .into_inner()
-                    .into_iter()
-                    .map(Into::into)
-                    .collect();
-                Ok(ElementSegment {
-                    ref_type: element_kind.to_ref_type(),
-                    init: func_idx_vec_to_init(&func_idxs),
-                    mode: if declerative {
-                        ElementSegmentMode::Declarative
-                    } else {
-                        ElementSegmentMode::Passive
-                    },
-                })
-            }
-        } else {
-            // Active
-            let with_table_idx = bit_1;
-            let table_idx: u32 = if with_table_idx {
-                VarUint32::deserialize(reader)?.into()
-            } else {
-                0
-            };
-            let offset = InitExpr::deserialize(reader)?;
-            if element_type_and_expr {
-                let init = CountedList::<InitExpr>::deserialize(reader)?.into_inner();
-                Ok(ElementSegment {
+
+                ElementSegment {
                     ref_type: ReferenceType::FuncRef,
                     init,
-                    mode: ElementSegmentMode::Active { table_idx, offset },
-                })
-            } else {
-                // Element kind and element indices
-                let _elem_kind = ElementKind::deserialize(reader)?;
-                let func_idxs: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
-                    .into_inner()
-                    .into_iter()
-                    .map(Into::into)
-                    .collect();
-                Ok(ElementSegment {
-                    ref_type: ReferenceType::FuncRef,
-                    init: func_idx_vec_to_init(&func_idxs),
-                    mode: ElementSegmentMode::Active { table_idx, offset },
-                })
+                    mode: ElementSegmentMode::Active {
+                        table_idx: 0,
+                        offset,
+                    },
+                }
             }
-        }
+
+            5 => {
+                let ref_type = ReferenceType::deserialize(reader)?;
+                let init: Vec<InitExpr> = CountedList::deserialize(reader)?.into_inner();
+
+                ElementSegment {
+                    ref_type,
+                    init,
+                    mode: ElementSegmentMode::Passive,
+                }
+            }
+
+            6 => {
+                let table_idx: u32 = VarUint32::deserialize(reader)?.into();
+                let offset = InitExpr::deserialize(reader)?;
+                let ref_type = ReferenceType::deserialize(reader)?;
+                let init: Vec<InitExpr> = CountedList::deserialize(reader)?.into_inner();
+
+                ElementSegment {
+                    ref_type,
+                    init,
+                    mode: ElementSegmentMode::Active { table_idx, offset },
+                }
+            }
+
+            7 => {
+                let ref_type = ReferenceType::deserialize(reader)?;
+                let init: Vec<InitExpr> = CountedList::deserialize(reader)?.into_inner();
+
+                ElementSegment {
+                    ref_type,
+                    init,
+                    mode: ElementSegmentMode::Declarative,
+                }
+            }
+
+            _ => panic!(), // TODO: Return an error
+        })
     }
 }
 

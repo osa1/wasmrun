@@ -129,8 +129,6 @@ pub enum Error {
     DuplicatedSections(u8),
     /// Invalid memory reference (should be 0)
     InvalidMemoryReference(u8),
-    /// Invalid table reference (should be 0)
-    InvalidTableReference(u8),
     /// Invalid value used for flags in limits type
     InvalidLimitsFlags(u8),
     /// Unknown function form (should be 0x60)
@@ -185,9 +183,6 @@ impl fmt::Display for Error {
             Error::InvalidMemoryReference(ref mem_ref) => {
                 write!(f, "Invalid memory reference ({})", mem_ref)
             }
-            Error::InvalidTableReference(ref table_ref) => {
-                write!(f, "Invalid table reference ({})", table_ref)
-            }
             Error::InvalidLimitsFlags(ref flags) => write!(f, "Invalid limits flags ({})", flags),
             Error::UnknownFunctionForm(ref form) => write!(f, "Unknown function form ({})", form),
             Error::InconsistentCode => {
@@ -234,7 +229,6 @@ impl ::std::error::Error for Error {
             Error::SectionsOutOfOrder => "Sections out of order",
             Error::DuplicatedSections(_) => "Duplicated section",
             Error::InvalidMemoryReference(_) => "Invalid memory reference",
-            Error::InvalidTableReference(_) => "Invalid table reference",
             Error::InvalidLimitsFlags(_) => "Invalid limits flags",
             Error::UnknownFunctionForm(_) => "Unknown function form",
             Error::InconsistentCode => {
