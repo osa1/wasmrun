@@ -439,32 +439,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     // Spec: "An active element segment copies its elements into a table during
                     // instantiation, as specified by a table index and a constant expression
                     // defining an offset into that table."
-                    // TODO: Do we need a const evaluator for stuff evaluatable in instantiation
-                    // time?
-                    let offset = match offset.code() {
-                        &[Instruction::I32Const(offset), Instruction::End] => offset as usize,
-                        &[Instruction::I64Const(offset), Instruction::End] => offset as usize,
-                        &[Instruction::GetGlobal(global_idx), Instruction::End] => {
-                            let global_addr = inst.get_global(GlobalIdx(global_idx));
-                            let global = rt.store.get_global(global_addr).value;
-                            match global {
-                                Value::I32(offset) => offset as usize,
-                                Value::I64(offset) => offset as usize,
-                                Value::F32(_) | Value::F64(_) | Value::Ref(_) => {
-                                    return Err(ExecError::Panic(format!(
-                                        "Offset global value: {:?}",
-                                        global
-                                    )))
-                                }
-                            }
-                        }
-                        other => {
-                            return Err(ExecError::Panic(format!(
-                                "Unhandled offset expression: {:?}",
-                                other
-                            )))
-                        }
-                    };
+                    let offset = eval_const_expr(rt, &inst, offset.code())?.expect_i32() as usize;
 
                     let table = rt.store.get_table_mut(inst.get_table(TableIdx(*table_idx)));
 
@@ -517,7 +492,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     // Allcoate globals
     if let Some(global_section) = parsed_module.global_section_mut() {
         for global in global_section.entries_mut().drain(..) {
-            let value = get_const_expr_val(rt, &inst, global.init_expr().code())?;
+            let value = eval_const_expr(rt, &inst, global.init_expr().code())?;
             let global_addr = rt.store.allocate_global(Global {
                 value,
                 mutable: global.global_type().is_mutable(),
@@ -551,16 +526,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                 wasm::DataSegmentMode::Active { mem_idx, offset } => {
                     // TODO: Is this a validation error? Should this be a trap?
                     assert_eq!(*mem_idx, 0);
-                    let offset = match get_const_expr_val(rt, &inst, offset.code())? {
-                        Value::I32(offset) => offset as u32,
-                        other => {
-                            // TODO: const evaluator
-                            return Err(ExecError::Panic(format!(
-                                "Weird data section offset: {:?}",
-                                other
-                            )));
-                        }
-                    };
+                    let offset = eval_const_expr(rt, &inst, offset.code())?.expect_i32() as u32;
                     let mem_addr = inst.get_mem(MemIdx(0));
                     let mem = &mut rt.store.get_mem_mut(mem_addr);
 
@@ -621,19 +587,33 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     Ok(module_addr)
 }
 
-fn get_const_expr_val(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Result<Value> {
+/// <https://webassembly.github.io/spec/core/valid/instructions.html?highlight=const%20expr#constant-expressions>
+///
+/// - All instructions must be constant
+///
+/// - Constant instructions:
+///   - `t.const`
+///   - `ref.null`
+///   - `ref.func`
+///   - `global.get x` and `globals[x]` is a constant
+///
+/// - In addition, `global.get`s in global initializers can only refer to imported globals.
+fn eval_const_expr(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Result<Value> {
     use Instruction::*;
-    match instrs {
-        [I32Const(value), End] => Ok(Value::I32(*value)),
-        [I64Const(value), End] => Ok(Value::I64(*value)),
-        [F32Const(value), End] => Ok(Value::F32(f32::from_bits(*value))),
-        [F64Const(value), End] => Ok(Value::F64(f64::from_bits(*value))),
-        [GetGlobal(idx), End] => Ok(rt
-            .store
-            .get_global(module.get_global(GlobalIdx(*idx)))
-            .value),
-        other => Err(ExecError::Panic(format!("Global initializer: {:?}", other))),
-    }
+    Ok(match instrs {
+        [I32Const(value), End] => Value::I32(*value),
+        [I64Const(value), End] => Value::I64(*value),
+        [F32Const(value), End] => Value::F32(f32::from_bits(*value)),
+        [F64Const(value), End] => Value::F64(f64::from_bits(*value)),
+        [RefNull(ref_ty), End] => Value::Ref(Ref::Null(*ref_ty)),
+        [RefFunc(fun_idx), End] => Value::Ref(Ref::Ref(module.get_fun(FunIdx(*fun_idx)))),
+        [GetGlobal(idx), End] => {
+            rt.store
+                .get_global(module.get_global(GlobalIdx(*idx)))
+                .value
+        }
+        other => return Err(ExecError::Panic(format!("Global initializer: {:?}", other))),
+    })
 }
 
 pub fn invoke_by_name(rt: &mut Runtime, module_addr: ModuleAddr, fun_name: &str) -> Result<()> {
