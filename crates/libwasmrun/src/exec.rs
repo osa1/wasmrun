@@ -24,7 +24,7 @@ use std::rc::Rc;
 pub(crate) const PAGE_SIZE: usize = 65536;
 pub(crate) const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Trap {
     /// Undefined table element called
     UndefinedElement,
@@ -460,7 +460,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                                 )))
                             }
                         };
-                        table.set(elem_idx, elem);
+                        table.set(elem_idx, elem)?;
                     }
                 }
                 wasm::ElementSegmentMode::Passive => {
@@ -2595,9 +2595,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let table = rt.store.get_table_mut(table_addr);
             let value = rt.stack.pop_ref()?;
             let elem_idx = rt.stack.pop_i32()?;
-            if !table.set(elem_idx as usize, value) {
-                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
-            }
+            table.set(elem_idx as usize, value)?;
             rt.ip += 1;
         }
 
@@ -2663,7 +2661,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             }
 
             for (elem_idx, elem) in elems.into_iter().enumerate() {
-                dst.set(dst_idx + elem_idx, elem); // bounds already checked
+                let ret = dst.set(dst_idx + elem_idx, elem); // bounds already checked
+                debug_assert_eq!(ret, Ok(()));
             }
 
             rt.ip += 1;
@@ -2713,7 +2712,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let table = rt.store.get_table_mut(table_addr);
             for (addr_idx, addr) in fun_addrs.into_iter().enumerate() {
-                table.set(dst + addr_idx, addr);
+                let ret = table.set(dst + addr_idx, addr); // bounds already checked
+                debug_assert_eq!(ret, Ok(()));
             }
 
             rt.ip += 1;

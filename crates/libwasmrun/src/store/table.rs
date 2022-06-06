@@ -1,4 +1,6 @@
+use crate::exec::Trap;
 use crate::value::Ref;
+use crate::{ExecError, Result};
 
 use libwasmrun_syntax::TableType;
 
@@ -29,13 +31,16 @@ impl Table {
         self.elems.get(idx)
     }
 
-    /// Returns whether `idx` is in range and set is successful
-    pub fn set(&mut self, idx: usize, elem: Ref) -> bool {
+    #[must_use]
+    pub fn set(&mut self, idx: usize, elem: Ref) -> Result<()> {
         debug_assert_eq!(self.ty.elem_type(), elem.ty());
-        self.elems
-            .get_mut(idx)
-            .map(|elem_ref| *elem_ref = elem)
-            .is_some()
+        match self.elems.get_mut(idx) {
+            Some(elem_ref) => {
+                *elem_ref = elem;
+                Ok(())
+            }
+            None => Err(ExecError::Trap(Trap::OOBTableElementIdx)),
+        }
     }
 
     /// Returns old size of the table

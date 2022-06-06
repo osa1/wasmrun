@@ -26,7 +26,7 @@ pub use wasm::ValueType;
 #[macro_use]
 extern crate log;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ExecError {
     /// Wasm code trapped
     Trap(exec::Trap),
