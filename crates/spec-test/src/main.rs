@@ -261,6 +261,7 @@ fn run_spec_cmd(
                         writeln!(out, "Unable to allocate module: {} ({})", err, file_path)
                             .unwrap();
                         *module_addr = None;
+                        failing_lines.push(line);
                     }
                 },
             }
