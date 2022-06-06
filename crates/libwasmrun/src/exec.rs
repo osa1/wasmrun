@@ -32,10 +32,12 @@ pub enum Trap {
     UninitializedElement,
     /// Indirect function call target doesn't have expected type
     IndirectCallTypeMismatch,
-    /// Out of bounds table element index
-    OOBTableElementIdx,
+    /// Element out of bounds
+    ElementOOB,
     /// Out of bounds memory access
     OOBMemoryAccess,
+    /// Out of bounds table access
+    OOBTableAccess,
     /// Integer divide by zero
     IntDivideByZero,
     /// Integer overflow
@@ -54,8 +56,9 @@ impl fmt::Display for Trap {
             Trap::UndefinedElement => "undefined element".fmt(f),
             Trap::UninitializedElement => "uninitialized element".fmt(f),
             Trap::IndirectCallTypeMismatch => "indirect call type mismatch".fmt(f),
-            Trap::OOBTableElementIdx => "out of bounds element".fmt(f),
+            Trap::ElementOOB => "element out of bounds".fmt(f),
             Trap::OOBMemoryAccess => "out of bound memory access".fmt(f),
+            Trap::OOBTableAccess => "out of bound table access".fmt(f),
             Trap::IntDivideByZero => "divide by zero".fmt(f),
             Trap::IntOverflow => "integer overflow".fmt(f),
             Trap::InvalidConvToInt => "invalid conversion to integer".fmt(f),
@@ -447,7 +450,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     for (elem_idx, elem) in init.iter().enumerate() {
                         let elem_idx = offset + elem_idx;
                         if elem_idx >= table.len() {
-                            return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+                            return Err(ExecError::Trap(Trap::ElementOOB));
                         }
                         let elem = match elem.code() {
                             &[Instruction::RefFunc(func_idx), Instruction::End] => {
@@ -2585,7 +2588,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let elem_idx = rt.stack.pop_i32()?;
             let elem = match table.get(elem_idx as usize) {
                 Some(elem) => elem,
-                None => return Err(ExecError::Trap(Trap::OOBTableElementIdx)),
+                None => return Err(ExecError::Trap(Trap::ElementOOB)),
             };
             rt.stack.push_value(Value::Ref(*elem))?;
             rt.ip += 1;
@@ -2627,7 +2630,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let val = rt.stack.pop_ref()?;
             let idx = rt.stack.pop_i32()?;
             if !table.fill(idx as usize, amt as usize, val) {
-                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+                return Err(ExecError::Trap(Trap::ElementOOB));
             }
             rt.ip += 1;
         }
@@ -2644,8 +2647,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let src_idx = rt.stack.pop_i32()? as usize;
             let dst_idx = rt.stack.pop_i32()? as usize;
 
-            if (src_idx + amt) as usize > src.len() {
-                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            {
+                let oob = match src_idx.checked_add(amt) {
+                    Some(src_idx_) => src_idx_ as usize > src.len(),
+                    None => true,
+                };
+
+                if oob {
+                    return Err(ExecError::Trap(Trap::OOBTableAccess));
+                }
             }
 
             let mut elems: Vec<Ref> = Vec::with_capacity(amt);
@@ -2657,8 +2667,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .store
                 .get_table_mut(rt.get_module(module_addr).get_table(TableIdx(dst)));
 
-            if (dst_idx + amt) as usize > dst.len() {
-                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+            {
+                let oob = match dst_idx.checked_add(amt) {
+                    Some(dst_idx_) => dst_idx_ as usize > dst.len(),
+                    None => true,
+                };
+
+                if oob {
+                    return Err(ExecError::Trap(Trap::OOBTableAccess));
+                }
             }
 
             for (elem_idx, elem) in elems.into_iter().enumerate() {
@@ -2695,7 +2712,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             if oob_src || oob_dst {
                 // TODO: Not sure about the kind of trap
-                return Err(ExecError::Trap(Trap::OOBTableElementIdx));
+                return Err(ExecError::Trap(Trap::ElementOOB));
             }
 
             let mut fun_addrs: Vec<Ref> = Vec::with_capacity(amt);

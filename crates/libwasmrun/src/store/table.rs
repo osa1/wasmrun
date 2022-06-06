@@ -39,7 +39,7 @@ impl Table {
                 *elem_ref = elem;
                 Ok(())
             }
-            None => Err(ExecError::Trap(Trap::OOBTableElementIdx)),
+            None => Err(ExecError::Trap(Trap::ElementOOB)),
         }
     }
 
