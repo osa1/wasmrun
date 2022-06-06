@@ -564,7 +564,6 @@ pub enum SimdInstruction {
     I64x2TruncUF64x2Sat,
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SignExtInstruction {
     I32Extend8S,
@@ -575,14 +574,12 @@ pub enum SignExtInstruction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
 pub struct MemArg {
     pub align: u8,
     pub offset: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
 pub struct BrTableData {
     pub table: Box<[u32]>,
     pub default: u32,

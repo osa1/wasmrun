@@ -87,8 +87,10 @@ impl Deserialize for BlockType {
             -0x03 => Ok(BlockType::Value(ValueType::F32)),
             -0x04 => Ok(BlockType::Value(ValueType::F64)),
             -0x05 => Ok(BlockType::Value(ValueType::V128)),
+            -0x10 => Ok(BlockType::Value(ValueType::FuncRef)),
+            -0x11 => Ok(BlockType::Value(ValueType::ExternRef)),
             idx => {
-                let idx = idx.try_into().map_err(|_| Error::UnknownBlockType(idx))?;
+                let idx = u32::try_from(idx).map_err(|_| Error::UnknownBlockType(idx))?;
                 Ok(BlockType::TypeIndex(idx))
             }
         }
