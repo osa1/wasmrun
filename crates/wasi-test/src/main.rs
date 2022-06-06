@@ -208,7 +208,7 @@ fn run_file(file: &Path) -> bool {
         }
     };
 
-    let module_addr = match exec::allocate_module(&mut rt, module) {
+    let module_addr = match exec::instantiate(&mut rt, module) {
         Ok(module_addr) => module_addr,
         Err(err) => {
             println!("\tUnable to load Wasm module: {}", err);

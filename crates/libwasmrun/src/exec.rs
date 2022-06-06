@@ -314,7 +314,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     rt.module_names.insert("spectest".to_string(), module_addr);
 }
 
-pub fn allocate_module(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<ModuleAddr> {
+pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<ModuleAddr> {
     // https://webassembly.github.io/spec/core/exec/modules.html
     let mut parsed_module = match parsed_module.parse_names() {
         Ok(m) => m,

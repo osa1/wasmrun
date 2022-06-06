@@ -12,7 +12,7 @@ fn main() {
     let module = load_wasm(file).unwrap();
     let mut rt = Runtime::new_with_wasi(program_args);
 
-    let module_addr = exec::allocate_module(&mut rt, module).unwrap();
+    let module_addr = exec::instantiate(&mut rt, module).unwrap();
 
     if let Err(err) = exec::invoke_by_name(&mut rt, module_addr, "_start") {
         println!("Error while calling _start: {}", err);

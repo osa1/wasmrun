@@ -248,7 +248,7 @@ fn run_spec_cmd(
                     *module_addr = None;
                     failing_lines.push(line);
                 }
-                Ok(module) => match exec::allocate_module(rt, module) {
+                Ok(module) => match exec::instantiate(rt, module) {
                     Ok(module_addr_) => {
                         writeln!(out, "OK").unwrap();
                         *module_addr = Some(module_addr_);
@@ -279,7 +279,7 @@ fn run_spec_cmd(
                     writeln!(out, "Error while parsing module: {}", err).unwrap();
                     failing_lines.push(line);
                 }
-                Ok(module) => match exec::allocate_module(rt, module) {
+                Ok(module) => match exec::instantiate(rt, module) {
                     Ok(_) => {
                         writeln!(out, "Successfully allocated module").unwrap();
                         failing_lines.push(line);

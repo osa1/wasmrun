@@ -43,7 +43,7 @@ fn test_importing_host_fn() {
         )],
     );
 
-    let module_addr = exec::allocate_module(&mut rt, module).unwrap();
+    let module_addr = exec::instantiate(&mut rt, module).unwrap();
 
     rt.push_value(Value::I32(1));
     rt.push_value(Value::I32(2));
