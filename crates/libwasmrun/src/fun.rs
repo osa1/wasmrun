@@ -46,6 +46,7 @@ pub struct WasmFun {
     /// Function name as specified in the name section
     pub(crate) name: Option<String>,
     /// Names of locals as specified in the name section
+    #[allow(unused)]
     pub(crate) local_names: Option<IndexMap<String>>,
     /// Maps `block` and `if instructions to their `end` instructions
     pub(crate) block_to_end: FxHashMap<u32, u32>,

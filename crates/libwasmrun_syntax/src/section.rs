@@ -491,14 +491,7 @@ impl Deserialize for DataSection {
 
 #[cfg(test)]
 mod tests {
-
-    use super::{
-        super::{
-            deserialize_buffer, deserialize_file, BlockType, DataSegment, ElementSegment, FuncBody,
-            InitExpr, Instructions, Local, ValueType,
-        },
-        CodeSection, DataSection, ElementSection, Section, Type, TypeSection,
-    };
+    use crate::{deserialize_buffer, deserialize_file, Section, Type, TypeSection, ValueType};
 
     #[test]
     fn import_section() {

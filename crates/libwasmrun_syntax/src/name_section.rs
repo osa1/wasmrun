@@ -237,8 +237,6 @@ pub type NameMap = IndexMap<String>;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn deserialize_local_names() {
         let module = super::super::deserialize_file("./res/cases/v1/names_with_imports.wasm")

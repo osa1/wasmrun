@@ -721,12 +721,8 @@ pub fn peek_size(source: &[u8]) -> usize {
 
 #[cfg(test)]
 mod integration_tests {
-    use super::{
-        super::{
-            deserialize_buffer, deserialize_file, CodeSection, ExportSection, FunctionSection,
-            Section, TypeSection,
-        },
-        Module,
+    use crate::{
+        deserialize_file, CodeSection, ExportSection, FunctionSection, Module, Section, TypeSection,
     };
 
     #[test]

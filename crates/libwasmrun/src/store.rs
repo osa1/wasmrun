@@ -176,5 +176,6 @@ impl Store {
 #[derive(Debug)]
 pub(crate) struct Global {
     pub(crate) value: Value,
+    #[allow(unused)]
     pub(crate) mutable: bool, // Only needed for validation
 }
