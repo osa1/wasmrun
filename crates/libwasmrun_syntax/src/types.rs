@@ -100,7 +100,6 @@ impl Deserialize for BlockType {
 /// Function signature type.
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct FunctionType {
-    form: u8,
     params: Vec<ValueType>,
     results: Vec<ValueType>,
 }
@@ -108,7 +107,6 @@ pub struct FunctionType {
 impl Default for FunctionType {
     fn default() -> Self {
         FunctionType {
-            form: 0x60,
             params: Vec::new(),
             results: Vec::new(),
         }
@@ -118,28 +116,24 @@ impl Default for FunctionType {
 impl FunctionType {
     /// New function type given the params and results as vectors
     pub fn new(params: Vec<ValueType>, results: Vec<ValueType>) -> Self {
-        FunctionType {
-            form: 0x60,
-            params,
-            results,
-        }
+        FunctionType { params, results }
     }
-    /// Function form (currently only valid value is `0x60`)
-    pub fn form(&self) -> u8 {
-        self.form
-    }
+
     /// Parameters in the function signature.
     pub fn params(&self) -> &[ValueType] {
         &self.params
     }
+
     /// Mutable parameters in the function signature.
     pub fn params_mut(&mut self) -> &mut Vec<ValueType> {
         &mut self.params
     }
+
     /// Results in the function signature, if any.
     pub fn results(&self) -> &[ValueType] {
         &self.results
     }
+
     /// Mutable type in the function signature, if any.
     pub fn results_mut(&mut self) -> &mut Vec<ValueType> {
         &mut self.results
@@ -157,11 +151,7 @@ impl Deserialize for FunctionType {
         let params: Vec<ValueType> = CountedList::deserialize(reader)?.into_inner();
         let results: Vec<ValueType> = CountedList::deserialize(reader)?.into_inner();
 
-        Ok(FunctionType {
-            form,
-            params,
-            results,
-        })
+        Ok(FunctionType { params, results })
     }
 }
 

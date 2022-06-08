@@ -2432,11 +2432,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .store
                 .get_module(fun_module_addr)
                 .get_type(actual_fun_ty_idx);
-            // NB. We can't use (==) here because of the 'form' fields of FunctionTypes. TODO:
-            // replace libwasmrun_syntax.
-            if call_instr_ty.params() != actual_ty.params()
-                || call_instr_ty.results() != actual_ty.results()
-            {
+
+            if call_instr_ty != *actual_ty {
                 return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
             }
 
