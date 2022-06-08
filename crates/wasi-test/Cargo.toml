@@ -9,7 +9,7 @@ clap = "2.33"
 fxhash = "0.2"
 libwasmrun = { path = "../libwasmrun" }
 libwasmrun_syntax = { path = "../libwasmrun_syntax" }
-nix = "0.19"
+nix = "0.20"
 pretty_env_logger = "0.4"
 
 [build-dependencies]
