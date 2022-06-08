@@ -487,8 +487,10 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                 wasm::ElementSegmentMode::Declarative => {
                     // Spec: "A declarative element segment is not available at runtime but merely
                     // serves to forward-declare references that are formed in code with
-                    // instructions like `ref.func`.
-                    // TODO: not sure what to do with declarative segments..
+                    // instructions like `ref.func`".
+                    // For now just clear the elements to make it unavailable at runtime. We should
+                    // probably just allocate a placeholder for declarative and active segments.
+                    rt.store.get_elem_mut(elem_addr).init.clear();
                 }
             }
         }
