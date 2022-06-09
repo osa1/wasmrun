@@ -324,15 +324,13 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         Err((_, m)) => m,
     };
 
-    let module_addr = rt.store.next_module_addr();
-
-    let mut inst = Module::default();
+    let module_addr = rt.store.allocate_module(Module::default());
 
     if let Some(type_section) = parsed_module.type_section_mut() {
         for ty in type_section.types_mut().drain(..) {
             match ty {
                 wasm::Type::Function(fun_ty) => {
-                    inst.add_type(fun_ty);
+                    rt.store.get_module_mut(module_addr).add_type(fun_ty);
                 }
             }
         }
@@ -362,7 +360,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                 wasm::External::Function(_fun_ty_idx) => {
                     n_funs += 1;
                     let fun_addr = imported_module.get_exported_fun(field_name).unwrap();
-                    inst.add_fun(fun_addr);
+                    rt.store.get_module_mut(module_addr).add_fun(fun_addr);
                 }
                 wasm::External::Table(_tbl_ty) => {
                     // FIXME: should we copy the table or share it?
@@ -374,15 +372,15 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
                     // Share the table:
                     let tbl_addr = imported_module.get_exported_table(field_name).unwrap();
-                    inst.add_table(tbl_addr);
+                    rt.store.get_module_mut(module_addr).add_table(tbl_addr);
                 }
                 wasm::External::Memory(_mem_ty) => {
                     let mem_addr = imported_module.get_exported_mem(field_name).unwrap();
-                    inst.add_mem(mem_addr);
+                    rt.store.get_module_mut(module_addr).add_mem(mem_addr);
                 }
                 wasm::External::Global(_gbl_ty) => {
                     let global_addr = imported_module.get_exported_global(field_name).unwrap();
-                    inst.add_global(global_addr);
+                    rt.store.get_module_mut(module_addr).add_global(global_addr);
                 }
             }
         }
@@ -412,7 +410,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     .and_then(|funs| funs.local_names().get(fun_idx_ as u32).cloned()),
             )?;
 
-            inst.add_fun(fun_addr);
+            rt.store.get_module_mut(module_addr).add_fun(fun_addr);
         }
     }
 
@@ -421,7 +419,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         for ty @ wasm::TableType { elem_type, .. } in table_section.entries_mut().drain(..) {
             let table = Table::new(Ref::Null(elem_type), ty);
             let table_addr = rt.store.allocate_table(table);
-            inst.add_table(table_addr);
+            rt.store.get_module_mut(module_addr).add_table(table_addr);
         }
     }
 
@@ -434,7 +432,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         } in element_section.entries()
         {
             let elem_addr = rt.store.allocate_elem(elem.clone());
-            inst.add_elem(elem_addr);
+            rt.store.get_module_mut(module_addr).add_elem(elem_addr);
 
             // https://webassembly.github.io/spec/core/syntax/modules.html#syntax-elem
             match mode {
@@ -442,8 +440,13 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     // Spec: "An active element segment copies its elements into a table during
                     // instantiation, as specified by a table index and a constant expression
                     // defining an offset into that table."
-                    let offset = eval_const_expr(rt, &inst, offset.code())?.expect_i32() as usize;
-                    let table_addr = inst.get_table(TableIdx(*table_idx));
+                    let offset =
+                        eval_const_expr(rt, rt.store.get_module(module_addr), offset.code())?
+                            .expect_i32() as usize;
+                    let table_addr = rt
+                        .store
+                        .get_module(module_addr)
+                        .get_table(TableIdx(*table_idx));
                     let table_len = rt.store.get_table(table_addr).len();
 
                     // table.init
@@ -463,7 +466,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                         }
                         let elem = match elem.code() {
                             &[Instruction::RefFunc(func_idx), Instruction::End] => {
-                                Ref::Ref(inst.get_fun(FunIdx(func_idx)))
+                                Ref::Ref(rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)))
                             }
                             &[Instruction::RefNull(ref_ty), Instruction::End] => Ref::Null(ref_ty),
                             other => {
@@ -503,19 +506,23 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
             let mem_addr = rt
                 .store
                 .allocate_mem(Mem::new(mem.limits().initial(), mem.limits().maximum()));
-            inst.add_mem(mem_addr);
+            rt.store.get_module_mut(module_addr).add_mem(mem_addr);
         }
     }
 
     // Allcoate globals
     if let Some(global_section) = parsed_module.global_section_mut() {
         for global in global_section.entries_mut().drain(..) {
-            let value = eval_const_expr(rt, &inst, global.init_expr().code())?;
+            let value = eval_const_expr(
+                rt,
+                rt.store.get_module(module_addr),
+                global.init_expr().code(),
+            )?;
             let global_addr = rt.store.allocate_global(Global {
                 value,
                 mutable: global.global_type().is_mutable(),
             });
-            inst.add_global(global_addr);
+            rt.store.get_module_mut(module_addr).add_global(global_addr);
         }
     }
 
@@ -525,7 +532,9 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     if let Some(names_section) = parsed_module.names_section_mut() {
         if let Some(function_names) = names_section.functions_mut() {
             for (fun_idx, fun_name) in take(function_names.names_mut()).into_iter() {
-                inst.add_fun_name(fun_name, FunIdx(fun_idx));
+                rt.store
+                    .get_module_mut(module_addr)
+                    .add_fun_name(fun_name, FunIdx(fun_idx));
             }
         }
     }
@@ -538,14 +547,16 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
             // in the module instance, just store an empty vec for active segments and store
             // passive segment data.
             let data_addr = rt.store.allocate_data(seg.clone());
-            inst.add_data(data_addr);
+            rt.store.get_module_mut(module_addr).add_data(data_addr);
             match mode {
                 wasm::DataSegmentMode::Passive => {}
                 wasm::DataSegmentMode::Active { mem_idx, offset } => {
                     // TODO: Is this a validation error? Should this be a trap?
                     assert_eq!(*mem_idx, 0);
-                    let offset = eval_const_expr(rt, &inst, offset.code())?.expect_i32() as u32;
-                    let mem_addr = inst.get_mem(MemIdx(0));
+                    let offset =
+                        eval_const_expr(rt, rt.store.get_module(module_addr), offset.code())?
+                            .expect_i32() as u32;
+                    let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
                     let mem = &mut rt.store.get_mem_mut(mem_addr);
 
                     // memory.init amt=`data.len()` src=0 dst=`offset`
@@ -573,7 +584,9 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
             let export = match export.internal() {
                 wasm::Internal::Function(fun_idx) => {
                     let idx = FunIdx(*fun_idx);
-                    inst.add_fun_name(export_field.clone(), idx);
+                    rt.store
+                        .get_module_mut(module_addr)
+                        .add_fun_name(export_field.clone(), idx);
                     Export::new_fun(export_field, idx)
                 }
                 wasm::Internal::Table(table_idx) => {
@@ -584,18 +597,18 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     Export::new_global(export_field, GlobalIdx(*global_idx))
                 }
             };
-            inst.add_export(export);
+            rt.store.get_module_mut(module_addr).add_export(export);
         }
     }
 
     // Set start
     if let Some(start_idx) = parsed_module.start_section() {
-        inst.set_start(FunIdx(start_idx));
+        rt.store
+            .get_module_mut(module_addr)
+            .set_start(FunIdx(start_idx));
     }
-    let start = inst.get_start();
 
-    // Done
-    rt.store.allocate_module(inst);
+    let start = rt.store.get_module(module_addr).get_start();
 
     if let Some(start_idx) = start {
         invoke(rt, module_addr, start_idx)?;

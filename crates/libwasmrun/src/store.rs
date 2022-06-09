@@ -62,6 +62,10 @@ impl Store {
         &self.modules[module_addr.0 as usize]
     }
 
+    pub(crate) fn get_module_mut(&mut self, module_addr: ModuleAddr) -> &mut Module {
+        &mut self.modules[module_addr.0 as usize]
+    }
+
     pub(crate) fn allocate_fun(
         &mut self,
         module_addr: ModuleAddr,
