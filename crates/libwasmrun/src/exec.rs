@@ -1,3 +1,5 @@
+mod simd;
+
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
@@ -2791,7 +2793,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Atomics(_) | Instruction::Simd(_) => {
+        Instruction::Simd(simd_instr) => {
+            simd::exec_simd_instr(rt, module_addr, simd_instr)?;
+        }
+
+        Instruction::Atomics(_) => {
             return Err(ExecError::Panic(format!(
                 "Instruction not implemented: {:?}",
                 instr
