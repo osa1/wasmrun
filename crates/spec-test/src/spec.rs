@@ -190,23 +190,24 @@ pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
         }
     }
 
-    Ok(TestSpec {
-        source_filename,
-        commands: commands_,
-    })
+    if failing_lines.is_empty() {
+        Ok(TestSpec {
+            source_filename,
+            commands: commands_,
+        })
+    } else {
+        Err(failing_lines)
+    }
 }
 
 fn parse_value(value_de: ValueDe) -> Result<Value, String> {
-    let str = match &value_de.value {
-        Some(str) => str,
-        None => panic!("{:?}", value_de),
-    };
     Ok(match value_de.typ.as_ref() {
-        "i32" => Value::I32(parse_str::<ParseIntError, u32>(str) as i32),
-        "i64" => Value::I64(parse_str::<ParseIntError, u64>(str) as i64),
+        "i32" => Value::I32(parse_str::<ParseIntError, u32>(value_de.expect_value()?) as i32),
+        "i64" => Value::I64(parse_str::<ParseIntError, u64>(value_de.expect_value()?) as i64),
         "f32" => {
             // f32::NAN = 0b0_11111111_10000000000000000000000
             // If I'm reading the spec right, nan:canonical and nan:arithmetic can be the same
+            let str = value_de.expect_value()?;
             if str == "nan:canonical" {
                 Value::F32(f32::NAN)
             } else if str == "nan:arithmetic" {
@@ -218,6 +219,7 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             }
         }
         "f64" => {
+            let str = value_de.expect_value()?;
             if str == "nan:canonical" {
                 Value::F64(f64::NAN)
             } else if str == "nan:arithmetic" {
@@ -229,6 +231,7 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             }
         }
         "externref" => {
+            let str = value_de.expect_value()?;
             if str == "null" {
                 Value::NullRef(wasm::ReferenceType::ExternRef)
             } else {
@@ -237,12 +240,24 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             }
         }
         "funcref" => {
+            let str = value_de.expect_value()?;
             if str == "null" {
                 Value::NullRef(wasm::ReferenceType::FuncRef)
             } else {
                 let idx = parse_str::<ParseIntError, u32>(str);
                 Value::FuncRef(idx)
             }
+        }
+        "v128" => {
+            let vec = value_de.expect_vector()?;
+            let lane_type = match &value_de.lane_type {
+                Some(lane_type) => lane_type,
+                None => return Err(format!("Vector value with no lane type")),
+            };
+            return Err(format!(
+                "Vector types not supported yet: {:?} lane type = {}",
+                vec, lane_type
+            ));
         }
         other => return Err(format!("Unknown value type: {}", other)),
     })
@@ -289,5 +304,66 @@ struct ActionDe {
 struct ValueDe {
     #[serde(rename = "type")]
     typ: String,
-    value: Option<String>,
+    lane_type: Option<String>,
+    value: Option<ValueDe_>,
+}
+
+impl ValueDe {
+    fn expect_vector(&self) -> Result<&[String], String> {
+        match &self.value {
+            Some(ValueDe_::Value(val)) => Err(format!("Expected vector, found {:?}", val)),
+            Some(ValueDe_::SimdValue(vec)) => Ok(vec),
+            None => Err("Missing value in spec, expected vector".to_string()),
+        }
+    }
+
+    fn expect_value(&self) -> Result<&String, String> {
+        match &self.value {
+            Some(ValueDe_::Value(value)) => Ok(value),
+            Some(ValueDe_::SimdValue(vec)) => Err(format!("Expected value, found {:?}", vec)),
+            None => Err("Missing value in spec, expected scalar".to_string()),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum ValueDe_ {
+    Value(String),
+    SimdValue(Vec<String>),
+}
+
+use serde::de::{Deserializer, Error, Unexpected};
+use serde_json as json;
+
+impl<'de> Deserialize<'de> for ValueDe_ {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let json = json::Value::deserialize(deserializer)?;
+        match json {
+            json::Value::String(str) => Ok(ValueDe_::Value(str)),
+
+            json::Value::Array(arr) => {
+                let mut strs: Vec<String> = Vec::with_capacity(4);
+                for value in arr.into_iter() {
+                    if let json::Value::String(str) = value {
+                        strs.push(str);
+                    } else {
+                        // TODO: error message
+                        return Err(Error::invalid_type(
+                            Unexpected::Other("not string"),
+                            &"string",
+                        ));
+                    }
+                }
+                Ok(ValueDe_::SimdValue(strs))
+            }
+
+            json::Value::Null => todo!(),
+            json::Value::Bool(_) => todo!(),
+            json::Value::Number(_) => todo!(),
+            json::Value::Object(_) => todo!(),
+        }
+    }
 }
