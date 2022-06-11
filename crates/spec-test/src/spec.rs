@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::fmt::Display;
 use std::fs::read_to_string;
 use std::num::ParseIntError;
@@ -59,6 +60,7 @@ pub enum ActionKind {
 pub enum Value {
     I32(i32),
     I64(i64),
+    I128(i128),
     F32(f32),
     F64(f64),
     NullRef(wasm::ReferenceType),
@@ -254,10 +256,38 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                 Some(lane_type) => lane_type,
                 None => return Err(format!("Vector value with no lane type")),
             };
-            return Err(format!(
-                "Vector types not supported yet: {:?} lane type = {}",
-                vec, lane_type
-            ));
+            match lane_type.as_str() {
+                "i32" | "f32" => {
+                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                    for _ in 0..4 {
+                        let u32_bytes = parse_str::<ParseIntError, u32>(&vec[0]).to_be_bytes();
+                        bytes.extend(u32_bytes);
+                    }
+                    Value::I128(i128::from_be_bytes(bytes.try_into().unwrap()))
+                }
+                "i16" => {
+                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                    for _ in 0..8 {
+                        let u16_bytes = parse_str::<ParseIntError, u16>(&vec[0]).to_be_bytes();
+                        bytes.extend(u16_bytes);
+                    }
+                    Value::I128(i128::from_be_bytes(bytes.try_into().unwrap()))
+                }
+                "i8" => {
+                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                    for _ in 0..16 {
+                        let u8 = parse_str::<ParseIntError, u8>(&vec[0]);
+                        bytes.push(u8);
+                    }
+                    Value::I128(i128::from_be_bytes(bytes.try_into().unwrap()))
+                }
+                _ => {
+                    return Err(format!(
+                        "Vector type not supported: {:?} lane type = {}",
+                        vec, lane_type
+                    ))
+                }
+            }
         }
         other => return Err(format!("Unknown value type: {}", other)),
     })

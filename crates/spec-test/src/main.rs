@@ -527,6 +527,7 @@ fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Val
     match value {
         spec::Value::I32(a) => Value::I32(*a),
         spec::Value::I64(a) => Value::I64(*a),
+        spec::Value::I128(a) => Value::I128(*a),
         spec::Value::F32(a) => Value::F32(*a),
         spec::Value::F64(a) => Value::F64(*a),
         spec::Value::NullRef(ty) => Value::Ref(Ref::Null(*ty)),

@@ -10,6 +10,7 @@ use std::fmt;
 pub enum Value {
     I32(i32),
     I64(i64),
+    I128(i128),
     F32(f32),
     F64(f64),
     Ref(Ref),
@@ -98,14 +99,18 @@ impl Value {
     pub fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
-            Value::I64(_) | Value::F32(_) | Value::F64(_) | Value::Ref(_) => panic!(),
+            Value::I64(_) | Value::I128(_) | Value::F32(_) | Value::F64(_) | Value::Ref(_) => {
+                panic!()
+            }
         }
     }
 
     pub fn expect_i64(&self) -> i64 {
         match self {
             Value::I64(i) => *i,
-            Value::I32(_) | Value::F32(_) | Value::F64(_) | Value::Ref(_) => panic!(),
+            Value::I32(_) | Value::I128(_) | Value::F32(_) | Value::F64(_) | Value::Ref(_) => {
+                panic!()
+            }
         }
     }
 }
@@ -115,6 +120,7 @@ impl fmt::Debug for Value {
         match self {
             Value::I32(i) => write!(fmt, "{}i32", i),
             Value::I64(i) => write!(fmt, "{}i64", i),
+            Value::I128(i) => write!(fmt, "{}i128", i),
             Value::F32(f) => write!(fmt, "{}f32 ({:?})", f, F32Debug(*f)),
             Value::F64(f) => write!(fmt, "{}f64 ({:?})", f, F64Debug(*f)),
             Value::Ref(r) => r.fmt(fmt),
