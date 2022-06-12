@@ -215,9 +215,9 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             } else if str == "nan:arithmetic" {
                 Value::F32(f32::NAN)
             } else {
-                let i_32 = parse_str::<ParseIntError, u32>(str) as i32;
-                let f_32: f32 = unsafe { ::std::mem::transmute(i_32) };
-                Value::F32(f_32)
+                let u32 = parse_str::<ParseIntError, u32>(str);
+                let f32 = f32::from_bits(u32);
+                Value::F32(f32)
             }
         }
         "f64" => {
@@ -227,9 +227,9 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             } else if str == "nan:arithmetic" {
                 Value::F64(f64::NAN)
             } else {
-                let i_64 = parse_str::<ParseIntError, u64>(str) as i64;
-                let f_64: f64 = unsafe { ::std::mem::transmute(i_64) };
-                Value::F64(f_64)
+                let u64 = parse_str::<ParseIntError, u64>(str);
+                let f64: f64 = f64::from_bits(u64);
+                Value::F64(f64)
             }
         }
         "externref" => {
