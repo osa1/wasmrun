@@ -42,7 +42,7 @@ fn run_dir(dir_path: &str) {
         let file = file.unwrap();
         let file_path = file.path();
         if let Some(ext) = file_path.extension() {
-            if ext == "wast" {
+            if ext == "wast" && !file.file_name().to_string_lossy().starts_with("simd_") {
                 dir_files.push(file_path);
             }
         }
