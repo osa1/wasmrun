@@ -31,7 +31,6 @@ impl Table {
         self.elems.get(idx)
     }
 
-    #[must_use]
     pub fn set(&mut self, idx: usize, elem: Ref) -> Result<()> {
         debug_assert_eq!(self.ty.elem_type(), elem.ty());
         match self.elems.get_mut(idx) {

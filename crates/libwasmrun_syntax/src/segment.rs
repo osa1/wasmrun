@@ -5,14 +5,14 @@ use crate::{
 const VALUES_BUFFER_LENGTH: usize = 16384;
 
 /// Entry in an element section
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ElementSegment {
     pub ref_type: ReferenceType,
     pub init: Vec<InitExpr>,
     pub mode: ElementSegmentMode,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ElementSegmentMode {
     Passive,
     Active { table_idx: u32, offset: InitExpr },
@@ -181,13 +181,13 @@ impl Deserialize for ElementKind {
 }
 
 /// Data segment definition.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataSegment {
     pub data: Vec<u8>,
     pub mode: DataSegmentMode,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DataSegmentMode {
     Passive,
     Active { mem_idx: usize, offset: InitExpr },

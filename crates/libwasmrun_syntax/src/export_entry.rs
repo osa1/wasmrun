@@ -2,7 +2,7 @@ use super::{Deserialize, Error, VarUint32, VarUint7};
 use crate::io;
 
 /// Internal reference of the exported entry.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Internal {
     /// Function reference.
     Function(u32),
@@ -28,7 +28,7 @@ impl Deserialize for Internal {
 }
 
 /// Export entry.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportEntry {
     field_str: String,
     internal: Internal,

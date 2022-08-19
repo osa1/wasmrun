@@ -2,7 +2,7 @@ use super::{Deserialize, Error, GlobalType, InitExpr};
 use crate::io;
 
 /// Global entry in the module.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GlobalEntry {
     global_type: GlobalType,
     init_expr: InitExpr,

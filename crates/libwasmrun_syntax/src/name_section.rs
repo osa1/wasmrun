@@ -7,7 +7,7 @@ const NAME_TYPE_FUNCTION: u8 = 1;
 const NAME_TYPE_LOCAL: u8 = 2;
 
 /// Debug name information.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NameSection {
     /// Module name subsection.
     module: Option<ModuleNameSubsection>,
@@ -116,7 +116,7 @@ impl NameSection {
 }
 
 /// The name of this module.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModuleNameSubsection {
     name: String,
 }
@@ -146,7 +146,7 @@ impl Deserialize for ModuleNameSubsection {
 }
 
 /// The names of the functions in this module.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FunctionNameSubsection {
     names: NameMap,
 }
@@ -173,7 +173,7 @@ impl FunctionNameSubsection {
 }
 
 /// The names of the local variables in this module's functions.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LocalNameSubsection {
     local_names: IndexMap<NameMap>,
 }

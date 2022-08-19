@@ -7,7 +7,7 @@ use crate::{
 const ENTRIES_BUFFER_LENGTH: usize = 16384;
 
 /// Section in the WebAssembly module.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Section {
     /// Section is unparsed.
     Unparsed {
@@ -159,7 +159,7 @@ fn read_entries<R: io::Read, T: Deserialize>(reader: &mut R) -> Result<Vec<T>, E
 }
 
 /// Custom section.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct CustomSection {
     name: String,
     payload: Vec<u8>,
@@ -204,7 +204,7 @@ impl Deserialize for CustomSection {
 }
 
 /// Section with type declarations.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct TypeSection(Vec<Type>);
 
 impl TypeSection {
@@ -231,7 +231,7 @@ impl Deserialize for TypeSection {
 }
 
 /// Section of the imports definition.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ImportSection(Vec<ImportEntry>);
 
 impl ImportSection {
@@ -274,7 +274,7 @@ impl Deserialize for ImportSection {
 }
 
 /// Section with function signatures definition.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct FunctionSection(Vec<Func>);
 
 impl FunctionSection {
@@ -301,7 +301,7 @@ impl Deserialize for FunctionSection {
 }
 
 /// Section with table definition (currently only one is allowed).
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TableSection(Vec<TableType>);
 
 impl TableSection {
@@ -328,7 +328,7 @@ impl Deserialize for TableSection {
 }
 
 /// Section with table definition (currently only one entry is allowed).
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct MemorySection(Vec<MemoryType>);
 
 impl MemorySection {
@@ -355,7 +355,7 @@ impl Deserialize for MemorySection {
 }
 
 /// Globals definition section.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct GlobalSection(Vec<GlobalEntry>);
 
 impl GlobalSection {
@@ -382,7 +382,7 @@ impl Deserialize for GlobalSection {
 }
 
 /// List of exports definition.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ExportSection(Vec<ExportEntry>);
 
 impl ExportSection {
@@ -409,7 +409,7 @@ impl Deserialize for ExportSection {
 }
 
 /// Section with function bodies of the module.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct CodeSection(Vec<FuncBody>);
 
 impl CodeSection {
@@ -436,7 +436,7 @@ impl Deserialize for CodeSection {
 }
 
 /// Element entries section.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ElementSection(Vec<ElementSegment>);
 
 impl ElementSection {
@@ -463,7 +463,7 @@ impl Deserialize for ElementSection {
 }
 
 /// Data entries definitions.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct DataSection(Vec<DataSegment>);
 
 impl DataSection {

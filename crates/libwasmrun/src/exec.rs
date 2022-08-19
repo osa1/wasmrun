@@ -2473,16 +2473,16 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 args.push(rt.stack.pop_value()?);
             }
 
-            let cont = match current_fun.block_to_end.get(&rt.ip) {
+            let end_ip = match current_fun.block_to_end.get(&rt.ip) {
                 None => {
                     return Err(ExecError::Panic(
                         "Couldn't find continuation of block".to_string(),
                     ));
                 }
-                Some(cont) => *cont,
+                Some(end) => *end,
             };
 
-            rt.stack.push_block(cont, n_args, n_rets);
+            rt.stack.push_block(end_ip + 1, n_args, n_rets);
 
             for arg in args.into_iter().rev() {
                 rt.stack.push_value(arg)?;
@@ -2516,16 +2516,16 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 args.push(rt.stack.pop_value()?);
             }
 
-            let cont = match current_fun.block_to_end.get(&rt.ip) {
+            let end_ip = match current_fun.block_to_end.get(&rt.ip) {
                 None => {
                     return Err(ExecError::Panic(
                         "Couldn't find continuation of if".to_string(),
                     ));
                 }
-                Some(cont) => *cont,
+                Some(end_ip) => *end_ip,
             };
 
-            rt.stack.push_block(cont, n_args, n_rets);
+            rt.stack.push_block(end_ip + 1, n_args, n_rets);
             for arg in args.into_iter().rev() {
                 rt.stack.push_value(arg)?;
             }
@@ -2539,7 +2539,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                     None => {
                         // No else branch, jump to 'end', which will pop the block we've just
                         // pushed above. TODO: Maybe push it later?
-                        rt.ip = cont;
+                        rt.ip = end_ip;
                     }
                     Some(else_idx) => {
                         rt.ip = *else_idx + 1; // first instruction in else
@@ -2575,8 +2575,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::End => {
-            // Kinda like 'br(0)', but also works as 'return'. Then returning from a function we
-            // use the continuation of the frame. Otherwise we bump ip by one.
+            // Kinda like 'br(0)', but also works as 'return'. When returning from a function we
+            // use the continuation of the frame. Otherwise we bump `ip` by one.
 
             // Get return vals
             let return_arity = rt.stack.return_arity(0, EndOrBreak::End)?;
@@ -2895,10 +2895,7 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
 
     match kind {
         BlockKind::Top => panic!(),
-        BlockKind::Block => {
-            rt.ip = cont + 1;
-        }
-        BlockKind::Loop => {
+        BlockKind::Block | BlockKind::Loop => {
             rt.ip = cont;
         }
         BlockKind::Fun => {

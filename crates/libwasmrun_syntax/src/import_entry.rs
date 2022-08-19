@@ -5,7 +5,7 @@ const FLAG_HAS_MAX: u8 = 0x01;
 const FLAG_SHARED: u8 = 0x02;
 
 /// Global definition struct
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct GlobalType {
     content_type: ValueType,
     is_mutable: bool,
@@ -43,7 +43,7 @@ impl Deserialize for GlobalType {
 }
 
 /// Table entry
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TableType {
     pub elem_type: ReferenceType,
     pub limits: ResizableLimits,
@@ -78,7 +78,7 @@ impl Deserialize for TableType {
 }
 
 /// Memory and table limits.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResizableLimits {
     initial: u32,
     maximum: Option<u32>,
@@ -140,7 +140,7 @@ impl Deserialize for ResizableLimits {
 }
 
 /// Memory entry.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MemoryType(ResizableLimits);
 
 impl MemoryType {
@@ -170,7 +170,7 @@ impl Deserialize for MemoryType {
 }
 
 /// External to local binding.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum External {
     /// Binds to a function whose type is associated with the given index in the
     /// type section.
@@ -197,7 +197,7 @@ impl Deserialize for External {
 }
 
 /// Import entry.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportEntry {
     module_str: String,
     field_str: String,

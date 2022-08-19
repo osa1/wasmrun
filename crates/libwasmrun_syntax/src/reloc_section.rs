@@ -12,7 +12,7 @@ const TYPE_INDEX_LEB: u8 = 6;
 const GLOBAL_INDEX_LEB: u8 = 7;
 
 /// Relocation information.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RelocSection {
     /// Name of this section.
     name: String,
@@ -92,7 +92,7 @@ impl RelocSection {
 }
 
 /// Relocation entry.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RelocationEntry {
     /// Function index.
     FunctionIndexLeb {

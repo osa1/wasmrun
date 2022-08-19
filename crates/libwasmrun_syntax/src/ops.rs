@@ -6,7 +6,7 @@ use crate::{
 use std::fmt;
 
 /// List of instructions (usually inside a block section).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instructions(Vec<Instruction>);
 
 impl Instructions {
@@ -57,7 +57,7 @@ impl Deserialize for Instructions {
 }
 
 /// Initialization expression
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InitExpr(Vec<Instruction>);
 
 impl InitExpr {

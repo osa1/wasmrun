@@ -2,7 +2,7 @@ use super::{CountedList, Deserialize, Error, Instructions, ValueType, VarUint32}
 use crate::{io, section::SectionReader};
 
 /// Function signature (type reference)
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Func(u32);
 
 impl Func {
@@ -29,7 +29,7 @@ impl Deserialize for Func {
 }
 
 /// Local definition inside the function body.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Local {
     count: u32,
     value_type: ValueType,
@@ -64,7 +64,7 @@ impl Deserialize for Local {
 }
 
 /// Function body definition.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncBody {
     locals: Vec<Local>,
     instructions: Instructions,

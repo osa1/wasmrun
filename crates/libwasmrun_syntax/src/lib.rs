@@ -1,6 +1,7 @@
 mod io;
 
 use core::fmt;
+use core::fmt::Write;
 
 macro_rules! buffered_read {
     ($buffer_size: expr, $length: expr, $reader: expr) => {{
@@ -254,7 +255,7 @@ impl From<io::Error> for Error {
 impl From<(Vec<(usize, Error)>, Module)> for Error {
     fn from(err: (Vec<(usize, Error)>, Module)) -> Self {
         let ret = err.0.iter().fold(String::new(), |mut acc, item| {
-            acc.push_str(&format!("In section {}: {}\n", item.0, item.1));
+            writeln!(&mut acc, "In section {}: {}", item.0, item.1).unwrap();
             acc
         });
         Error::HeapOther(ret)
