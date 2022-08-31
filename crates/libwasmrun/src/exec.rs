@@ -2847,7 +2847,7 @@ fn op2_trap<A: StackValue, B: StackValue, F: Fn(A, A) -> Result<B>>(
 fn block_arity(rt: &Runtime, module_addr: ModuleAddr, ty: wasm::BlockType) -> (u32, u32) {
     match ty {
         wasm::BlockType::Value(_) => (0, 1),
-        wasm::BlockType::NoResult => (0, 0),
+        wasm::BlockType::Empty => (0, 0),
         wasm::BlockType::TypeIndex(ty_idx) => {
             let ty = &rt.store.get_module(module_addr).get_type(TypeIdx(ty_idx));
             (ty.params().len() as u32, ty.results().len() as u32)

@@ -216,7 +216,7 @@ impl Deserialize for VarInt32 {
             reader.read(&mut u8buf)?;
             let b = u8buf[0];
 
-            res |= ((b & 0x7f) as i32)
+            res |= ((b & 0b0111_1111) as i32)
                 .checked_shl(shift)
                 .ok_or(Error::InvalidVarInt32)?;
 
@@ -267,7 +267,7 @@ impl Deserialize for VarInt64 {
             reader.read(&mut u8buf)?;
             let b = u8buf[0];
 
-            res |= ((b & 0x7f) as i64)
+            res |= ((b & 0b0111_1111) as i64)
                 .checked_shl(shift)
                 .ok_or(Error::InvalidVarInt64)?;
 

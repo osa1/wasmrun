@@ -65,23 +65,37 @@ impl fmt::Display for ValueType {
     }
 }
 
-/// Block type which is basically `ValueType` + NoResult (to define blocks that have no return type)
+/// A block type
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BlockType {
-    /// No specified block type
-    NoResult,
-    /// Inline value type.
+    /// Shorthand for `[] -> []`
+    Empty,
+
+    /// Shorthand for `[] -> [ty]`
     Value(ValueType),
-    /// Reference to a signature.
+
+    /// Type of the block is the given function type with given index
     TypeIndex(u32),
 }
 
 impl Deserialize for BlockType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        // https://webassembly.github.io/spec/core/binary/instructions.html#binary-blocktype
+        //
+        // > Unlike any other occurrence, the type index in a block type is encoded as a positive
+        // > signed integer, so that its signed LEB128 bit pattern cannot collide with the encoding
+        // > of value types or the special code 0x40, which correspond to the LEB128 encoding of
+        // > negative integers. To avoid any loss in the range of allowed indices, it is treated as
+        // > a 33 bit signed integer.
+
+        // TODO: Shouldn't this be `VarInt33`?
         let val = VarInt32::deserialize(reader)?;
 
+        // NB. The byte 0x40 is 64 in unsigned LEB128, -64 in signed LEB128. Byte values of value
+        // types are negative numbers when interpreted as signed LEB128. For example, the byte 0x7F
+        // for value type `i32` is -1 when interpreted as signed LEB128.
         match val.into() {
-            -0x40 => Ok(BlockType::NoResult),
+            -0x40 => Ok(BlockType::Empty),
             -0x01 => Ok(BlockType::Value(ValueType::I32)),
             -0x02 => Ok(BlockType::Value(ValueType::I64)),
             -0x03 => Ok(BlockType::Value(ValueType::F32)),
@@ -97,7 +111,7 @@ impl Deserialize for BlockType {
     }
 }
 
-/// Function signature type.
+/// A function type
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct FunctionType {
     params: Vec<ValueType>,
