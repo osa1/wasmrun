@@ -118,6 +118,10 @@ impl Stack {
         self.push_value(Value::I64(i))
     }
 
+    pub(crate) fn push_i128(&mut self, i: i128) -> Result<()> {
+        self.push_value(Value::I128(i))
+    }
+
     pub(crate) fn push_f32(&mut self, f: f32) -> Result<()> {
         self.push_value(Value::F32(f))
     }

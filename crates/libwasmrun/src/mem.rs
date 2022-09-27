@@ -103,7 +103,7 @@ impl Mem {
         }
         self.check_range(offset, value.len() as u32)?;
         let offset = offset as usize;
-        (&mut self.mem[offset..offset + value.len()]).copy_from_slice(value);
+        self.mem[offset..offset + value.len()].copy_from_slice(value);
         Ok(())
     }
 
