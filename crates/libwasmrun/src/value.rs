@@ -82,6 +82,10 @@ impl Value {
         Value::F64(0f64)
     }
 
+    pub(crate) fn default_i128() -> Self {
+        Value::I128(0i128)
+    }
+
     pub(crate) fn default(ty: wasm::ValueType) -> Self {
         match ty {
             wasm::ValueType::I32 => Value::default_i32(),
@@ -90,9 +94,7 @@ impl Value {
             wasm::ValueType::F64 => Value::default_f64(),
             wasm::ValueType::FuncRef => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
             wasm::ValueType::ExternRef => Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef)),
-            wasm::ValueType::V128 => {
-                todo!("Unsupported value type: {:?}", ty)
-            }
+            wasm::ValueType::V128 => Value::default_i128(),
         }
     }
 

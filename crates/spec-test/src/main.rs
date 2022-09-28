@@ -42,7 +42,7 @@ fn run_dir(dir_path: &str) {
         let file = file.unwrap();
         let file_path = file.path();
         if let Some(ext) = file_path.extension() {
-            if ext == "wast" && !file.file_name().to_string_lossy().starts_with("simd_") {
+            if ext == "wast" {
                 dir_files.push(file_path);
             }
         }
@@ -96,6 +96,7 @@ fn test_eq_val(v1: Value, v2: Value) -> bool {
     match (v1, v2) {
         (Value::I32(i1), Value::I32(i2)) => i1 == i2,
         (Value::I64(i1), Value::I64(i2)) => i1 == i2,
+        (Value::I128(i1), Value::I128(i2)) => i1 == i2,
         (Value::F32(f1), Value::F32(f2)) => f1.to_bits() == f2.to_bits(),
         (Value::F64(f1), Value::F64(f2)) => f1.to_bits() == f2.to_bits(),
         (Value::Ref(r1), Value::Ref(r2)) => r1 == r2,

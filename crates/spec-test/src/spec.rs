@@ -259,27 +259,27 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             match lane_type.as_str() {
                 "i32" | "f32" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
-                    for _ in 0..4 {
-                        let u32_bytes = parse_str::<ParseIntError, u32>(&vec[0]).to_be_bytes();
+                    for i in 0..4 {
+                        let u32_bytes = parse_str::<ParseIntError, u32>(&vec[i]).to_le_bytes();
                         bytes.extend(u32_bytes);
                     }
-                    Value::I128(i128::from_be_bytes(bytes.try_into().unwrap()))
+                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
                 }
                 "i16" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
-                    for _ in 0..8 {
-                        let u16_bytes = parse_str::<ParseIntError, u16>(&vec[0]).to_be_bytes();
+                    for i in 0..8 {
+                        let u16_bytes = parse_str::<ParseIntError, u16>(&vec[i]).to_le_bytes();
                         bytes.extend(u16_bytes);
                     }
-                    Value::I128(i128::from_be_bytes(bytes.try_into().unwrap()))
+                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
                 }
                 "i8" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
-                    for _ in 0..16 {
-                        let u8 = parse_str::<ParseIntError, u8>(&vec[0]);
+                    for i in 0..16 {
+                        let u8 = parse_str::<ParseIntError, u8>(&vec[i]);
                         bytes.push(u8);
                     }
-                    Value::I128(i128::from_be_bytes(bytes.try_into().unwrap()))
+                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
                 }
                 _ => {
                     return Err(format!(
