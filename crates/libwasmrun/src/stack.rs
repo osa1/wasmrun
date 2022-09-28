@@ -84,6 +84,13 @@ impl Stack {
         }
     }
 
+    pub(crate) fn pop_i128(&mut self) -> Result<i128> {
+        match self.pop_value()? {
+            Value::I128(val) => Ok(val),
+            other => Err(ExecError::Panic(format!("Stack::pop_i128: {:?}", other))),
+        }
+    }
+
     pub(crate) fn pop_f32(&mut self) -> Result<f32> {
         match self.pop_value()? {
             Value::F32(val) => Ok(val),
@@ -263,6 +270,16 @@ impl StackValue for u64 {
 
     fn push(&self, stack: &mut Stack) {
         stack.push_i64(*self as i64).unwrap();
+    }
+}
+
+impl StackValue for i128 {
+    fn pop(stack: &mut Stack) -> Result<Self> {
+        Ok(stack.pop_i128()?)
+    }
+
+    fn push(&self, stack: &mut Stack) {
+        stack.push_i128(*self as i128).unwrap();
     }
 }
 
