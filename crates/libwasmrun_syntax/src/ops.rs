@@ -1717,22 +1717,22 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         V128_STORE_8_LANE => {
             let mem = MemArg::deserialize(reader)?;
             let lane = Uint8::deserialize(reader)?.into();
-            V128Load8Lane(mem, lane)
+            V128Store8Lane(mem, lane)
         }
         V128_STORE_16_LANE => {
             let mem = MemArg::deserialize(reader)?;
             let lane = Uint8::deserialize(reader)?.into();
-            V128Load16Lane(mem, lane)
+            V128Store16Lane(mem, lane)
         }
         V128_STORE_32_LANE => {
             let mem = MemArg::deserialize(reader)?;
             let lane = Uint8::deserialize(reader)?.into();
-            V128Load32Lane(mem, lane)
+            V128Store32Lane(mem, lane)
         }
         V128_STORE_64_LANE => {
             let mem = MemArg::deserialize(reader)?;
             let lane = Uint8::deserialize(reader)?.into();
-            V128Load64Lane(mem, lane)
+            V128Store64Lane(mem, lane)
         }
         V128_CONST => {
             let mut bytes = [0; 16];
