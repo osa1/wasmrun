@@ -61,6 +61,63 @@ pub fn exec_simd_instr(
             }
         }
 
+        SimdInstruction::V128Store8Lane(MemArg { align: _, offset }, lane) => {
+            let vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+            mem.check_range(addr, 1)?;
+
+            let byte = vec[usize::from(lane)];
+            mem[addr] = byte;
+        }
+
+        SimdInstruction::V128Store16Lane(MemArg { align: _, offset }, lane) => {
+            let vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+            mem.check_range(addr, 2)?;
+
+            let b1 = vec[usize::from(lane) * 2];
+            let b2 = vec[usize::from(lane) * 2 + 1];
+            mem[addr] = b1;
+            mem[addr + 1] = b2;
+        }
+
+        SimdInstruction::V128Store32Lane(MemArg { align: _, offset }, lane) => {
+            let vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+            mem.check_range(addr, 4)?;
+
+            let lane = usize::from(lane);
+            mem.set_range(addr, &vec[lane * 4..lane * 4 + 4])?;
+        }
+
+        SimdInstruction::V128Store64Lane(MemArg { align: _, offset }, lane) => {
+            let vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+
+            let lane = usize::from(lane);
+            mem.set_range(addr, &vec[lane * 8..lane * 8 + 8])?;
+        }
+
         SimdInstruction::V128Load8x8s(MemArg { align: _, offset }) => {
             // Load 8 8-bit integers, sign extend each to 16-bit
             let addr = rt.stack.pop_i32()? as u32;
