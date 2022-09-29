@@ -66,6 +66,26 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
+        SimdInstruction::V128Load16Lane(MemArg { align: _, offset }, lane) => {
+            let mut vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 2)?;
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+
+            let lane = usize::from(lane);
+            vec[lane * 2] = b1;
+            vec[lane * 2 + 1] = b2;
+
+            rt.stack.push_i128(i128::from_le_bytes(vec))?;
+        }
+
         SimdInstruction::I8x16ExtractLaneS(lane_idx) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
             rt.stack.push_i32(vec[usize::from(lane_idx)] as i32)?;
