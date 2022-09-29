@@ -201,7 +201,7 @@ pub fn exec_simd_instr(
             let shift = rt.stack.pop_i32()?;
             let mut v = rt.stack.pop_i128()?.to_le_bytes();
             for i in 0..16 {
-                v[i] <<= shift;
+                v[i] = v[i].wrapping_shl(shift as u32);
             }
             rt.stack.push_i128(i128::from_le_bytes(v))?;
         }

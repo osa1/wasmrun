@@ -260,7 +260,11 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                 "i64" | "f64" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
                     for i in 0..2 {
-                        let u64_bytes = parse_str::<ParseIntError, u64>(&vec[i]).to_le_bytes();
+                        let u64_bytes = if vec[i] == "nan:canonical" || vec[i] == "nan:arithmetic" {
+                            f64::NAN.to_le_bytes()
+                        } else {
+                            parse_str::<ParseIntError, u64>(&vec[i]).to_le_bytes()
+                        };
                         bytes.extend(u64_bytes);
                     }
                     Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
@@ -269,7 +273,11 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                 "i32" | "f32" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
                     for i in 0..4 {
-                        let u32_bytes = parse_str::<ParseIntError, u32>(&vec[i]).to_le_bytes();
+                        let u32_bytes = if vec[i] == "nan:canonical" || vec[i] == "nan:arithmetic" {
+                            f32::NAN.to_le_bytes()
+                        } else {
+                            parse_str::<ParseIntError, u32>(&vec[i]).to_le_bytes()
+                        };
                         bytes.extend(u32_bytes);
                     }
                     Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
