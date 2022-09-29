@@ -4,6 +4,8 @@ use crate::Runtime;
 
 use libwasmrun_syntax::{MemArg, SimdInstruction};
 
+use std::convert::TryInto;
+
 // Informal specification of SIMD insturctions:
 // https://github.com/WebAssembly/simd/blob/main/proposals/simd/SIMD.md
 pub fn exec_simd_instr(
@@ -375,6 +377,142 @@ pub fn exec_simd_instr(
             v1[0] = v1[0].wrapping_add(v2[0]);
             v1[1] = v1[1].wrapping_add(v2[1]);
             rt.stack.push_i128(i64x2_to_vec(v1))?;
+        }
+
+        SimdInstruction::I16x8ExtendHighI8x16S => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..8 {
+                let i16 = (v[i] as i8) as i16;
+                res.extend_from_slice(&i16.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I16x8ExtendHighI8x16U => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..8 {
+                let u16 = v[i] as u16;
+                res.extend_from_slice(&u16.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I16x8ExtendLowI8x16S => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..8 {
+                let i16 = (v[i] as i8) as i16;
+                res.extend_from_slice(&i16.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I16x8ExtendLowI8x16U => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..8 {
+                let u16 = v[i] as u16;
+                res.extend_from_slice(&u16.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I32x4ExtendHighI16x8S => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..4 {
+                let i32 = i16::from_le_bytes([v[i * 2], v[i * 2 + 1]]) as i32;
+                res.extend_from_slice(&i32.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I32x4ExtendHighI16x8U => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..4 {
+                let u32 = u16::from_le_bytes([v[i * 2], v[i * 2 + 1]]) as u32;
+                res.extend_from_slice(&u32.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I32x4ExtendLowI16x8S => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..4 {
+                let i32 = i16::from_le_bytes([v[i * 2], v[i * 2 + 1]]) as i32;
+                res.extend_from_slice(&i32.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I32x4ExtendLowI16x8U => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..4 {
+                let u32 = u16::from_le_bytes([v[i * 2], v[i * 2 + 1]]) as u32;
+                res.extend_from_slice(&u32.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I64x2ExtendHighI32x4S => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..2 {
+                let i64 =
+                    i32::from_le_bytes([v[i * 4], v[i * 4 + 1], v[i * 4 + 2], v[i * 4 + 3]]) as i64;
+                res.extend_from_slice(&i64.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I64x2ExtendHighI32x4U => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..2 {
+                let u64 =
+                    u32::from_le_bytes([v[i * 4], v[i * 4 + 1], v[i * 4 + 2], v[i * 4 + 3]]) as u64;
+                res.extend_from_slice(&u64.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I64x2ExtendLowI32x4S => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..2 {
+                let i64 =
+                    i32::from_le_bytes([v[i * 4], v[i * 4 + 1], v[i * 4 + 2], v[i * 4 + 3]]) as i64;
+                res.extend_from_slice(&i64.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I64x2ExtendLowI32x4U => {
+            let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            for i in 0..2 {
+                let u64 =
+                    u32::from_le_bytes([v[i * 4], v[i * 4 + 1], v[i * 4 + 2], v[i * 4 + 3]]) as u64;
+                res.extend_from_slice(&u64.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
         }
 
         _ => {
