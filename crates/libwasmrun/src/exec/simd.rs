@@ -12,6 +12,10 @@ pub fn exec_simd_instr(
     instr: SimdInstruction,
 ) -> Result<()> {
     match instr {
+        SimdInstruction::V128Const(bytes) => {
+            rt.stack.push_i128(i128::from_le_bytes(bytes))?;
+        }
+
         SimdInstruction::V128Load(MemArg { align: _, offset }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
@@ -40,6 +44,21 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes([
                 b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16,
             ]))?;
+        }
+
+        SimdInstruction::V128Store(MemArg { align: _, offset }) => {
+            let vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem_mut(mem_addr);
+            mem.check_range(addr, 16)?;
+
+            for i in 0..16 {
+                mem[addr + i] = vec[i as usize];
+            }
         }
 
         SimdInstruction::V128Load8x8s(MemArg { align: _, offset }) => {
@@ -284,6 +303,23 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(res))?;
         }
 
+        SimdInstruction::I32x4Add => {
+            let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
+            let mut v1 = vec_to_i32x4(rt.stack.pop_i128()?);
+            for i in 0..4 {
+                v1[i] = v1[i].wrapping_add(v2[i]);
+            }
+            rt.stack.push_i128(i32x4_to_vec(v1))?;
+        }
+
+        SimdInstruction::I64x2Add => {
+            let v2 = vec_to_i64x2(rt.stack.pop_i128()?);
+            let mut v1 = vec_to_i64x2(rt.stack.pop_i128()?);
+            v1[0] = v1[0].wrapping_add(v2[0]);
+            v1[1] = v1[1].wrapping_add(v2[1]);
+            rt.stack.push_i128(i64x2_to_vec(v1))?;
+        }
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
@@ -313,6 +349,18 @@ fn vec_to_i32x4(v: i128) -> [i32; 4] {
         i32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
         i32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
         i32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+    ]
+}
+
+fn vec_to_i64x2(v: i128) -> [i64; 2] {
+    let bytes = v.to_le_bytes();
+    [
+        i64::from_le_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ]),
+        i64::from_le_bytes([
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+        ]),
     ]
 }
 
@@ -365,5 +413,29 @@ fn i32x4_to_vec(is: [i32; 4]) -> i128 {
         i4_bytes[1],
         i4_bytes[2],
         i4_bytes[3],
+    ])
+}
+
+fn i64x2_to_vec(is: [i64; 2]) -> i128 {
+    let [i1, i2] = is;
+    let i1_bytes = i1.to_le_bytes();
+    let i2_bytes = i2.to_le_bytes();
+    i128::from_le_bytes([
+        i1_bytes[0],
+        i1_bytes[1],
+        i1_bytes[2],
+        i1_bytes[3],
+        i1_bytes[4],
+        i1_bytes[5],
+        i1_bytes[6],
+        i1_bytes[7],
+        i2_bytes[0],
+        i2_bytes[1],
+        i2_bytes[2],
+        i2_bytes[3],
+        i2_bytes[4],
+        i2_bytes[5],
+        i2_bytes[6],
+        i2_bytes[7],
     ])
 }
