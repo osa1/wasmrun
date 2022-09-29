@@ -104,7 +104,6 @@ impl Deserialize for InitExpr {
 
 /// Instruction.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
 pub enum Instruction {
     Unreachable,
     Nop,
@@ -329,7 +328,6 @@ pub enum Instruction {
     RefFunc(u32), // func idx
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AtomicsInstruction {
     AtomicWake(MemArg),
@@ -408,7 +406,6 @@ pub enum AtomicsInstruction {
     I64AtomicRmwCmpxchg32u(MemArg),
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SimdInstruction {
     V128Load(MemArg),
@@ -687,7 +684,6 @@ impl Instruction {
     }
 }
 
-#[allow(missing_docs)]
 pub mod opcodes {
     pub const UNREACHABLE: u8 = 0x00;
     pub const NOP: u8 = 0x01;
@@ -1785,6 +1781,8 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         I16X8_LE_U => I16x8LeU,
         I16X8_GE_S => I16x8GeS,
         I16X8_GE_U => I16x8GeU,
+        I32X4_EQ => I32x4Eq,
+        I32X4_NE => I32x4Ne,
         I32X4_LT_S => I32x4LtS,
         I32X4_LT_U => I32x4LtU,
         I32X4_GT_S => I32x4GtS,
