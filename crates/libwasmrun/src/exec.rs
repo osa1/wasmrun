@@ -16,7 +16,7 @@ use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
-use wasm::{Instruction, SignExtInstruction};
+use wasm::{Instruction, SignExtInstruction, SimdInstruction};
 
 use std::fmt;
 use std::iter;
@@ -638,6 +638,7 @@ fn eval_const_expr(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Res
         [I64Const(value), End] => Value::I64(*value),
         [F32Const(value), End] => Value::F32(f32::from_bits(*value)),
         [F64Const(value), End] => Value::F64(f64::from_bits(*value)),
+        [Simd(SimdInstruction::V128Const(value)), End] => Value::I128(i128::from_le_bytes(*value)),
         [RefNull(ref_ty), End] => Value::Ref(Ref::Null(*ref_ty)),
         [RefFunc(fun_idx), End] => Value::Ref(Ref::Ref(module.get_fun(FunIdx(*fun_idx)))),
         [GetGlobal(idx), End] => {
