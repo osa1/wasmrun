@@ -275,7 +275,7 @@ impl StackValue for u64 {
 
 impl StackValue for i128 {
     fn pop(stack: &mut Stack) -> Result<Self> {
-        Ok(stack.pop_i128()?)
+        stack.pop_i128()
     }
 
     fn push(&self, stack: &mut Stack) {
