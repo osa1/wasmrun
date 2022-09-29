@@ -179,4 +179,19 @@ impl Mem {
 
         Ok(())
     }
+
+    pub fn load_64(&self, addr: u32) -> Result<u64> {
+        self.check_range(addr, 8)?;
+
+        let b1 = self[addr];
+        let b2 = self[addr + 1];
+        let b3 = self[addr + 2];
+        let b4 = self[addr + 3];
+        let b5 = self[addr + 4];
+        let b6 = self[addr + 5];
+        let b7 = self[addr + 6];
+        let b8 = self[addr + 7];
+
+        Ok(u64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))
+    }
 }

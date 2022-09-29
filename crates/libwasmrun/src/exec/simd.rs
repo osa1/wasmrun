@@ -515,6 +515,56 @@ pub fn exec_simd_instr(
                 .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
         }
 
+        SimdInstruction::V128Load32Zero(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 4)?;
+
+            let u32 = mem.load_32(addr)?;
+
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            res.extend_from_slice(&u32.to_le_bytes());
+            res.extend_from_slice(&[0u8; 12]);
+
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::V128Load64Zero(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 4)?;
+
+            let u64 = mem.load_64(addr)?;
+
+            let mut res: Vec<u8> = Vec::with_capacity(16);
+            res.extend_from_slice(&u64.to_le_bytes());
+            res.extend_from_slice(&[0u8; 8]);
+
+            rt.stack
+                .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
+        }
+
+        SimdInstruction::I32x4ExtractLane(lane) => {
+            let v = rt.stack.pop_i128()?.to_le_bytes();
+            let lane = usize::from(lane);
+            let i = i32::from_le_bytes(v[lane * 4..lane * 4 + 4].try_into().unwrap());
+            rt.stack.push_i32(i)?;
+        }
+
+        SimdInstruction::I64x2ExtractLane(lane) => {
+            let v = rt.stack.pop_i128()?.to_le_bytes();
+            let lane = usize::from(lane);
+            let i = i64::from_le_bytes(v[lane * 8..lane * 8 + 8].try_into().unwrap());
+            rt.stack.push_i64(i)?;
+        }
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",

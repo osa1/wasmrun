@@ -1692,7 +1692,7 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         V128_LOAD_32_SPLAT => V128Load32Splat(MemArg::deserialize(reader)?),
         V128_LOAD_64_SPLAT => V128Load64Splat(MemArg::deserialize(reader)?),
         V128_LOAD_32_ZERO => V128Load32Zero(MemArg::deserialize(reader)?),
-        V128_LOAD_64_ZERO => V128Load32Zero(MemArg::deserialize(reader)?),
+        V128_LOAD_64_ZERO => V128Load64Zero(MemArg::deserialize(reader)?),
         V128_STORE => V128Store(MemArg::deserialize(reader)?),
         V128_LOAD_8_LANE => {
             let mem = MemArg::deserialize(reader)?;
