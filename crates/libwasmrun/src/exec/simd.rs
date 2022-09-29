@@ -163,6 +163,33 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(f32x4_to_vec(fs1))?;
         }
 
+        SimdInstruction::I32x4TruncSatF32x4S => {
+            let v = rt.stack.pop_i128()?;
+            let fs = vec_to_f32x4(v);
+            let is: [i32; 4] = fs.map(super::i32_trunc_sat_s_f32);
+            rt.stack.push_i128(i32x4_to_vec(is))?;
+        }
+
+        SimdInstruction::F32x4ConvertI32x4U => {
+            let v = rt.stack.pop_i128()?;
+            let is = vec_to_i32x4(v);
+            let fs: [f32; 4] = is.map(super::f32_convert_u_i32);
+            rt.stack.push_i128(f32x4_to_vec(fs))?;
+        }
+
+        SimdInstruction::I8x16Swizzle => {
+            let v2 = rt.stack.pop_i128()?.to_le_bytes();
+            let v1 = rt.stack.pop_i128()?.to_le_bytes();
+            let mut res: [u8; 16] = [0; 16];
+            for i in 0..16 {
+                let idx = v2[i];
+                if idx < 16 {
+                    res[i] = v1[usize::from(idx)];
+                }
+            }
+            rt.stack.push_i128(i128::from_le_bytes(res))?;
+        }
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
@@ -182,6 +209,16 @@ fn vec_to_f32x4(v: i128) -> [f32; 4] {
         f32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
         f32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
         f32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+    ]
+}
+
+fn vec_to_i32x4(v: i128) -> [i32; 4] {
+    let bytes = v.to_le_bytes();
+    [
+        i32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+        i32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+        i32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
+        i32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
     ]
 }
 
@@ -208,5 +245,31 @@ fn f32x4_to_vec(fs: [f32; 4]) -> i128 {
         f4_bytes[1],
         f4_bytes[2],
         f4_bytes[3],
+    ])
+}
+
+fn i32x4_to_vec(is: [i32; 4]) -> i128 {
+    let [i1, i2, i3, i4] = is;
+    let i1_bytes = i1.to_le_bytes();
+    let i2_bytes = i2.to_le_bytes();
+    let i3_bytes = i3.to_le_bytes();
+    let i4_bytes = i4.to_le_bytes();
+    i128::from_le_bytes([
+        i1_bytes[0],
+        i1_bytes[1],
+        i1_bytes[2],
+        i1_bytes[3],
+        i2_bytes[0],
+        i2_bytes[1],
+        i2_bytes[2],
+        i2_bytes[3],
+        i3_bytes[0],
+        i3_bytes[1],
+        i3_bytes[2],
+        i3_bytes[3],
+        i4_bytes[0],
+        i4_bytes[1],
+        i4_bytes[2],
+        i4_bytes[3],
     ])
 }

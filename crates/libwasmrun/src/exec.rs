@@ -2065,14 +2065,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32ConvertUI32 => {
-            op1::<i32, f32, _>(rt, |i| {
-                if i >= 0 {
-                    i as f32
-                } else {
-                    let i = i as u32;
-                    ((i >> 1) | (i & 0b1)) as f32 * 2f32
-                }
-            })?;
+            op1::<i32, f32, _>(rt, f32_convert_u_i32)?;
 
             // let convert_i32_u x =
             //   F32.of_float Int32.(
@@ -2197,17 +2190,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         },
 
         Instruction::I32TruncSatSF32 => {
-            op1::<f32, i32, _>(rt, |f| {
-                if f.is_nan() {
-                    0
-                } else if f < i32::MIN as f32 {
-                    i32::MIN
-                } else if f >= -(i32::MIN as f32) {
-                    i32::MAX
-                } else {
-                    f as i32
-                }
-            })?;
+            op1::<f32, i32, _>(rt, i32_trunc_sat_s_f32)?;
 
             // let trunc_sat_f32_s x =
             //   if F32.ne x x then
@@ -2842,6 +2825,27 @@ fn op2_trap<A: StackValue, B: StackValue, F: Fn(A, A) -> Result<B>>(
     ret.push(&mut rt.stack);
     rt.ip += 1;
     Ok(())
+}
+
+fn i32_trunc_sat_s_f32(f: f32) -> i32 {
+    if f.is_nan() {
+        0
+    } else if f < i32::MIN as f32 {
+        i32::MIN
+    } else if f >= -(i32::MIN as f32) {
+        i32::MAX
+    } else {
+        f as i32
+    }
+}
+
+fn f32_convert_u_i32(i: i32) -> f32 {
+    if i >= 0 {
+        i as f32
+    } else {
+        let i = i as u32;
+        ((i >> 1) | (i & 0b1)) as f32 * 2f32
+    }
 }
 
 fn block_arity(rt: &Runtime, module_addr: ModuleAddr, ty: wasm::BlockType) -> (u32, u32) {
