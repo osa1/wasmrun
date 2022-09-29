@@ -110,6 +110,38 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(vec))?;
         }
 
+        SimdInstruction::V128Load64Lane(MemArg { align: _, offset }, lane) => {
+            let mut vec = rt.stack.pop_i128()?.to_le_bytes();
+
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 8)?;
+
+            let b1 = mem[addr];
+            let b2 = mem[addr + 1];
+            let b3 = mem[addr + 2];
+            let b4 = mem[addr + 3];
+            let b5 = mem[addr + 4];
+            let b6 = mem[addr + 5];
+            let b7 = mem[addr + 6];
+            let b8 = mem[addr + 7];
+
+            let lane = usize::from(lane);
+            vec[lane * 8] = b1;
+            vec[lane * 8 + 1] = b2;
+            vec[lane * 8 + 2] = b3;
+            vec[lane * 8 + 3] = b4;
+            vec[lane * 8 + 4] = b5;
+            vec[lane * 8 + 5] = b6;
+            vec[lane * 8 + 6] = b7;
+            vec[lane * 8 + 7] = b8;
+
+            rt.stack.push_i128(i128::from_le_bytes(vec))?;
+        }
+
         SimdInstruction::I8x16ExtractLaneS(lane_idx) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
             rt.stack.push_i32(vec[usize::from(lane_idx)] as i32)?;

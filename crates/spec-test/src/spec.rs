@@ -257,6 +257,15 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                 None => return Err(format!("Vector value with no lane type")),
             };
             match lane_type.as_str() {
+                "i64" | "f64" => {
+                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                    for i in 0..2 {
+                        let u64_bytes = parse_str::<ParseIntError, u64>(&vec[i]).to_le_bytes();
+                        bytes.extend(u64_bytes);
+                    }
+                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
+                }
+
                 "i32" | "f32" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
                     for i in 0..4 {
@@ -265,6 +274,7 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                     }
                     Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
                 }
+
                 "i16" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
                     for i in 0..8 {
@@ -273,6 +283,7 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                     }
                     Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
                 }
+
                 "i8" => {
                     let mut bytes: Vec<u8> = Vec::with_capacity(16);
                     for i in 0..16 {
@@ -281,6 +292,7 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                     }
                     Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
                 }
+
                 _ => {
                     return Err(format!(
                         "Vector type not supported: {:?} lane type = {}",
