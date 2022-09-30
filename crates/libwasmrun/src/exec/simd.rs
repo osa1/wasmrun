@@ -299,6 +299,8 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I16x8Neg => i16x8_lanewise_map(rt, |i| i.wrapping_neg())?,
 
+        SimdInstruction::I32x4Neg => i32x4_lanewise_map(rt, |i| i.wrapping_neg())?,
+
         SimdInstruction::F32x4Mul => {
             f32x4_lanewise_zip_map(rt, |f1, f2| canonicalize_f32_nan(f1 * f2))?
         }
