@@ -370,14 +370,11 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(res))?;
         }
 
-        SimdInstruction::I16x8Add => {
-            let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
-            let mut v1 = vec_to_i32x4(rt.stack.pop_i128()?);
-            for i in 0..4 {
-                v1[i] = v1[i].wrapping_add(v2[i]);
-            }
-            rt.stack.push_i128(i32x4_to_vec(v1))?;
-        }
+        SimdInstruction::I16x8Add => i16x8_lanewise_zip_map(rt, |i1, i2| i1.wrapping_add(i2))?,
+
+        SimdInstruction::I16x8Sub => i16x8_lanewise_zip_map(rt, |i1, i2| i1.wrapping_sub(i2))?,
+
+        SimdInstruction::I16x8Mul => i16x8_lanewise_zip_map(rt, |i1, i2| i1.wrapping_mul(i2))?,
 
         SimdInstruction::I32x4Add => {
             let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
@@ -990,6 +987,19 @@ where
         v[i] = f(v[i]);
     }
     rt.stack.push_i128(i16x8_to_vec(v))
+}
+
+fn i16x8_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(i16, i16) -> i16,
+{
+    let v2 = vec_to_i16x8(rt.stack.pop_i128()?);
+    let v1 = vec_to_i16x8(rt.stack.pop_i128()?);
+    let mut ret = [0i16; 8];
+    for i in 0..8 {
+        ret[i] = f(v1[i], v2[i]);
+    }
+    rt.stack.push_i128(i16x8_to_vec(ret))
 }
 
 fn i32x4_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
