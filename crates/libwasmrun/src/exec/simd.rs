@@ -597,6 +597,22 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I64x2GeS => i64x2_rel(rt, |i1, i2| i1 >= i2)?,
 
+        SimdInstruction::F32x4PMax => {
+            f32x4_lanewise_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
+        }
+
+        SimdInstruction::F32x4PMin => {
+            f32x4_lanewise_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
+        }
+
+        SimdInstruction::F64x2PMax => {
+            f64x2_lanewise_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
+        }
+
+        SimdInstruction::F64x2PMin => {
+            f64x2_lanewise_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
+        }
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
@@ -643,6 +659,32 @@ where
     rt.stack.push_i128(i64x2_to_vec(ret))
 }
 
+fn f32x4_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(f32, f32) -> f32,
+{
+    let v2 = vec_to_f32x4(rt.stack.pop_i128()?);
+    let v1 = vec_to_f32x4(rt.stack.pop_i128()?);
+    let mut ret = [0.0f32; 4];
+    for i in 0..4 {
+        ret[i] = f(v1[i], v2[i]);
+    }
+    rt.stack.push_i128(f32x4_to_vec(ret))
+}
+
+fn f64x2_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(f64, f64) -> f64,
+{
+    let v2 = vec_to_f64x2(rt.stack.pop_i128()?);
+    let v1 = vec_to_f64x2(rt.stack.pop_i128()?);
+    let mut ret = [0.0f64; 2];
+    for i in 0..2 {
+        ret[i] = f(v1[i], v2[i]);
+    }
+    rt.stack.push_i128(f64x2_to_vec(ret))
+}
+
 fn vec_to_f32x4(v: i128) -> [f32; 4] {
     let bytes = v.to_le_bytes();
     [
@@ -660,6 +702,18 @@ fn vec_to_i32x4(v: i128) -> [i32; 4] {
         i32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
         i32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
         i32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+    ]
+}
+
+fn vec_to_f64x2(v: i128) -> [f64; 2] {
+    let bytes = v.to_le_bytes();
+    [
+        f64::from_le_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ]),
+        f64::from_le_bytes([
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+        ]),
     ]
 }
 
@@ -698,6 +752,30 @@ fn f32x4_to_vec(fs: [f32; 4]) -> i128 {
         f4_bytes[1],
         f4_bytes[2],
         f4_bytes[3],
+    ])
+}
+
+fn f64x2_to_vec(fs: [f64; 2]) -> i128 {
+    let [f1, f2] = fs;
+    let f1_bytes = f1.to_le_bytes();
+    let f2_bytes = f2.to_le_bytes();
+    i128::from_le_bytes([
+        f1_bytes[0],
+        f1_bytes[1],
+        f1_bytes[2],
+        f1_bytes[3],
+        f1_bytes[4],
+        f1_bytes[5],
+        f1_bytes[6],
+        f1_bytes[7],
+        f2_bytes[0],
+        f2_bytes[1],
+        f2_bytes[2],
+        f2_bytes[3],
+        f2_bytes[4],
+        f2_bytes[5],
+        f2_bytes[6],
+        f2_bytes[7],
     ])
 }
 
