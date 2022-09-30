@@ -680,6 +680,26 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I8x16GeU => i8x16_rel(rt, |i1, i2| i1 >= i2)?,
 
+        SimdInstruction::I16x8Eq => i16x8_rel(rt, |i1, i2| i1 == i2)?,
+
+        SimdInstruction::I16x8Ne => i16x8_rel(rt, |i1, i2| i1 != i2)?,
+
+        SimdInstruction::I16x8LtS => i16x8_rel(rt, |i1, i2| i1 < i2)?,
+
+        SimdInstruction::I16x8LtU => i16x8_rel(rt, |i1, i2| (i1 as u16) < (i2 as u16))?,
+
+        SimdInstruction::I16x8LeS => i16x8_rel(rt, |i1, i2| i1 <= i2)?,
+
+        SimdInstruction::I16x8LeU => i16x8_rel(rt, |i1, i2| (i1 as u16) <= (i2 as u16))?,
+
+        SimdInstruction::I16x8GtS => i16x8_rel(rt, |i1, i2| i1 > i2)?,
+
+        SimdInstruction::I16x8GtU => i16x8_rel(rt, |i1, i2| (i1 as u16) > (i2 as u16))?,
+
+        SimdInstruction::I16x8GeS => i16x8_rel(rt, |i1, i2| i1 >= i2)?,
+
+        SimdInstruction::I16x8GeU => i16x8_rel(rt, |i1, i2| (i1 as u16) >= (i2 as u16))?,
+
         SimdInstruction::I32x4Eq => i32x4_rel(rt, |i1, i2| i1 == i2)?,
 
         SimdInstruction::I32x4Ne => i32x4_rel(rt, |i1, i2| i1 != i2)?,
@@ -840,7 +860,7 @@ where
     rt.stack.push_i128(i128::from_le_bytes(ret))
 }
 
-fn i16x2_rel<F>(rt: &mut Runtime, rel: F) -> Result<()>
+fn i16x8_rel<F>(rt: &mut Runtime, rel: F) -> Result<()>
 where
     F: Fn(i16, i16) -> bool,
 {
