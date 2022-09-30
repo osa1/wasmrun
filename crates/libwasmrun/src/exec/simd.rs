@@ -613,6 +613,61 @@ pub fn exec_simd_instr(
             f64x2_lanewise_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
         }
 
+        SimdInstruction::I8x16Splat => {
+            let i = rt.stack.pop_i32()? as u8;
+            rt.stack.push_i128(i128::from_le_bytes([i; 16]))?
+        }
+
+        SimdInstruction::I16x8Splat => {
+            let i = rt.stack.pop_i32()? as u16;
+            let mut bytes = Vec::with_capacity(16);
+            for _ in 0..8 {
+                bytes.extend_from_slice(&i.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(bytes.try_into().unwrap()))?
+        }
+
+        SimdInstruction::I32x4Splat => {
+            let i = rt.stack.pop_i32()?;
+            let mut bytes = Vec::with_capacity(16);
+            for _ in 0..4 {
+                bytes.extend_from_slice(&i.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(bytes.try_into().unwrap()))?
+        }
+
+        SimdInstruction::F32x4Splat => {
+            let i = rt.stack.pop_f32()?;
+            let mut bytes = Vec::with_capacity(16);
+            for _ in 0..4 {
+                bytes.extend_from_slice(&i.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(bytes.try_into().unwrap()))?
+        }
+
+        SimdInstruction::I64x2Splat => {
+            let i = rt.stack.pop_i64()?;
+            let mut bytes = Vec::with_capacity(16);
+            for _ in 0..2 {
+                bytes.extend_from_slice(&i.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(bytes.try_into().unwrap()))?
+        }
+
+        SimdInstruction::F64x2Splat => {
+            let i = rt.stack.pop_f64()?;
+            let mut bytes = Vec::with_capacity(16);
+            for _ in 0..2 {
+                bytes.extend_from_slice(&i.to_le_bytes());
+            }
+            rt.stack
+                .push_i128(i128::from_le_bytes(bytes.try_into().unwrap()))?
+        }
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
