@@ -585,6 +585,18 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I32x4GeU => i32x4_rel(rt, |i1, i2| (i1 as u32) >= (i2 as u32))?,
 
+        SimdInstruction::I64x2Eq => i64x2_rel(rt, |i1, i2| i1 == i2)?,
+
+        SimdInstruction::I64x2Ne => i64x2_rel(rt, |i1, i2| i1 != i2)?,
+
+        SimdInstruction::I64x2LtS => i64x2_rel(rt, |i1, i2| i1 < i2)?,
+
+        SimdInstruction::I64x2LeS => i64x2_rel(rt, |i1, i2| i1 <= i2)?,
+
+        SimdInstruction::I64x2GtS => i64x2_rel(rt, |i1, i2| i1 > i2)?,
+
+        SimdInstruction::I64x2GeS => i64x2_rel(rt, |i1, i2| i1 >= i2)?,
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
@@ -612,6 +624,23 @@ where
         };
     }
     rt.stack.push_i128(i32x4_to_vec(ret))
+}
+
+fn i64x2_rel<F>(rt: &mut Runtime, rel: F) -> Result<()>
+where
+    F: Fn(i64, i64) -> bool,
+{
+    let v2 = vec_to_i64x2(rt.stack.pop_i128()?);
+    let v1 = vec_to_i64x2(rt.stack.pop_i128()?);
+    let mut ret = [0i64; 2];
+    for i in 0..2 {
+        ret[i] = if rel(v1[i], v2[i]) {
+            0xFFFFFFFFFFFFFFFFu64 as i64
+        } else {
+            0i64
+        };
+    }
+    rt.stack.push_i128(i64x2_to_vec(ret))
 }
 
 fn vec_to_f32x4(v: i128) -> [f32; 4] {
