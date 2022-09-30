@@ -304,36 +304,11 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(res))?;
         }
 
-        SimdInstruction::F32x4Mul => {
-            let v2 = rt.stack.pop_i128()?;
-            let v1 = rt.stack.pop_i128()?;
-            let fs2 = vec_to_f32x4(v2);
-            let mut fs1 = vec_to_f32x4(v1);
-            for i in 0..4 {
-                fs1[i] *= fs2[i];
-            }
-            rt.stack.push_i128(f32x4_to_vec(fs1))?;
-        }
+        SimdInstruction::F32x4Mul => f32x4_lanewise_zip_map(rt, |f1, f2| f1 * f2)?,
 
-        SimdInstruction::F32x4Abs => {
-            let v = rt.stack.pop_i128()?;
-            let mut fs = vec_to_f32x4(v);
-            for i in 0..4 {
-                fs[i] = fs[i].abs();
-            }
-            rt.stack.push_i128(f32x4_to_vec(fs))?;
-        }
+        SimdInstruction::F32x4Abs => f32x4_lanewise_map(rt, f32::abs)?,
 
-        SimdInstruction::F32x4Min => {
-            let v2 = rt.stack.pop_i128()?;
-            let v1 = rt.stack.pop_i128()?;
-            let fs2 = vec_to_f32x4(v2);
-            let mut fs1 = vec_to_f32x4(v1);
-            for i in 0..4 {
-                fs1[i] = fs1[i].min(fs2[i]);
-            }
-            rt.stack.push_i128(f32x4_to_vec(fs1))?;
-        }
+        SimdInstruction::F64x2Abs => f64x2_lanewise_map(rt, f64::abs)?,
 
         SimdInstruction::I32x4TruncSatF32x4S => {
             let v = rt.stack.pop_i128()?;
@@ -610,20 +585,28 @@ pub fn exec_simd_instr(
         SimdInstruction::F64x2Ge => f64x2_rel(rt, |i1, i2| i1 >= i2)?,
 
         SimdInstruction::F32x4PMax => {
-            f32x4_lanewise_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
+            f32x4_lanewise_zip_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
         }
+
+        SimdInstruction::F32x4Max => f32x4_lanewise_zip_map(rt, super::f32_max)?,
 
         SimdInstruction::F32x4PMin => {
-            f32x4_lanewise_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
+            f32x4_lanewise_zip_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
         }
+
+        SimdInstruction::F32x4Min => f32x4_lanewise_zip_map(rt, super::f32_min)?,
 
         SimdInstruction::F64x2PMax => {
-            f64x2_lanewise_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
+            f64x2_lanewise_zip_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
         }
 
+        SimdInstruction::F64x2Max => f64x2_lanewise_zip_map(rt, super::f64_max)?,
+
         SimdInstruction::F64x2PMin => {
-            f64x2_lanewise_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
+            f64x2_lanewise_zip_map(rt, |f1, f2| if f2 < f1 { f2 } else { f1 })?
         }
+
+        SimdInstruction::F64x2Min => f64x2_lanewise_zip_map(rt, super::f64_min)?,
 
         SimdInstruction::I8x16Splat => {
             let i = rt.stack.pop_i32()? as u8;
@@ -743,7 +726,7 @@ where
     rt.stack.push_i128(f64x2_to_vec(ret))
 }
 
-fn f32x4_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+fn f32x4_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
 where
     F: Fn(f32, f32) -> f32,
 {
@@ -756,7 +739,18 @@ where
     rt.stack.push_i128(f32x4_to_vec(ret))
 }
 
-fn f64x2_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+fn f32x4_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(f32) -> f32,
+{
+    let mut v = vec_to_f32x4(rt.stack.pop_i128()?);
+    for i in 0..4 {
+        v[i] = f(v[i]);
+    }
+    rt.stack.push_i128(f32x4_to_vec(v))
+}
+
+fn f64x2_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
 where
     F: Fn(f64, f64) -> f64,
 {
@@ -767,6 +761,17 @@ where
         ret[i] = f(v1[i], v2[i]);
     }
     rt.stack.push_i128(f64x2_to_vec(ret))
+}
+
+fn f64x2_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(f64) -> f64,
+{
+    let mut v = vec_to_f64x2(rt.stack.pop_i128()?);
+    for i in 0..2 {
+        v[i] = f(v[i]);
+    }
+    rt.stack.push_i128(f64x2_to_vec(v))
 }
 
 fn vec_to_f32x4(v: i128) -> [f32; 4] {

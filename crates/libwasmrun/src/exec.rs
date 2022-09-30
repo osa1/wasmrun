@@ -1653,17 +1653,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Max => {
-            op2::<f32, f32, _>(rt, |a, b| {
-                if a == b {
-                    f32::from_bits(a.to_bits() & b.to_bits())
-                } else if a > b {
-                    a
-                } else if a < b {
-                    b
-                } else {
-                    value::canonical_f32_nan()
-                }
-            })?;
+            op2::<f32, f32, _>(rt, f32_max)?;
 
             // let max x y =
             //   let xf = to_float x in
@@ -1676,31 +1666,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64Max => {
-            op2::<f64, f64, _>(rt, |a, b| {
-                if a == b {
-                    f64::from_bits(a.to_bits() & b.to_bits())
-                } else if a > b {
-                    a
-                } else if a < b {
-                    b
-                } else {
-                    value::canonical_f64_nan()
-                }
-            })?;
+            op2::<f64, f64, _>(rt, f64_max)?;
         }
 
         Instruction::F32Min => {
-            op2::<f32, f32, _>(rt, |a, b| {
-                if a == b {
-                    f32::from_bits(a.to_bits() | b.to_bits())
-                } else if a < b {
-                    a
-                } else if a > b {
-                    b
-                } else {
-                    value::canonical_f32_nan()
-                }
-            })?;
+            op2::<f32, f32, _>(rt, f32_min)?;
 
             //   let min x y =
             //     let xf = to_float x in
@@ -1713,17 +1683,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F64Min => {
-            op2::<f64, f64, _>(rt, |a, b| {
-                if a == b {
-                    f64::from_bits(a.to_bits() | b.to_bits())
-                } else if a < b {
-                    a
-                } else if a > b {
-                    b
-                } else {
-                    value::canonical_f64_nan()
-                }
-            })?;
+            op2::<f64, f64, _>(rt, f64_min)?;
         }
 
         Instruction::F32Neg => {
@@ -2846,6 +2806,54 @@ fn f32_convert_u_i32(i: i32) -> f32 {
     } else {
         let i = i as u32;
         ((i >> 1) | (i & 0b1)) as f32 * 2f32
+    }
+}
+
+fn f32_max(a: f32, b: f32) -> f32 {
+    if a == b {
+        f32::from_bits(a.to_bits() & b.to_bits())
+    } else if a > b {
+        a
+    } else if a < b {
+        b
+    } else {
+        value::canonical_f32_nan()
+    }
+}
+
+fn f32_min(a: f32, b: f32) -> f32 {
+    if a == b {
+        f32::from_bits(a.to_bits() | b.to_bits())
+    } else if a < b {
+        a
+    } else if a > b {
+        b
+    } else {
+        value::canonical_f32_nan()
+    }
+}
+
+fn f64_max(a: f64, b: f64) -> f64 {
+    if a == b {
+        f64::from_bits(a.to_bits() & b.to_bits())
+    } else if a > b {
+        a
+    } else if a < b {
+        b
+    } else {
+        value::canonical_f64_nan()
+    }
+}
+
+fn f64_min(a: f64, b: f64) -> f64 {
+    if a == b {
+        f64::from_bits(a.to_bits() | b.to_bits())
+    } else if a < b {
+        a
+    } else if a > b {
+        b
+    } else {
+        value::canonical_f64_nan()
     }
 }
 
