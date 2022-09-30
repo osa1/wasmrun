@@ -565,6 +565,26 @@ pub fn exec_simd_instr(
             rt.stack.push_i64(i)?;
         }
 
+        SimdInstruction::I32x4Eq => i32x4_rel(rt, |i1, i2| i1 == i2)?,
+
+        SimdInstruction::I32x4Ne => i32x4_rel(rt, |i1, i2| i1 != i2)?,
+
+        SimdInstruction::I32x4LtS => i32x4_rel(rt, |i1, i2| i1 < i2)?,
+
+        SimdInstruction::I32x4LtU => i32x4_rel(rt, |i1, i2| (i1 as u32) < (i2 as u32))?,
+
+        SimdInstruction::I32x4LeS => i32x4_rel(rt, |i1, i2| i1 <= i2)?,
+
+        SimdInstruction::I32x4LeU => i32x4_rel(rt, |i1, i2| (i1 as u32) <= (i2 as u32))?,
+
+        SimdInstruction::I32x4GtS => i32x4_rel(rt, |i1, i2| i1 > i2)?,
+
+        SimdInstruction::I32x4GtU => i32x4_rel(rt, |i1, i2| (i1 as u32) > (i2 as u32))?,
+
+        SimdInstruction::I32x4GeS => i32x4_rel(rt, |i1, i2| i1 >= i2)?,
+
+        SimdInstruction::I32x4GeU => i32x4_rel(rt, |i1, i2| (i1 as u32) >= (i2 as u32))?,
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
@@ -575,6 +595,23 @@ pub fn exec_simd_instr(
 
     rt.ip += 1;
     Ok(())
+}
+
+fn i32x4_rel<F>(rt: &mut Runtime, rel: F) -> Result<()>
+where
+    F: Fn(i32, i32) -> bool,
+{
+    let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
+    let v1 = vec_to_i32x4(rt.stack.pop_i128()?);
+    let mut ret = [0i32; 4];
+    for i in 0..4 {
+        ret[i] = if rel(v1[i], v2[i]) {
+            0xFFFFFFFFu32 as i32
+        } else {
+            0i32
+        };
+    }
+    rt.stack.push_i128(i32x4_to_vec(ret))
 }
 
 fn vec_to_f32x4(v: i128) -> [f32; 4] {
