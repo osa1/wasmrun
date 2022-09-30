@@ -297,7 +297,7 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I8x16Neg => i8x16_lanewise_map(rt, |i| ((i as i8).wrapping_neg()) as u8)?,
 
-        SimdInstruction::I16x8Neg => i16x8_lanewise_map(rt, |i| -i)?,
+        SimdInstruction::I16x8Neg => i16x8_lanewise_map(rt, |i| i.wrapping_neg())?,
 
         SimdInstruction::F32x4Mul => {
             f32x4_lanewise_zip_map(rt, |f1, f2| canonicalize_f32_nan(f1 * f2))?
@@ -368,6 +368,15 @@ pub fn exec_simd_instr(
                 }
             }
             rt.stack.push_i128(i128::from_le_bytes(res))?;
+        }
+
+        SimdInstruction::I16x8Add => {
+            let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
+            let mut v1 = vec_to_i32x4(rt.stack.pop_i128()?);
+            for i in 0..4 {
+                v1[i] = v1[i].wrapping_add(v2[i]);
+            }
+            rt.stack.push_i128(i32x4_to_vec(v1))?;
         }
 
         SimdInstruction::I32x4Add => {
@@ -835,6 +844,22 @@ pub fn exec_simd_instr(
                 .push_i128(i128::from_le_bytes(bytes.try_into().unwrap()))?
         }
 
+        SimdInstruction::F32x4Ceil => f32x4_lanewise_map(rt, |f| canonicalize_f32_nan(f.ceil()))?,
+
+        SimdInstruction::F32x4Floor => f32x4_lanewise_map(rt, |f| canonicalize_f32_nan(f.floor()))?,
+
+        SimdInstruction::F32x4Trunc => f32x4_lanewise_map(rt, |f| canonicalize_f32_nan(f.trunc()))?,
+
+        SimdInstruction::F32x4Nearest => f32x4_lanewise_map(rt, super::f32_nearest)?,
+
+        SimdInstruction::F64x2Ceil => f64x2_lanewise_map(rt, |f| canonicalize_f64_nan(f.ceil()))?,
+
+        SimdInstruction::F64x2Floor => f64x2_lanewise_map(rt, |f| canonicalize_f64_nan(f.floor()))?,
+
+        SimdInstruction::F64x2Trunc => f64x2_lanewise_map(rt, |f| canonicalize_f64_nan(f.trunc()))?,
+
+        SimdInstruction::F64x2Nearest => f64x2_lanewise_map(rt, super::f64_nearest)?,
+
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
@@ -965,6 +990,17 @@ where
         v[i] = f(v[i]);
     }
     rt.stack.push_i128(i16x8_to_vec(v))
+}
+
+fn i32x4_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(i32) -> i32,
+{
+    let mut v = vec_to_i32x4(rt.stack.pop_i128()?);
+    for i in 0..4 {
+        v[i] = f(v[i]);
+    }
+    rt.stack.push_i128(i32x4_to_vec(v))
 }
 
 fn f32x4_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>

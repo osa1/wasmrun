@@ -1763,35 +1763,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Nearest => {
-            op1::<f32, f32, _>(rt, |f|
-                // NB. I don't understand this code, ported from reference interpreter
-                if f == 0.0f32 {
-                    f // preserve sign
-                } else {
-                    let u = f.ceil();
-                    let d = f.floor();
-                    let um = (f - u).abs();
-                    let ud = (f - d).abs();
-                    let u_or_d = um < ud || (um == ud && (u / 2f32).floor() == u / 2f32);
-                    let f = if u_or_d { u } else { d };
-                    value::canonicalize_f32_nan(f)
-                })?;
+            op1::<f32, f32, _>(rt, f32_nearest)?;
         }
 
         Instruction::F64Nearest => {
-            op1::<f64, f64, _>(rt, |f|
-                // NB. I don't understand this code, ported from reference interpreter
-                if f == 0.0f64 {
-                    f // preserve sign
-                } else {
-                    let u = f.ceil();
-                    let d = f.floor();
-                    let um = (f - u).abs();
-                    let ud = (f - d).abs();
-                    let u_or_d = um < ud || (um == ud && (u / 2f64).floor() == u / 2f64);
-                    let f = if u_or_d { u } else { d };
-                    value::canonicalize_f64_nan(f)
-                })?;
+            op1::<f64, f64, _>(rt, f64_nearest)?;
         }
 
         Instruction::F32Copysign => {
@@ -2854,6 +2830,36 @@ fn f64_min(a: f64, b: f64) -> f64 {
         b
     } else {
         value::canonical_f64_nan()
+    }
+}
+
+fn f32_nearest(f: f32) -> f32 {
+    // NB. I don't understand this code, ported from reference interpreter
+    if f == 0.0f32 {
+        f // preserve sign
+    } else {
+        let u = f.ceil();
+        let d = f.floor();
+        let um = (f - u).abs();
+        let ud = (f - d).abs();
+        let u_or_d = um < ud || (um == ud && (u / 2f32).floor() == u / 2f32);
+        let f = if u_or_d { u } else { d };
+        value::canonicalize_f32_nan(f)
+    }
+}
+
+fn f64_nearest(f: f64) -> f64 {
+    // NB. I don't understand this code, ported from reference interpreter
+    if f == 0.0f64 {
+        f // preserve sign
+    } else {
+        let u = f.ceil();
+        let d = f.floor();
+        let um = (f - u).abs();
+        let ud = (f - d).abs();
+        let u_or_d = um < ud || (um == ud && (u / 2f64).floor() == u / 2f64);
+        let f = if u_or_d { u } else { d };
+        value::canonicalize_f64_nan(f)
     }
 }
 
