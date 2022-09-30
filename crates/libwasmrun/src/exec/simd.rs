@@ -597,6 +597,18 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I64x2GeS => i64x2_rel(rt, |i1, i2| i1 >= i2)?,
 
+        SimdInstruction::F64x2Eq => f64x2_rel(rt, |i1, i2| i1 == i2)?,
+
+        SimdInstruction::F64x2Ne => f64x2_rel(rt, |i1, i2| i1 != i2)?,
+
+        SimdInstruction::F64x2Lt => f64x2_rel(rt, |i1, i2| i1 < i2)?,
+
+        SimdInstruction::F64x2Le => f64x2_rel(rt, |i1, i2| i1 <= i2)?,
+
+        SimdInstruction::F64x2Gt => f64x2_rel(rt, |i1, i2| i1 > i2)?,
+
+        SimdInstruction::F64x2Ge => f64x2_rel(rt, |i1, i2| i1 >= i2)?,
+
         SimdInstruction::F32x4PMax => {
             f32x4_lanewise_map(rt, |f1, f2| if f1 < f2 { f2 } else { f1 })?
         }
@@ -712,6 +724,23 @@ where
         };
     }
     rt.stack.push_i128(i64x2_to_vec(ret))
+}
+
+fn f64x2_rel<F>(rt: &mut Runtime, rel: F) -> Result<()>
+where
+    F: Fn(f64, f64) -> bool,
+{
+    let v2 = vec_to_f64x2(rt.stack.pop_i128()?);
+    let v1 = vec_to_f64x2(rt.stack.pop_i128()?);
+    let mut ret = [0f64; 2];
+    for i in 0..2 {
+        ret[i] = if rel(v1[i], v2[i]) {
+            f64::from_le_bytes([0xFF; 8])
+        } else {
+            0f64
+        };
+    }
+    rt.stack.push_i128(f64x2_to_vec(ret))
 }
 
 fn f32x4_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
