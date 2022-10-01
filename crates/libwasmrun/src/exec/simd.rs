@@ -6,6 +6,7 @@ use crate::Runtime;
 use libwasmrun_syntax::{MemArg, SimdInstruction};
 
 use std::convert::TryInto;
+use std::ops::Neg;
 
 // Informal specification of SIMD insturctions:
 // https://github.com/WebAssembly/simd/blob/main/proposals/simd/SIMD.md
@@ -381,7 +382,7 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I8x16ExtractLaneS(lane_idx) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
-            rt.stack.push_i32(vec[usize::from(lane_idx)] as i32)?;
+            rt.stack.push_i32(vec[usize::from(lane_idx)] as i8 as i32)?;
         }
 
         SimdInstruction::I8x16ExtractLaneU(lane_idx) => {
@@ -527,7 +528,7 @@ pub fn exec_simd_instr(
             f64x2_lanewise_zip_map(rt, |f1, f2| canonicalize_f64_nan(f1 / f2))?
         }
 
-        SimdInstruction::F64x2Neg => f64x2_lanewise_map(rt, |f| -f)?,
+        SimdInstruction::F64x2Neg => f64x2_lanewise_map(rt, f64::neg)?,
 
         SimdInstruction::F64x2Sqrt => f64x2_lanewise_map(rt, |f| canonicalize_f64_nan(f.sqrt()))?,
 
@@ -1004,12 +1005,12 @@ pub fn exec_simd_instr(
         SimdInstruction::F64x2Min => f64x2_lanewise_zip_map(rt, super::f64_min)?,
 
         SimdInstruction::I8x16Splat => {
-            let i = rt.stack.pop_i32()? as u8;
+            let i = rt.stack.pop_i32()? as i8 as u8;
             rt.stack.push_i128(i128::from_le_bytes([i; 16]))?
         }
 
         SimdInstruction::I16x8Splat => {
-            let i = rt.stack.pop_i32()? as u16;
+            let i = rt.stack.pop_i32()? as i16;
             let mut bytes = Vec::with_capacity(16);
             for _ in 0..8 {
                 bytes.extend_from_slice(&i.to_le_bytes());
@@ -1564,14 +1565,20 @@ pub fn exec_simd_instr(
 
         SimdInstruction::F32x4DemoteF64x2Zero => {
             let v = vec_to_f64x2(rt.stack.pop_i128()?);
-            rt.stack
-                .push_i128(f32x4_to_vec([v[0] as f32, v[1] as f32, 0f32, 0f32]))?
+            rt.stack.push_i128(f32x4_to_vec([
+                canonicalize_f32_nan(v[0] as f32),
+                canonicalize_f32_nan(v[1] as f32),
+                0f32,
+                0f32,
+            ]))?
         }
 
         SimdInstruction::F64x2PromoteLowF32x4 => {
             let v = vec_to_f32x4(rt.stack.pop_i128()?);
-            rt.stack
-                .push_i128(f64x2_to_vec([v[0] as f64, v[1] as f64]))?
+            rt.stack.push_i128(f64x2_to_vec([
+                canonicalize_f64_nan(v[0] as f64),
+                canonicalize_f64_nan(v[1] as f64),
+            ]))?
         }
     }
 
