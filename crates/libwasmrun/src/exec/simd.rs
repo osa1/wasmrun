@@ -1414,7 +1414,19 @@ pub fn exec_simd_instr(
         }
 
         SimdInstruction::I16x8Q15MulrSatS => i16x8_lanewise_zip_map(rt, |i1, i2| {
-            (i1.saturating_add(i2).saturating_add(0x4000)) >> 15
+            // let q15mulr_sat_s x y =
+            //   (* mul x64 y64 can overflow int64 when both are int32 min, but this is only
+            //    * used by i16x8, so we are fine for now. *)
+            //   assert (Rep.bitwidth < 32);
+            //   let x64 = Rep.to_int64 x in
+            //   let y64 = Rep.to_int64 y in
+            //   saturate_s (Rep.of_int64 Int64.((shift_right (add (mul x64 y64) 0x4000L) 15)))
+
+            fn sat(i: i32) -> i16 {
+                i.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
+            }
+
+            sat((i32::from(i1) * i32::from(i2) + 0x4000) >> 15)
         })?,
 
         SimdInstruction::I16x8ExtmulLowI8x16S => {
