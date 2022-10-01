@@ -398,6 +398,24 @@ pub fn exec_simd_instr(
             rt.stack.push_i32(if res { 1 } else { 0 })?;
         }
 
+        SimdInstruction::I16x8AllTrue => {
+            let v = vec_to_i16x8(rt.stack.pop_i128()?);
+            let res = v.iter().all(|b| *b != 0);
+            rt.stack.push_i32(if res { 1 } else { 0 })?;
+        }
+
+        SimdInstruction::I32x4AllTrue => {
+            let v = vec_to_i32x4(rt.stack.pop_i128()?);
+            let res = v.iter().all(|b| *b != 0);
+            rt.stack.push_i32(if res { 1 } else { 0 })?;
+        }
+
+        SimdInstruction::I64x2AllTrue => {
+            let v = vec_to_i64x2(rt.stack.pop_i128()?);
+            let res = v.iter().all(|b| *b != 0);
+            rt.stack.push_i32(if res { 1 } else { 0 })?;
+        }
+
         SimdInstruction::V128Bitselect => {
             let c = rt.stack.pop_i128()? as u128;
             let v2 = rt.stack.pop_i128()? as u128;
@@ -527,13 +545,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i32x4_to_vec(v1))?;
         }
 
-        SimdInstruction::I64x2Add => {
-            let v2 = vec_to_i64x2(rt.stack.pop_i128()?);
-            let mut v1 = vec_to_i64x2(rt.stack.pop_i128()?);
-            v1[0] = v1[0].wrapping_add(v2[0]);
-            v1[1] = v1[1].wrapping_add(v2[1]);
-            rt.stack.push_i128(i64x2_to_vec(v1))?;
-        }
+        SimdInstruction::I64x2Mul => i64x2_lanewise_zip_map(rt, |i1, i2| i1.wrapping_mul(i2))?,
+
+        SimdInstruction::I64x2Abs => i64x2_lanewise_map(rt, i64::abs)?,
+
+        SimdInstruction::I64x2Neg => i64x2_lanewise_map(rt, i64::wrapping_neg)?,
+
+        SimdInstruction::I64x2Sub => i64x2_lanewise_zip_map(rt, |i1, i2| i1.wrapping_sub(i2))?,
+
+        SimdInstruction::I64x2Add => i64x2_lanewise_zip_map(rt, |i1, i2| i1.wrapping_add(i2))?,
 
         SimdInstruction::I16x8ExtendHighI8x16S => {
             let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
@@ -578,6 +598,12 @@ pub fn exec_simd_instr(
             rt.stack
                 .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
         }
+
+        SimdInstruction::I32x4Mul => i32x4_lanewise_zip_map(rt, |i1, i2| i1.wrapping_mul(i2))?,
+
+        SimdInstruction::I32x4Sub => i32x4_lanewise_zip_map(rt, |i1, i2| i1.wrapping_sub(i2))?,
+
+        SimdInstruction::I32x4Abs => i32x4_lanewise_map(rt, i32::abs)?,
 
         SimdInstruction::I32x4ExtendHighI16x8S => {
             let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
@@ -999,6 +1025,88 @@ pub fn exec_simd_instr(
 
         SimdInstruction::F64x2Nearest => f64x2_lanewise_map(rt, super::f64_nearest)?,
 
+        SimdInstruction::I16x8Shl => {
+            let shift = (rt.stack.pop_i32()? % 16) as u32;
+            let v = vec_to_i16x8(rt.stack.pop_i128()?).map(|i| i.wrapping_shl(shift));
+            rt.stack.push_i128(i16x8_to_vec(v))?
+        }
+
+        SimdInstruction::I32x4Shl => {
+            let shift = (rt.stack.pop_i32()? % 32) as u32;
+            let v = vec_to_i32x4(rt.stack.pop_i128()?).map(|i| i.wrapping_shl(shift));
+            rt.stack.push_i128(i32x4_to_vec(v))?
+        }
+
+        SimdInstruction::I64x2Shl => {
+            let shift = (rt.stack.pop_i32()? % 64) as u32;
+            let v = vec_to_i64x2(rt.stack.pop_i128()?).map(|i| i.wrapping_shl(shift));
+            rt.stack.push_i128(i64x2_to_vec(v))?
+        }
+
+        SimdInstruction::I8x16ShrS => {
+            let shift = (rt.stack.pop_i32()? % 8) as u32;
+            let v = rt
+                .stack
+                .pop_i128()?
+                .to_le_bytes()
+                .map(|i| (i as i8).wrapping_shr(shift) as u8);
+            rt.stack.push_i128(i128::from_le_bytes(v))?
+        }
+
+        SimdInstruction::I8x16ShrU => {
+            let shift = (rt.stack.pop_i32()? % 8) as u32;
+            let v = rt
+                .stack
+                .pop_i128()?
+                .to_le_bytes()
+                .map(|i| i.wrapping_shr(shift));
+            rt.stack.push_i128(i128::from_le_bytes(v))?
+        }
+
+        SimdInstruction::I16x8ShrS => {
+            let shift = (rt.stack.pop_i32()? % 16) as u32;
+            let v = vec_to_i16x8(rt.stack.pop_i128()?).map(|i| i.wrapping_shr(shift));
+            rt.stack.push_i128(i16x8_to_vec(v))?
+        }
+
+        SimdInstruction::I16x8ShrU => {
+            let shift = (rt.stack.pop_i32()? % 16) as u32;
+            let v =
+                vec_to_i16x8(rt.stack.pop_i128()?).map(|i| (i as u16).wrapping_shr(shift) as i16);
+            rt.stack.push_i128(i16x8_to_vec(v))?
+        }
+
+        SimdInstruction::I32x4ShrS => {
+            let shift = (rt.stack.pop_i32()? % 32) as u32;
+            let v = vec_to_i32x4(rt.stack.pop_i128()?).map(|i| i.wrapping_shr(shift));
+            rt.stack.push_i128(i32x4_to_vec(v))?
+        }
+
+        SimdInstruction::I32x4ShrU => {
+            let shift = (rt.stack.pop_i32()? % 32) as u32;
+            let v =
+                vec_to_i32x4(rt.stack.pop_i128()?).map(|i| (i as u32).wrapping_shr(shift) as i32);
+            rt.stack.push_i128(i32x4_to_vec(v))?
+        }
+
+        SimdInstruction::I64x2ShrS => {
+            let shift = (rt.stack.pop_i32()? % 64) as u32;
+            let v = vec_to_i64x2(rt.stack.pop_i128()?).map(|i| i.wrapping_shr(shift));
+            rt.stack.push_i128(i64x2_to_vec(v))?
+        }
+
+        SimdInstruction::I64x2ShrU => {
+            let shift = (rt.stack.pop_i32()? % 64) as u32;
+            let v =
+                vec_to_i64x2(rt.stack.pop_i128()?).map(|i| (i as u64).wrapping_shr(shift) as i64);
+            rt.stack.push_i128(i64x2_to_vec(v))?
+        }
+
+        // SimdInstruction::I32x4MinS => todo!(),
+        // SimdInstruction::I32x4MinU => todo!(),
+        // SimdInstruction::I32x4MaxS => todo!(),
+        // SimdInstruction::I32x4MaxU => todo!(),
+
         // SimdInstruction::I8x16Shuffle(_) => todo!(),
         // SimdInstruction::I8x16ExtractLaneU(_) => todo!(),
         // SimdInstruction::I16x8ExtractLaneS(_) => todo!(),
@@ -1012,8 +1120,6 @@ pub fn exec_simd_instr(
         // SimdInstruction::I8x16Bitmask => todo!(),
         // SimdInstruction::I8x16NarrowI16x8S => todo!(),
         // SimdInstruction::I8x16NarrowI16x8U => todo!(),
-        // SimdInstruction::I8x16ShrS => todo!(),
-        // SimdInstruction::I8x16ShrU => todo!(),
         // SimdInstruction::I8x16AddSatS => todo!(),
         // SimdInstruction::I8x16AddSatU => todo!(),
         // SimdInstruction::I8x16SubSatS => todo!(),
@@ -1027,13 +1133,9 @@ pub fn exec_simd_instr(
         // SimdInstruction::I16x8ExtaddPairwiseI8x16U => todo!(),
         // SimdInstruction::I16x8Abs => todo!(),
         // SimdInstruction::I16x8Q15MulrSatS => todo!(),
-        // SimdInstruction::I16x8AllTrue => todo!(),
         // SimdInstruction::I16x8Bitmask => todo!(),
         // SimdInstruction::I16x8NarrowI32x4S => todo!(),
         // SimdInstruction::I16x8NarrowI32x4U => todo!(),
-        // SimdInstruction::I16x8Shl => todo!(),
-        // SimdInstruction::I16x8ShrS => todo!(),
-        // SimdInstruction::I16x8ShrU => todo!(),
         // SimdInstruction::I16x8AddSatS => todo!(),
         // SimdInstruction::I16x8AddSatU => todo!(),
         // SimdInstruction::I16x8SubSatS => todo!(),
@@ -1049,14 +1151,7 @@ pub fn exec_simd_instr(
         // SimdInstruction::I16x8ExtmulHighI8x16U => todo!(),
         // SimdInstruction::I32x4ExtaddPairwiseI16x8S => todo!(),
         // SimdInstruction::I32x4ExtaddPairwiseI16x8U => todo!(),
-        // SimdInstruction::I32x4Abs => todo!(),
-        // SimdInstruction::I32x4AllTrue => todo!(),
         // SimdInstruction::I32x4Bitmask => todo!(),
-        // SimdInstruction::I32x4Shl => todo!(),
-        // SimdInstruction::I32x4ShrS => todo!(),
-        // SimdInstruction::I32x4ShrU => todo!(),
-        // SimdInstruction::I32x4Sub => todo!(),
-        // SimdInstruction::I32x4Mul => todo!(),
         // SimdInstruction::I32x4MinS => todo!(),
         // SimdInstruction::I32x4MinU => todo!(),
         // SimdInstruction::I32x4MaxS => todo!(),
@@ -1066,15 +1161,7 @@ pub fn exec_simd_instr(
         // SimdInstruction::I32x4ExtmulHighI16x8S => todo!(),
         // SimdInstruction::I32x4ExtmulLowI16x8U => todo!(),
         // SimdInstruction::I32x4ExtmulHighI16x8U => todo!(),
-        // SimdInstruction::I64x2Abs => todo!(),
-        // SimdInstruction::I64x2Neg => todo!(),
-        // SimdInstruction::I64x2AllTrue => todo!(),
         // SimdInstruction::I64x2Bitmask => todo!(),
-        // SimdInstruction::I64x2Shl => todo!(),
-        // SimdInstruction::I64x2ShrS => todo!(),
-        // SimdInstruction::I64x2ShrU => todo!(),
-        // SimdInstruction::I64x2Sub => todo!(),
-        // SimdInstruction::I64x2Mul => todo!(),
         // SimdInstruction::I64x2ExtmulLowI32x4S => todo!(),
         // SimdInstruction::I64x2ExtmulHighI32x4S => todo!(),
         // SimdInstruction::I64x2ExtmulLowI32x4U => todo!(),
@@ -1243,6 +1330,19 @@ where
     rt.stack.push_i128(i32x4_to_vec(v))
 }
 
+fn i32x4_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(i32, i32) -> i32,
+{
+    let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
+    let v1 = vec_to_i32x4(rt.stack.pop_i128()?);
+    let mut ret = [0i32; 4];
+    for i in 0..4 {
+        ret[i] = f(v1[i], v2[i]);
+    }
+    rt.stack.push_i128(i32x4_to_vec(ret))
+}
+
 fn f32x4_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
 where
     F: Fn(f32, f32) -> f32,
@@ -1265,6 +1365,30 @@ where
         v[i] = f(v[i]);
     }
     rt.stack.push_i128(f32x4_to_vec(v))
+}
+
+fn i64x2_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(i64, i64) -> i64,
+{
+    let v2 = vec_to_i64x2(rt.stack.pop_i128()?);
+    let v1 = vec_to_i64x2(rt.stack.pop_i128()?);
+    let mut ret = [0i64; 2];
+    for i in 0..2 {
+        ret[i] = f(v1[i], v2[i]);
+    }
+    rt.stack.push_i128(i64x2_to_vec(ret))
+}
+
+fn i64x2_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(i64) -> i64,
+{
+    let mut v = vec_to_i64x2(rt.stack.pop_i128()?);
+    for i in 0..2 {
+        v[i] = f(v[i]);
+    }
+    rt.stack.push_i128(i64x2_to_vec(v))
 }
 
 fn f64x2_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
