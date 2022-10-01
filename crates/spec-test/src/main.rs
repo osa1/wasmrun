@@ -52,8 +52,13 @@ fn run_dir(dir_path: &str) {
 
     let fails = run_spec_dir(&dir_files, &mut out);
     let ret = if fails.is_empty() { 0 } else { 1 };
-    for (file, lines) in fails.into_iter() {
+    let mut total_fails = 0;
+    for (file, lines) in fails.iter() {
         writeln!(&mut out, "{}: {:?}", file.to_string_lossy(), lines).unwrap();
+        total_fails += lines.len();
+    }
+    if total_fails != 0 {
+        writeln!(&mut out, "Total fails: {}", total_fails).unwrap();
     }
     exit(ret)
 }

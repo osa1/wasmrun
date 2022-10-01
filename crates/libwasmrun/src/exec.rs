@@ -2143,17 +2143,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32TruncSatUF32 => {
-            op1::<f32, i32, _>(rt, |f| {
-                if f.is_nan() {
-                    0
-                } else if f <= -1.0 {
-                    0
-                } else if f >= -(i32::MIN as f32) * 2.0f32 {
-                    -1
-                } else {
-                    (f as i64) as i32
-                }
-            })?;
+            op1::<f32, i32, _>(rt, i32_trunc_sat_u_f32)?;
 
             // let trunc_sat_f32_u x =
             //   if F32.ne x x then
@@ -2773,6 +2763,18 @@ fn i32_trunc_sat_s_f32(f: f32) -> i32 {
         i32::MAX
     } else {
         f as i32
+    }
+}
+
+fn i32_trunc_sat_u_f32(f: f32) -> i32 {
+    if f.is_nan() {
+        0
+    } else if f <= -1.0 {
+        0
+    } else if f >= -(i32::MIN as f32) * 2.0f32 {
+        -1
+    } else {
+        (f as i64) as i32
     }
 }
 
