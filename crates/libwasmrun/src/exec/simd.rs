@@ -399,7 +399,7 @@ pub fn exec_simd_instr(
         SimdInstruction::I16x8ExtractLaneU(lane_idx) => {
             let vec = vec_to_i16x8(rt.stack.pop_i128()?);
             rt.stack
-                .push_i32((vec[usize::from(lane_idx)] as u32) as i32)?;
+                .push_i32((vec[usize::from(lane_idx)] as u16 as u32) as i32)?;
         }
 
         SimdInstruction::V128Not => {

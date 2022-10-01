@@ -1745,7 +1745,7 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         I8X16_REPLACE_LANE => I8x16ReplaceLane(Uint8::deserialize(reader)?.into()),
         I16X8_EXTRACT_LANE_S => I16x8ExtractLaneS(Uint8::deserialize(reader)?.into()),
         I16X8_EXTRACT_LANE_U => I16x8ExtractLaneU(Uint8::deserialize(reader)?.into()),
-        I16X8_REPLACE_LANE => I8x16ReplaceLane(Uint8::deserialize(reader)?.into()),
+        I16X8_REPLACE_LANE => I16x8ReplaceLane(Uint8::deserialize(reader)?.into()),
         I32X4_EXTRACT_LANE => I32x4ExtractLane(Uint8::deserialize(reader)?.into()),
         I32X4_REPLACE_LANE => I32x4ReplaceLane(Uint8::deserialize(reader)?.into()),
         I64X2_EXTRACT_LANE => I64x2ExtractLane(Uint8::deserialize(reader)?.into()),
