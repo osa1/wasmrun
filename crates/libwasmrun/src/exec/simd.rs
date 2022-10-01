@@ -384,6 +384,23 @@ pub fn exec_simd_instr(
             rt.stack.push_i32(vec[usize::from(lane_idx)] as i32)?;
         }
 
+        SimdInstruction::I8x16ExtractLaneU(lane_idx) => {
+            let vec = rt.stack.pop_i128()?.to_le_bytes();
+            rt.stack
+                .push_i32((vec[usize::from(lane_idx)] as u32) as i32)?;
+        }
+
+        SimdInstruction::I16x8ExtractLaneS(lane_idx) => {
+            let vec = vec_to_i16x8(rt.stack.pop_i128()?);
+            rt.stack.push_i32(vec[usize::from(lane_idx)] as i32)?;
+        }
+
+        SimdInstruction::I16x8ExtractLaneU(lane_idx) => {
+            let vec = vec_to_i16x8(rt.stack.pop_i128()?);
+            rt.stack
+                .push_i32((vec[usize::from(lane_idx)] as u32) as i32)?;
+        }
+
         SimdInstruction::V128Not => {
             let v = rt.stack.pop_i128()?;
             rt.stack.push_i128(!v)?;
@@ -1134,6 +1151,18 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i64x2_to_vec(v))?
         }
 
+        SimdInstruction::I8x16MinS => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| (i1 as i8).min(i2 as i8) as u8)?
+        }
+
+        SimdInstruction::I8x16MinU => i8x16_lanewise_zip_map(rt, |i1, i2| i1.min(i2))?,
+
+        SimdInstruction::I8x16MaxS => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| (i1 as i8).max(i2 as i8) as u8)?
+        }
+
+        SimdInstruction::I8x16MaxU => i8x16_lanewise_zip_map(rt, |i1, i2| i1.max(i2))?,
+
         SimdInstruction::I32x4MinS => i32x4_lanewise_zip_map(rt, |i1, i2| i1.min(i2))?,
 
         SimdInstruction::I32x4MinU => {
@@ -1158,22 +1187,44 @@ pub fn exec_simd_instr(
             i16x8_lanewise_zip_map(rt, |i1, i2| (i1 as u16).max(i2 as u16) as i16)?
         }
 
+        SimdInstruction::I8x16Popcnt => i8x16_lanewise_map(rt, |i| i.count_ones() as u8)?,
+
+        SimdInstruction::I8x16AddSatS => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| (i1 as i8).saturating_add(i2 as i8) as u8)?
+        }
+
+        SimdInstruction::I8x16AddSatU => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| i1.saturating_add(i2))?
+        }
+
+        SimdInstruction::I8x16SubSatS => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| (i1 as i8).saturating_sub(i2 as i8) as u8)?
+        }
+
+        SimdInstruction::I8x16SubSatU => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| i1.saturating_sub(i2))?
+        }
+
+        SimdInstruction::I16x8AddSatS => {
+            i16x8_lanewise_zip_map(rt, |i1, i2| i1.saturating_add(i2))?
+        }
+
+        SimdInstruction::I16x8AddSatU => {
+            i16x8_lanewise_zip_map(rt, |i1, i2| (i1 as u16).saturating_add(i2 as u16) as i16)?
+        }
+
+        SimdInstruction::I16x8SubSatS => {
+            i16x8_lanewise_zip_map(rt, |i1, i2| i1.saturating_sub(i2))?
+        }
+
+        SimdInstruction::I16x8SubSatU => {
+            i16x8_lanewise_zip_map(rt, |i1, i2| (i1 as u16).saturating_sub(i2 as u16) as i16)?
+        }
+
         // SimdInstruction::I8x16Shuffle(_) => todo!(),
-        // SimdInstruction::I8x16ExtractLaneU(_) => todo!(),
-        // SimdInstruction::I16x8ExtractLaneS(_) => todo!(),
-        // SimdInstruction::I16x8ExtractLaneU(_) => todo!(),
-        // SimdInstruction::I8x16Popcnt => todo!(),
         // SimdInstruction::I8x16Bitmask => todo!(),
         // SimdInstruction::I8x16NarrowI16x8S => todo!(),
         // SimdInstruction::I8x16NarrowI16x8U => todo!(),
-        // SimdInstruction::I8x16AddSatS => todo!(),
-        // SimdInstruction::I8x16AddSatU => todo!(),
-        // SimdInstruction::I8x16SubSatS => todo!(),
-        // SimdInstruction::I8x16SubSatU => todo!(),
-        // SimdInstruction::I8x16MinS => todo!(),
-        // SimdInstruction::I8x16MinU => todo!(),
-        // SimdInstruction::I8x16MaxS => todo!(),
-        // SimdInstruction::I8x16MaxU => todo!(),
         // SimdInstruction::I8x16AvgrU => todo!(),
         // SimdInstruction::I16x8ExtaddPairwiseI8x16S => todo!(),
         // SimdInstruction::I16x8ExtaddPairwiseI8x16U => todo!(),
@@ -1181,10 +1232,6 @@ pub fn exec_simd_instr(
         // SimdInstruction::I16x8Bitmask => todo!(),
         // SimdInstruction::I16x8NarrowI32x4S => todo!(),
         // SimdInstruction::I16x8NarrowI32x4U => todo!(),
-        // SimdInstruction::I16x8AddSatS => todo!(),
-        // SimdInstruction::I16x8AddSatU => todo!(),
-        // SimdInstruction::I16x8SubSatS => todo!(),
-        // SimdInstruction::I16x8SubSatU => todo!(),
         // SimdInstruction::I16x8AvgrU => todo!(),
         // SimdInstruction::I16x8ExtmulLowI8x16S => todo!(),
         // SimdInstruction::I16x8ExtmulHighI8x16S => todo!(),
@@ -1329,6 +1376,19 @@ where
         v[i] = f(v[i]);
     }
     rt.stack.push_i128(i128::from_le_bytes(v))
+}
+
+fn i8x16_lanewise_zip_map<F>(rt: &mut Runtime, f: F) -> Result<()>
+where
+    F: Fn(u8, u8) -> u8,
+{
+    let v2 = rt.stack.pop_i128()?.to_le_bytes();
+    let v1 = rt.stack.pop_i128()?.to_le_bytes();
+    let mut ret = [0; 16];
+    for i in 0..16 {
+        ret[i] = f(v1[i], v2[i]);
+    }
+    rt.stack.push_i128(i128::from_le_bytes(ret))
 }
 
 fn i16x8_lanewise_map<F>(rt: &mut Runtime, f: F) -> Result<()>
