@@ -1396,20 +1396,131 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i32x4_to_vec(ret))?
         }
 
-        // SimdInstruction::I16x8Q15MulrSatS => todo!(),
-        // SimdInstruction::I16x8ExtmulLowI8x16S => todo!(),
-        // SimdInstruction::I16x8ExtmulHighI8x16S => todo!(),
-        // SimdInstruction::I16x8ExtmulLowI8x16U => todo!(),
-        // SimdInstruction::I16x8ExtmulHighI8x16U => todo!(),
+        SimdInstruction::I16x8Q15MulrSatS => i16x8_lanewise_zip_map(rt, |i1, i2| {
+            (i1.saturating_add(i2).saturating_add(0x4000)) >> 15
+        })?,
+
+        SimdInstruction::I16x8ExtmulLowI8x16S => {
+            let v2 = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let v1 = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut ret = [0i16; 8];
+            for i in 0..8 {
+                ret[i] = (v1[i] as i16).wrapping_mul(v2[i] as i16);
+            }
+            rt.stack.push_i128(i16x8_to_vec(ret))?
+        }
+
+        SimdInstruction::I16x8ExtmulHighI8x16S => {
+            let v2 = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let v1 = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut ret = [0i16; 8];
+            for i in 0..8 {
+                ret[i] = (v1[i] as i16).wrapping_mul(v2[i] as i16);
+            }
+            rt.stack.push_i128(i16x8_to_vec(ret))?
+        }
+
+        SimdInstruction::I16x8ExtmulLowI8x16U => {
+            let v2 = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let v1 = &rt.stack.pop_i128()?.to_le_bytes()[..8];
+            let mut ret = [0i16; 8];
+            for i in 0..8 {
+                ret[i] = ((v1[i] as u16).wrapping_mul(v2[i] as u16)) as i16;
+            }
+            rt.stack.push_i128(i16x8_to_vec(ret))?
+        }
+
+        SimdInstruction::I16x8ExtmulHighI8x16U => {
+            let v2 = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let v1 = &rt.stack.pop_i128()?.to_le_bytes()[8..];
+            let mut ret = [0i16; 8];
+            for i in 0..8 {
+                ret[i] = ((v1[i] as u16).wrapping_mul(v2[i] as u16)) as i16;
+            }
+            rt.stack.push_i128(i16x8_to_vec(ret))?
+        }
+
+        SimdInstruction::I32x4ExtmulLowI16x8S => {
+            let v2 = &vec_to_i16x8(rt.stack.pop_i128()?)[..4];
+            let v1 = &vec_to_i16x8(rt.stack.pop_i128()?)[..4];
+            let mut ret = [0i32; 4];
+            for i in 0..4 {
+                ret[i] = (v1[i] as i32) * (v2[i] as i32);
+            }
+            rt.stack.push_i128(i32x4_to_vec(ret))?
+        }
+
+        SimdInstruction::I32x4ExtmulHighI16x8S => {
+            let v2 = &vec_to_i16x8(rt.stack.pop_i128()?)[4..];
+            let v1 = &vec_to_i16x8(rt.stack.pop_i128()?)[4..];
+            let mut ret = [0i32; 4];
+            for i in 0..4 {
+                ret[i] = (v1[i] as i32) * (v2[i] as i32);
+            }
+            rt.stack.push_i128(i32x4_to_vec(ret))?
+        }
+
+        SimdInstruction::I32x4ExtmulLowI16x8U => {
+            let v2 = &vec_to_i16x8(rt.stack.pop_i128()?)[..4];
+            let v1 = &vec_to_i16x8(rt.stack.pop_i128()?)[..4];
+            let mut ret = [0i32; 4];
+            for i in 0..4 {
+                ret[i] = ((v1[i] as u16 as u32) * (v2[i] as u16 as u32)) as i32;
+            }
+            rt.stack.push_i128(i32x4_to_vec(ret))?
+        }
+
+        SimdInstruction::I32x4ExtmulHighI16x8U => {
+            let v2 = &vec_to_i16x8(rt.stack.pop_i128()?)[4..];
+            let v1 = &vec_to_i16x8(rt.stack.pop_i128()?)[4..];
+            let mut ret = [0i32; 4];
+            for i in 0..4 {
+                ret[i] = ((v1[i] as u16 as u32) * (v2[i] as u16 as u32)) as i32;
+            }
+            rt.stack.push_i128(i32x4_to_vec(ret))?
+        }
+
+        SimdInstruction::I64x2ExtmulLowI32x4S => {
+            let v2 = &vec_to_i32x4(rt.stack.pop_i128()?)[..2];
+            let v1 = &vec_to_i32x4(rt.stack.pop_i128()?)[..2];
+            let mut ret = [0i64; 2];
+            for i in 0..2 {
+                ret[i] = (v1[i] as i64) * (v2[i] as i64);
+            }
+            rt.stack.push_i128(i64x2_to_vec(ret))?
+        }
+
+        SimdInstruction::I64x2ExtmulHighI32x4S => {
+            let v2 = &vec_to_i32x4(rt.stack.pop_i128()?)[2..];
+            let v1 = &vec_to_i32x4(rt.stack.pop_i128()?)[2..];
+            let mut ret = [0i64; 2];
+            for i in 0..2 {
+                ret[i] = (v1[i] as i64) * (v2[i] as i64);
+            }
+            rt.stack.push_i128(i64x2_to_vec(ret))?
+        }
+
+        SimdInstruction::I64x2ExtmulLowI32x4U => {
+            let v2 = &vec_to_i32x4(rt.stack.pop_i128()?)[..2];
+            let v1 = &vec_to_i32x4(rt.stack.pop_i128()?)[..2];
+            let mut ret = [0i64; 2];
+            for i in 0..2 {
+                ret[i] = ((v1[i] as u32 as u64) * (v2[i] as u32 as u64)) as i64;
+            }
+            rt.stack.push_i128(i64x2_to_vec(ret))?
+        }
+
+        SimdInstruction::I64x2ExtmulHighI32x4U => {
+            let v2 = &vec_to_i32x4(rt.stack.pop_i128()?)[2..];
+            let v1 = &vec_to_i32x4(rt.stack.pop_i128()?)[2..];
+            let mut ret = [0i64; 2];
+            for i in 0..2 {
+                ret[i] = ((v1[i] as u32 as u64) * (v2[i] as u32 as u64)) as i64;
+            }
+            rt.stack.push_i128(i64x2_to_vec(ret))?
+        }
+
         // SimdInstruction::I32x4DotI16x8S => todo!(),
-        // SimdInstruction::I32x4ExtmulLowI16x8S => todo!(),
-        // SimdInstruction::I32x4ExtmulHighI16x8S => todo!(),
-        // SimdInstruction::I32x4ExtmulLowI16x8U => todo!(),
-        // SimdInstruction::I32x4ExtmulHighI16x8U => todo!(),
-        // SimdInstruction::I64x2ExtmulLowI32x4S => todo!(),
-        // SimdInstruction::I64x2ExtmulHighI32x4S => todo!(),
-        // SimdInstruction::I64x2ExtmulLowI32x4U => todo!(),
-        // SimdInstruction::I64x2ExtmulHighI32x4U => todo!(),
         // SimdInstruction::F32x4ConvertI32x4S => todo!(),
         // SimdInstruction::I32x4TruncSatF64x2SZero => todo!(),
         // SimdInstruction::I32x4TruncSatF64x2UZero => todo!(),
