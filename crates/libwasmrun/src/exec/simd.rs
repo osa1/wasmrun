@@ -1361,12 +1361,12 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i16x8_to_vec(result))?
         }
 
-        SimdInstruction::I8x16AvgrU => i8x16_lanewise_zip_map(rt, |i1, i2| {
-            i1.wrapping_add(i2).wrapping_add(1).wrapping_div(2)
-        })?,
+        SimdInstruction::I8x16AvgrU => {
+            i8x16_lanewise_zip_map(rt, |i1, i2| ((i16::from(i1) + i16::from(i2) + 1) / 2) as u8)?
+        }
 
         SimdInstruction::I16x8AvgrU => i16x8_lanewise_zip_map(rt, |i1, i2| {
-            i1.wrapping_add(i2).wrapping_add(1).wrapping_div(2)
+            ((u32::from(i1 as u16) + u32::from(i2 as u16) + 1) / 2) as u16 as i16
         })?,
 
         SimdInstruction::I16x8ExtaddPairwiseI8x16S => {
