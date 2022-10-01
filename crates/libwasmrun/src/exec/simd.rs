@@ -1567,14 +1567,14 @@ pub fn exec_simd_instr(
         }
 
         SimdInstruction::I32x4DotI16x8S => {
-            let v2 = vec_to_i16x8(rt.stack.pop_i128()?);
-            let mut v1 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let v2 = vec_to_i16x8(rt.stack.pop_i128()?).map(i32::from);
+            let mut v1 = vec_to_i16x8(rt.stack.pop_i128()?).map(i32::from);
             let mut res = [0i32; 4];
             for i in 0..8 {
-                v1[i] = v1[i].wrapping_mul(v2[i]);
+                v1[i] = v1[i] * v2[i];
             }
             for i in 0..4 {
-                res[i] = v1[2 * i] as i32 + v1[2 * i + 1] as i32;
+                res[i] = v1[2 * i].wrapping_add(v1[2 * i + 1]);
             }
             rt.stack.push_i128(i32x4_to_vec(res))?
         }
