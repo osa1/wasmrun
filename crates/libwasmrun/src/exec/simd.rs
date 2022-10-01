@@ -1575,8 +1575,12 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I32x4TruncSatF64x2UZero => {
             let v = vec_to_f64x2(rt.stack.pop_i128()?);
-            rt.stack
-                .push_i128(i32x4_to_vec([v[0] as i32, v[1] as i32, 0, 0]))?
+            rt.stack.push_i128(i32x4_to_vec([
+                super::i32_trunc_sat_s_f64(v[0]),
+                super::i32_trunc_sat_s_f64(v[1]),
+                0,
+                0,
+            ]))?
         }
 
         SimdInstruction::F32x4DemoteF64x2Zero => {

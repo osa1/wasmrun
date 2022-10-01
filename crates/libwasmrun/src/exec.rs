@@ -2128,34 +2128,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::I32TruncSatSF32 => {
             op1::<f32, i32, _>(rt, i32_trunc_sat_s_f32)?;
-
-            // let trunc_sat_f32_s x =
-            //   if F32.ne x x then
-            //     0l
-            //   else
-            //     let xf = F32.to_float x in
-            //     if xf < Int32.(to_float min_int) then
-            //       Int32.min_int
-            //     else if xf >= -.Int32.(to_float min_int) then
-            //       Int32.max_int
-            //     else
-            //       Int32.of_float xf
         }
 
         Instruction::I32TruncSatUF32 => {
             op1::<f32, i32, _>(rt, i32_trunc_sat_u_f32)?;
-
-            // let trunc_sat_f32_u x =
-            //   if F32.ne x x then
-            //     0l
-            //   else
-            //     let xf = F32.to_float x in
-            //     if xf <= -1.0 then
-            //       0l
-            //     else if xf >= -.Int32.(to_float min_int) *. 2.0 then
-            //       -1l
-            //     else
-            //       Int64.(to_int32 (of_float xf))
         }
 
         Instruction::I32TruncSatSF64 => {
@@ -2185,29 +2161,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32TruncSatUF64 => {
-            op1::<f64, i32, _>(rt, |f| {
-                if f.is_nan() {
-                    0
-                } else if f <= -1.0f64 {
-                    0
-                } else if f >= -(i32::MIN as f64) * 2.0f64 {
-                    -1
-                } else {
-                    (f as i64) as i32
-                }
-            })?;
-
-            // let trunc_sat_f64_u x =
-            //   if F64.ne x x then
-            //     0l
-            //   else
-            //     let xf = F64.to_float x in
-            //     if xf <= -1.0 then
-            //       0l
-            //     else if xf >= -.Int32.(to_float min_int) *. 2.0 then
-            //       -1l
-            //     else
-            //       Int64.(to_int32 (of_float xf))
+            op1::<f64, i32, _>(rt, i32_trunc_sat_s_f64)?;
         }
 
         Instruction::I64TruncSatSF32 => {
@@ -2755,6 +2709,17 @@ fn op2_trap<A: StackValue, B: StackValue, F: Fn(A, A) -> Result<B>>(
 }
 
 fn i32_trunc_sat_s_f32(f: f32) -> i32 {
+    // let trunc_sat_f32_s x =
+    //   if F32.ne x x then
+    //     0l
+    //   else
+    //     let xf = F32.to_float x in
+    //     if xf < Int32.(to_float min_int) then
+    //       Int32.min_int
+    //     else if xf >= -.Int32.(to_float min_int) then
+    //       Int32.max_int
+    //     else
+    //       Int32.of_float xf
     if f.is_nan() {
         0
     } else if f < i32::MIN as f32 {
@@ -2767,11 +2732,45 @@ fn i32_trunc_sat_s_f32(f: f32) -> i32 {
 }
 
 fn i32_trunc_sat_u_f32(f: f32) -> i32 {
+    // let trunc_sat_f32_u x =
+    //   if F32.ne x x then
+    //     0l
+    //   else
+    //     let xf = F32.to_float x in
+    //     if xf <= -1.0 then
+    //       0l
+    //     else if xf >= -.Int32.(to_float min_int) *. 2.0 then
+    //       -1l
+    //     else
+    //       Int64.(to_int32 (of_float xf))
     if f.is_nan() {
         0
     } else if f <= -1.0 {
         0
     } else if f >= -(i32::MIN as f32) * 2.0f32 {
+        -1
+    } else {
+        (f as i64) as i32
+    }
+}
+
+fn i32_trunc_sat_s_f64(f: f64) -> i32 {
+    // let trunc_sat_f64_u x =
+    //   if F64.ne x x then
+    //     0l
+    //   else
+    //     let xf = F64.to_float x in
+    //     if xf <= -1.0 then
+    //       0l
+    //     else if xf >= -.Int32.(to_float min_int) *. 2.0 then
+    //       -1l
+    //     else
+    //       Int64.(to_int32 (of_float xf))
+    if f.is_nan() {
+        0
+    } else if f <= -1.0f64 {
+        0
+    } else if f >= -(i32::MIN as f64) * 2.0f64 {
         -1
     } else {
         (f as i64) as i32
