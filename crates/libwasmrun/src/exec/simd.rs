@@ -1422,7 +1422,7 @@ pub fn exec_simd_instr(
             let v1 = &rt.stack.pop_i128()?.to_le_bytes()[..8];
             let mut ret = [0i16; 8];
             for i in 0..8 {
-                ret[i] = (v1[i] as i16).wrapping_mul(v2[i] as i16);
+                ret[i] = (v1[i] as i8 as i16).wrapping_mul(v2[i] as i8 as i16);
             }
             rt.stack.push_i128(i16x8_to_vec(ret))?
         }
@@ -1432,7 +1432,7 @@ pub fn exec_simd_instr(
             let v1 = &rt.stack.pop_i128()?.to_le_bytes()[8..];
             let mut ret = [0i16; 8];
             for i in 0..8 {
-                ret[i] = (v1[i] as i16).wrapping_mul(v2[i] as i16);
+                ret[i] = (v1[i] as i8 as i16).wrapping_mul(v2[i] as i8 as i16);
             }
             rt.stack.push_i128(i16x8_to_vec(ret))?
         }
