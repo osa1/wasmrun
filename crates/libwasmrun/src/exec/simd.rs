@@ -1286,12 +1286,16 @@ pub fn exec_simd_instr(
             let v1 = vec_to_i16x8(rt.stack.pop_i128()?);
             let mut result = [0u8; 16];
 
-            for i in 0..8 {
-                result[i] = (v1[i] as i8) as u8;
+            fn sat(i: i16) -> i8 {
+                i.clamp(i16::from(i8::MIN), i16::from(i8::MAX)) as i8
             }
 
             for i in 0..8 {
-                result[8 + i] = (v2[i] as i8) as u8;
+                result[i] = sat(v1[i]) as u8;
+            }
+
+            for i in 0..8 {
+                result[8 + i] = sat(v2[i]) as u8;
             }
 
             rt.stack.push_i128(i128::from_le_bytes(result))?
@@ -1302,12 +1306,16 @@ pub fn exec_simd_instr(
             let v1 = vec_to_i16x8(rt.stack.pop_i128()?);
             let mut result = [0u8; 16];
 
-            for i in 0..8 {
-                result[i] = v1[i] as u8;
+            fn sat(i: i16) -> u8 {
+                i.clamp(0, i16::from(u8::MAX)) as u8
             }
 
             for i in 0..8 {
-                result[8 + i] = v2[i] as u8;
+                result[i] = sat(v1[i]);
+            }
+
+            for i in 0..8 {
+                result[8 + i] = sat(v2[i]);
             }
 
             rt.stack.push_i128(i128::from_le_bytes(result))?
@@ -1318,12 +1326,16 @@ pub fn exec_simd_instr(
             let v1 = vec_to_i32x4(rt.stack.pop_i128()?);
             let mut result = [0i16; 8];
 
-            for i in 0..4 {
-                result[i] = v1[i] as i16;
+            fn sat(i: i32) -> i16 {
+                i.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16
             }
 
             for i in 0..4 {
-                result[4 + i] = v2[i] as i16;
+                result[i] = sat(v1[i]);
+            }
+
+            for i in 0..4 {
+                result[4 + i] = sat(v2[i]);
             }
 
             rt.stack.push_i128(i16x8_to_vec(result))?
@@ -1334,12 +1346,16 @@ pub fn exec_simd_instr(
             let v1 = vec_to_i32x4(rt.stack.pop_i128()?);
             let mut result = [0i16; 8];
 
-            for i in 0..4 {
-                result[i] = v1[i] as u16 as i16;
+            fn sat(i: i32) -> u16 {
+                i.clamp(0, i32::from(u16::MAX)) as u16
             }
 
             for i in 0..4 {
-                result[4 + i] = v2[i] as u16 as i16;
+                result[i] = sat(v1[i]) as i16;
+            }
+
+            for i in 0..4 {
+                result[4 + i] = sat(v2[i]) as i16;
             }
 
             rt.stack.push_i128(i16x8_to_vec(result))?
