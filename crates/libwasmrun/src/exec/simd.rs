@@ -597,7 +597,7 @@ pub fn exec_simd_instr(
 
         SimdInstruction::I64x2Mul => i64x2_lanewise_zip_map(rt, |i1, i2| i1.wrapping_mul(i2))?,
 
-        SimdInstruction::I64x2Abs => i64x2_lanewise_map(rt, i64::abs)?,
+        SimdInstruction::I64x2Abs => i64x2_lanewise_map(rt, i64::wrapping_abs)?,
 
         SimdInstruction::I64x2Neg => i64x2_lanewise_map(rt, i64::wrapping_neg)?,
 
