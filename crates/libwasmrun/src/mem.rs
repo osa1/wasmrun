@@ -133,6 +133,11 @@ impl Mem {
         }
     }
 
+    pub fn load_8(&self, addr: u32) -> Result<u8> {
+        self.check_range(addr, 1)?;
+        Ok(self[addr])
+    }
+
     /*
         pub(crate) fn store_8(&mut self, addr: u32, value: u8) -> Result<()> {
             self.check_range(addr, 1)?;
