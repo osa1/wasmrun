@@ -1280,14 +1280,74 @@ pub fn exec_simd_instr(
             rt.stack.push_i32(result)?
         }
 
-        // SimdInstruction::I8x16NarrowI16x8S => todo!(),
-        // SimdInstruction::I8x16NarrowI16x8U => todo!(),
+        SimdInstruction::I8x16NarrowI16x8S => {
+            let v2 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let v1 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let mut result = [0u8; 16];
+
+            for i in 0..8 {
+                result[i] = (v1[i] as i8) as u8;
+            }
+
+            for i in 0..8 {
+                result[8 + i] = (v2[i] as i8) as u8;
+            }
+
+            rt.stack.push_i128(i128::from_le_bytes(result))?
+        }
+
+        SimdInstruction::I8x16NarrowI16x8U => {
+            let v2 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let v1 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let mut result = [0u8; 16];
+
+            for i in 0..8 {
+                result[i] = v1[i] as u8;
+            }
+
+            for i in 0..8 {
+                result[8 + i] = v2[i] as u8;
+            }
+
+            rt.stack.push_i128(i128::from_le_bytes(result))?
+        }
+
+        SimdInstruction::I16x8NarrowI32x4S => {
+            let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
+            let v1 = vec_to_i32x4(rt.stack.pop_i128()?);
+            let mut result = [0i16; 8];
+
+            for i in 0..4 {
+                result[i] = v1[i] as i16;
+            }
+
+            for i in 0..4 {
+                result[4 + i] = v2[i] as i16;
+            }
+
+            rt.stack.push_i128(i16x8_to_vec(result))?
+        }
+
+        SimdInstruction::I16x8NarrowI32x4U => {
+            let v2 = vec_to_i32x4(rt.stack.pop_i128()?);
+            let v1 = vec_to_i32x4(rt.stack.pop_i128()?);
+            let mut result = [0i16; 8];
+
+            for i in 0..4 {
+                result[i] = v1[i] as u16 as i16;
+            }
+
+            for i in 0..4 {
+                result[4 + i] = v2[i] as u16 as i16;
+            }
+
+            rt.stack.push_i128(i16x8_to_vec(result))?
+        }
+
         // SimdInstruction::I8x16AvgrU => todo!(),
         // SimdInstruction::I16x8ExtaddPairwiseI8x16S => todo!(),
         // SimdInstruction::I16x8ExtaddPairwiseI8x16U => todo!(),
         // SimdInstruction::I16x8Q15MulrSatS => todo!(),
-        // SimdInstruction::I16x8NarrowI32x4S => todo!(),
-        // SimdInstruction::I16x8NarrowI32x4U => todo!(),
         // SimdInstruction::I16x8AvgrU => todo!(),
         // SimdInstruction::I16x8ExtmulLowI8x16S => todo!(),
         // SimdInstruction::I16x8ExtmulHighI8x16S => todo!(),
