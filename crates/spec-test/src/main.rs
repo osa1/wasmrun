@@ -52,6 +52,9 @@ fn run_dir(dir_path: &str) {
 
     let fails = run_spec_dir(&dir_files, &mut out);
     let ret = if fails.is_empty() { 0 } else { 1 };
+
+    writeln!(&mut out).unwrap();
+
     let mut total_fails = 0;
     for (file, lines) in fails.iter() {
         writeln!(&mut out, "{}: {:?}", file.to_string_lossy(), lines).unwrap();
@@ -244,10 +247,6 @@ fn run_spec_cmd(
         } => {
             // println!("module name={:?}", name);
 
-            write!(out, "\tline {}: ", line).unwrap();
-            // Flush the line number now so that we'll see it in case of a loop or hang
-            out.flush().unwrap();
-
             let file_path = format!("{}/{}", dir_path, filename);
             match wasm::deserialize_file(&file_path) {
                 Err(err) => {
@@ -257,7 +256,6 @@ fn run_spec_cmd(
                 }
                 Ok(module) => match exec::instantiate(rt, module) {
                     Ok(module_addr_) => {
-                        writeln!(out, "OK").unwrap();
                         *module_addr = Some(module_addr_);
                         if let Some(name) = name {
                             modules.insert(name, module_addr_);
@@ -278,9 +276,6 @@ fn run_spec_cmd(
             filename,
             text: _,
         } => {
-            write!(out, "\tline {}: ", line).unwrap();
-            out.flush().unwrap();
-
             let file_path = format!("{}/{}", dir_path, filename);
             match wasm::deserialize_file(file_path) {
                 Err(err) => {
@@ -292,23 +287,17 @@ fn run_spec_cmd(
                         writeln!(out, "Successfully allocated module").unwrap();
                         failing_lines.push(line);
                     }
-                    Err(_err) => {
-                        writeln!(out, "OK").unwrap();
-                    }
+                    Err(_err) => {}
                 },
             }
         }
 
         spec::Command::Register {
-            line,
+            line: _,
             name,
             register_as,
         } => {
             // println!("register name={:?}, register_as={}", name, register_as);
-
-            write!(out, "\tline {}: ", line).unwrap();
-            // Flush the line number now so that we'll see it in case of a loop or hang
-            out.flush().unwrap();
 
             let module_addr = match name {
                 Some(name) => match modules.get(&name) {
@@ -328,8 +317,6 @@ fn run_spec_cmd(
             };
 
             rt.register_module(register_as, *module_addr);
-
-            writeln!(out, "OK").unwrap();
         }
 
         spec::Command::AssertReturn {
@@ -342,8 +329,6 @@ fn run_spec_cmd(
             err_msg: _,
         } => {
             assert!(args.is_empty());
-
-            write!(out, "\tline {}: ", line).unwrap();
 
             let module_addr = match module {
                 Some(module_name) => match modules.get(&module_name) {
@@ -375,9 +360,7 @@ fn run_spec_cmd(
                     assert_eq!(expected.len(), 1);
                     let expected = expected[0];
 
-                    if test_eq_val(expected, val) {
-                        writeln!(out, "OK").unwrap();
-                    } else {
+                    if !test_eq_val(expected, val) {
                         writeln!(
                             out,
                             "expected != found. Expected: {:?}, Found: {:?}",
@@ -400,8 +383,6 @@ fn run_spec_cmd(
             err_msg,
         } => {
             // println!("invoke module={:?}, func={}", module, func);
-
-            write!(out, "\tline {}: ", line).unwrap();
 
             let module_addr = match module {
                 Some(module_name) => match modules.get(&module_name) {
@@ -463,9 +444,7 @@ fn run_spec_cmd(
 
                     found.reverse();
 
-                    if test_eq_vals(&expected, &found) {
-                        writeln!(out, "OK").unwrap();
-                    } else {
+                    if !test_eq_vals(&expected, &found) {
                         writeln!(
                             out,
                             "expected != found. Expected: {:?}, Found: {:?}",
@@ -510,8 +489,6 @@ fn run_spec_cmd(
                                 )
                                 .unwrap();
                                 failing_lines.push(line);
-                            } else {
-                                writeln!(out, "OK").unwrap();
                             }
                         }
                         Err(ExecError::WASI(_msg)) => {
