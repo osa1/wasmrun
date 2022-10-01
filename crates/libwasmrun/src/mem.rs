@@ -141,6 +141,15 @@ impl Mem {
         }
     */
 
+    pub fn load_16(&self, addr: u32) -> Result<u16> {
+        self.check_range(addr, 2)?;
+
+        let b1 = self[addr];
+        let b2 = self[addr + 1];
+
+        Ok(u16::from_le_bytes([b1, b2]))
+    }
+
     pub fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
         self.check_range(addr, 4)?;
 

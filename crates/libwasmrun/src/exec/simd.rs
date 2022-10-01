@@ -145,6 +145,89 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
+        SimdInstruction::V128Load8x8u(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 8)?;
+
+            let b1 = (mem[addr] as u16).to_le_bytes();
+            let b2 = (mem[addr + 1] as u16).to_le_bytes();
+            let b3 = (mem[addr + 2] as u16).to_le_bytes();
+            let b4 = (mem[addr + 3] as u16).to_le_bytes();
+            let b5 = (mem[addr + 4] as u16).to_le_bytes();
+            let b6 = (mem[addr + 5] as u16).to_le_bytes();
+            let b7 = (mem[addr + 6] as u16).to_le_bytes();
+            let b8 = (mem[addr + 7] as u16).to_le_bytes();
+
+            rt.stack.push_i128(i128::from_le_bytes([
+                b1[0], b1[1], b2[0], b2[1], b3[0], b3[1], b4[0], b4[1], b5[0], b5[1], b6[0], b6[1],
+                b7[0], b7[1], b8[0], b8[1],
+            ]))?;
+        }
+
+        SimdInstruction::V128Load16x4s(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 8)?;
+
+            let i1 = mem.load_16(addr)? as i16 as i32;
+            let i2 = mem.load_16(addr + 2)? as i16 as i32;
+            let i3 = mem.load_16(addr + 4)? as i16 as i32;
+            let i4 = mem.load_16(addr + 6)? as i16 as i32;
+
+            rt.stack.push_i128(i32x4_to_vec([i1, i2, i3, i4]))?;
+        }
+
+        SimdInstruction::V128Load16x4u(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 8)?;
+
+            let i1 = mem.load_16(addr)? as i32;
+            let i2 = mem.load_16(addr + 2)? as i32;
+            let i3 = mem.load_16(addr + 4)? as i32;
+            let i4 = mem.load_16(addr + 6)? as i32;
+
+            rt.stack.push_i128(i32x4_to_vec([i1, i2, i3, i4]))?;
+        }
+
+        SimdInstruction::V128Load32x2s(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 8)?;
+
+            let i1 = mem.load_32(addr)? as i32 as i64;
+            let i2 = mem.load_32(addr + 4)? as i32 as i64;
+
+            rt.stack.push_i128(i64x2_to_vec([i1, i2]))?;
+        }
+
+        SimdInstruction::V128Load32x2u(MemArg { align: _, offset }) => {
+            let addr = rt.stack.pop_i32()? as u32;
+            let addr = trapping_add(addr, offset)?;
+
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem = rt.store.get_mem(mem_addr);
+            mem.check_range(addr, 8)?;
+
+            let i1 = mem.load_32(addr)? as i64;
+            let i2 = mem.load_32(addr + 4)? as i64;
+
+            rt.stack.push_i128(i64x2_to_vec([i1, i2]))?;
+        }
+
         SimdInstruction::V128Load8Lane(MemArg { align: _, offset }, lane) => {
             let mut vec = rt.stack.pop_i128()?.to_le_bytes();
 
@@ -859,6 +942,99 @@ pub fn exec_simd_instr(
 
         SimdInstruction::F64x2Nearest => f64x2_lanewise_map(rt, super::f64_nearest)?,
 
+        // SimdInstruction::V128Load8Splat(_) => todo!(),
+        // SimdInstruction::V128Load16Splat(_) => todo!(),
+        // SimdInstruction::V128Load32Splat(_) => todo!(),
+        // SimdInstruction::V128Load64Splat(_) => todo!(),
+
+        // SimdInstruction::I8x16Shuffle(_) => todo!(),
+        // SimdInstruction::I8x16ExtractLaneU(_) => todo!(),
+        // SimdInstruction::I16x8ExtractLaneS(_) => todo!(),
+        // SimdInstruction::I16x8ExtractLaneU(_) => todo!(),
+        // SimdInstruction::V128And => todo!(),
+        // SimdInstruction::V128AndNot => todo!(),
+        // SimdInstruction::V128Or => todo!(),
+        // SimdInstruction::V128Xor => todo!(),
+        // SimdInstruction::I8x16Abs => todo!(),
+        // SimdInstruction::I8x16Popcnt => todo!(),
+        // SimdInstruction::I8x16Bitmask => todo!(),
+        // SimdInstruction::I8x16NarrowI16x8S => todo!(),
+        // SimdInstruction::I8x16NarrowI16x8U => todo!(),
+        // SimdInstruction::I8x16ShrS => todo!(),
+        // SimdInstruction::I8x16ShrU => todo!(),
+        // SimdInstruction::I8x16AddSatS => todo!(),
+        // SimdInstruction::I8x16AddSatU => todo!(),
+        // SimdInstruction::I8x16SubSatS => todo!(),
+        // SimdInstruction::I8x16SubSatU => todo!(),
+        // SimdInstruction::I8x16MinS => todo!(),
+        // SimdInstruction::I8x16MinU => todo!(),
+        // SimdInstruction::I8x16MaxS => todo!(),
+        // SimdInstruction::I8x16MaxU => todo!(),
+        // SimdInstruction::I8x16AvgrU => todo!(),
+        // SimdInstruction::I16x8ExtaddPairwiseI8x16S => todo!(),
+        // SimdInstruction::I16x8ExtaddPairwiseI8x16U => todo!(),
+        // SimdInstruction::I16x8Abs => todo!(),
+        // SimdInstruction::I16x8Q15MulrSatS => todo!(),
+        // SimdInstruction::I16x8AllTrue => todo!(),
+        // SimdInstruction::I16x8Bitmask => todo!(),
+        // SimdInstruction::I16x8NarrowI32x4S => todo!(),
+        // SimdInstruction::I16x8NarrowI32x4U => todo!(),
+        // SimdInstruction::I16x8Shl => todo!(),
+        // SimdInstruction::I16x8ShrS => todo!(),
+        // SimdInstruction::I16x8ShrU => todo!(),
+        // SimdInstruction::I16x8AddSatS => todo!(),
+        // SimdInstruction::I16x8AddSatU => todo!(),
+        // SimdInstruction::I16x8SubSatS => todo!(),
+        // SimdInstruction::I16x8SubSatU => todo!(),
+        // SimdInstruction::I16x8MinS => todo!(),
+        // SimdInstruction::I16x8MinU => todo!(),
+        // SimdInstruction::I16x8MaxS => todo!(),
+        // SimdInstruction::I16x8MaxU => todo!(),
+        // SimdInstruction::I16x8AvgrU => todo!(),
+        // SimdInstruction::I16x8ExtmulLowI8x16S => todo!(),
+        // SimdInstruction::I16x8ExtmulHighI8x16S => todo!(),
+        // SimdInstruction::I16x8ExtmulLowI8x16U => todo!(),
+        // SimdInstruction::I16x8ExtmulHighI8x16U => todo!(),
+        // SimdInstruction::I32x4ExtaddPairwiseI16x8S => todo!(),
+        // SimdInstruction::I32x4ExtaddPairwiseI16x8U => todo!(),
+        // SimdInstruction::I32x4Abs => todo!(),
+        // SimdInstruction::I32x4AllTrue => todo!(),
+        // SimdInstruction::I32x4Bitmask => todo!(),
+        // SimdInstruction::I32x4Shl => todo!(),
+        // SimdInstruction::I32x4ShrS => todo!(),
+        // SimdInstruction::I32x4ShrU => todo!(),
+        // SimdInstruction::I32x4Sub => todo!(),
+        // SimdInstruction::I32x4Mul => todo!(),
+        // SimdInstruction::I32x4MinS => todo!(),
+        // SimdInstruction::I32x4MinU => todo!(),
+        // SimdInstruction::I32x4MaxS => todo!(),
+        // SimdInstruction::I32x4MaxU => todo!(),
+        // SimdInstruction::I32x4DotI16x8S => todo!(),
+        // SimdInstruction::I32x4ExtmulLowI16x8S => todo!(),
+        // SimdInstruction::I32x4ExtmulHighI16x8S => todo!(),
+        // SimdInstruction::I32x4ExtmulLowI16x8U => todo!(),
+        // SimdInstruction::I32x4ExtmulHighI16x8U => todo!(),
+        // SimdInstruction::I64x2Abs => todo!(),
+        // SimdInstruction::I64x2Neg => todo!(),
+        // SimdInstruction::I64x2AllTrue => todo!(),
+        // SimdInstruction::I64x2Bitmask => todo!(),
+        // SimdInstruction::I64x2Shl => todo!(),
+        // SimdInstruction::I64x2ShrS => todo!(),
+        // SimdInstruction::I64x2ShrU => todo!(),
+        // SimdInstruction::I64x2Sub => todo!(),
+        // SimdInstruction::I64x2Mul => todo!(),
+        // SimdInstruction::I64x2ExtmulLowI32x4S => todo!(),
+        // SimdInstruction::I64x2ExtmulHighI32x4S => todo!(),
+        // SimdInstruction::I64x2ExtmulLowI32x4U => todo!(),
+        // SimdInstruction::I64x2ExtmulHighI32x4U => todo!(),
+        // SimdInstruction::I32x4TruncSatF32x4U => todo!(),
+        // SimdInstruction::F32x4ConvertI32x4S => todo!(),
+        // SimdInstruction::I32x4TruncSatF64x2SZero => todo!(),
+        // SimdInstruction::I32x4TruncSatF64x2UZero => todo!(),
+        // SimdInstruction::F64x2ConvertLowI32x4S => todo!(),
+        // SimdInstruction::F64x2ConvertLowI32x4U => todo!(),
+        // SimdInstruction::F32x4DemoteF64x2Zero => todo!(),
+        // SimdInstruction::F64x2PromoteLowF32x4 => todo!(),
         _ => {
             return Err(ExecError::Panic(format!(
                 "SIMD instruction not implemented: {:?}",
