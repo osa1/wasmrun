@@ -1,4 +1,4 @@
-use crate::exec::{trapping_add, ExecError, MemIdx, Result};
+use crate::exec::{trapping_add, MemIdx, Result};
 use crate::store::ModuleAddr;
 use crate::value::{canonicalize_f32_nan, canonicalize_f64_nan};
 use crate::Runtime;
@@ -1520,19 +1520,58 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i64x2_to_vec(ret))?
         }
 
-        // SimdInstruction::I32x4DotI16x8S => todo!(),
-        // SimdInstruction::F32x4ConvertI32x4S => todo!(),
-        // SimdInstruction::I32x4TruncSatF64x2SZero => todo!(),
-        // SimdInstruction::I32x4TruncSatF64x2UZero => todo!(),
-        // SimdInstruction::F64x2ConvertLowI32x4S => todo!(),
-        // SimdInstruction::F64x2ConvertLowI32x4U => todo!(),
-        // SimdInstruction::F32x4DemoteF64x2Zero => todo!(),
-        // SimdInstruction::F64x2PromoteLowF32x4 => todo!(),
-        _ => {
-            return Err(ExecError::Panic(format!(
-                "SIMD instruction not implemented: {:?}",
-                instr
-            )))
+        SimdInstruction::F32x4ConvertI32x4S => {
+            let v = vec_to_i32x4(rt.stack.pop_i128()?).map(|i| i as f32);
+            rt.stack.push_i128(f32x4_to_vec(v))?
+        }
+
+        SimdInstruction::F64x2ConvertLowI32x4S => {
+            let v = vec_to_i32x4(rt.stack.pop_i128()?);
+            let res = [v[0] as f64, v[1] as f64];
+            rt.stack.push_i128(f64x2_to_vec(res))?
+        }
+
+        SimdInstruction::F64x2ConvertLowI32x4U => {
+            let v = vec_to_i32x4(rt.stack.pop_i128()?);
+            let res = [v[0] as u32 as f64, v[1] as u32 as f64];
+            rt.stack.push_i128(f64x2_to_vec(res))?
+        }
+
+        SimdInstruction::I32x4DotI16x8S => {
+            let v2 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let mut v1 = vec_to_i16x8(rt.stack.pop_i128()?);
+            let mut res = [0i32; 4];
+            for i in 0..8 {
+                v1[i] = v1[i].wrapping_mul(v2[i]);
+            }
+            for i in 0..4 {
+                res[i] = v1[2 * i] as i32 + v1[2 * i + 1] as i32;
+            }
+            rt.stack.push_i128(i32x4_to_vec(res))?
+        }
+
+        SimdInstruction::I32x4TruncSatF64x2SZero => {
+            let v = vec_to_f64x2(rt.stack.pop_i128()?);
+            rt.stack
+                .push_i128(i32x4_to_vec([v[0] as i32, v[1] as i32, 0, 0]))?
+        }
+
+        SimdInstruction::I32x4TruncSatF64x2UZero => {
+            let v = vec_to_f64x2(rt.stack.pop_i128()?);
+            rt.stack
+                .push_i128(i32x4_to_vec([v[0] as i32, v[1] as i32, 0, 0]))?
+        }
+
+        SimdInstruction::F32x4DemoteF64x2Zero => {
+            let v = vec_to_f64x2(rt.stack.pop_i128()?);
+            rt.stack
+                .push_i128(f32x4_to_vec([v[0] as f32, v[1] as f32, 0f32, 0f32]))?
+        }
+
+        SimdInstruction::F64x2PromoteLowF32x4 => {
+            let v = vec_to_f32x4(rt.stack.pop_i128()?);
+            rt.stack
+                .push_i128(f64x2_to_vec([v[0] as f64, v[1] as f64]))?
         }
     }
 
