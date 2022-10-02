@@ -30,29 +30,29 @@ jobs:
             git submodule update --init --recursive
             cargo run --bin spec-test
 
-  wasi_tests:
-    name: 'Run WASI tests'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Get Rust stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            target: wasm32-wasi
-            override: true
-
-      - name: Get wasmtime
-        run: bash ci/get_wasmtime.sh
-
-      - name: Build
-        run: cargo build
-
-      - name: Run tests
-        run: |
-            export PATH=`pwd`:$PATH
-            cargo run --bin wasi-test
+  # wasi_tests:
+  #   name: 'Run WASI tests'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #
+  #     - name: Get Rust stable toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #           toolchain: stable
+  #           target: wasm32-wasi
+  #           override: true
+  #
+  #     - name: Get wasmtime
+  #       run: bash ci/get_wasmtime.sh
+  #
+  #     - name: Build
+  #       run: cargo build
+  #
+  #     - name: Run tests
+  #       run: |
+  #           export PATH=`pwd`:$PATH
+  #           cargo run --bin wasi-test
 
   formatting:
     name: 'Check formatting'
