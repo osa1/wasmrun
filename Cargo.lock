@@ -439,6 +439,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "fxhash",
+ "ieee754",
  "libwasmrun",
  "libwasmrun_syntax",
  "rustc_tools_util",

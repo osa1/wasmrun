@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 use fxhash::FxHashMap;
+use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 
 fn main() {
@@ -100,24 +101,124 @@ fn run_file(file_path: &str) {
     exit(ret)
 }
 
-fn test_eq_val(v1: Value, v2: Value) -> bool {
-    match (v1, v2) {
-        (Value::I32(i1), Value::I32(i2)) => i1 == i2,
-        (Value::I64(i1), Value::I64(i2)) => i1 == i2,
-        (Value::I128(i1), Value::I128(i2)) => i1 == i2,
-        (Value::F32(f1), Value::F32(f2)) => f1.to_bits() == f2.to_bits(),
-        (Value::F64(f1), Value::F64(f2)) => f1.to_bits() == f2.to_bits(),
-        (Value::Ref(r1), Value::Ref(r2)) => r1 == r2,
+/// Check if a wasmrun value matches a value or pattern in a spec test.
+fn test_val(
+    wasmrun_val: Value,
+    spec_val: spec::Value,
+    rt: &Runtime,
+    module_addr: ModuleAddr,
+) -> bool {
+    match (wasmrun_val, spec_val) {
+        (Value::I32(i1), spec::Value::I32(i2)) => i1 == i2 as i32,
+
+        (Value::I64(i1), spec::Value::I64(i2)) => i1 == i2 as i64,
+
+        (Value::F32(f1), spec::Value::F32(f2)) => match f2 {
+            spec::F32::ArithmeticNan => is_f32_arithmetic_nan(f1),
+            spec::F32::CanonicalNan => is_f32_canonical_nan(f1),
+            spec::F32::Value(f2) => f1.to_bits() == f2,
+        },
+
+        (Value::F64(f1), spec::Value::F64(f2)) => match f2 {
+            spec::F64::ArithmeticNan => is_f64_arithmetic_nan(f1),
+            spec::F64::CanonicalNan => is_f64_canonical_nan(f1),
+            spec::F64::Value(f2) => f1.to_bits() == f2,
+        },
+
+        (Value::Ref(Ref::Null(ref_ty1)), spec::Value::NullRef(ref_ty2)) => ref_ty1 == ref_ty2,
+
+        (Value::Ref(Ref::Ref(fun_ref1)), spec::Value::FuncRef(fun_ref2)) => {
+            fun_ref1 == rt.get_module_fun_addr(module_addr, fun_ref2)
+        }
+
+        (Value::Ref(Ref::RefExtern(extern1)), spec::Value::ExternRef(extern2)) => {
+            extern1 == ExternAddr(extern2)
+        }
+
+        (Value::I128(vec1), spec::Value::V128(vec2)) => {
+            let vec1 = vec1.to_le_bytes();
+
+            match vec2 {
+                spec::V128::I8x16(lanes) => {
+                    for i in 0..16 {
+                        if vec1[i] != lanes[i] {
+                            return false;
+                        }
+                    }
+                }
+
+                spec::V128::I16x8(lanes) => {
+                    for i in 0..8 {
+                        if vec1[i * 2..i * 2 + 2] != lanes[i].to_le_bytes() {
+                            return false;
+                        }
+                    }
+                }
+
+                spec::V128::I32x4(lanes) => {
+                    for i in 0..4 {
+                        if vec1[i * 4..i * 4 + 4] != lanes[i].to_le_bytes() {
+                            return false;
+                        }
+                    }
+                }
+
+                spec::V128::I64x2(lanes) => {
+                    for i in 0..2 {
+                        if vec1[i * 8..i * 8 + 8] != lanes[i].to_le_bytes() {
+                            return false;
+                        }
+                    }
+                }
+
+                spec::V128::F32x4(lanes) => {
+                    for i in 0..4 {
+                        let value = u32::from_le_bytes(vec1[i * 4..i * 4 + 4].try_into().unwrap());
+                        let value_matches = match lanes[i] {
+                            spec::F32::CanonicalNan => is_f32_arithmetic_nan(f32::from_bits(value)),
+                            spec::F32::ArithmeticNan => is_f32_canonical_nan(f32::from_bits(value)),
+                            spec::F32::Value(value2) => value == value2,
+                        };
+                        if !value_matches {
+                            return false;
+                        }
+                    }
+                }
+
+                spec::V128::F64x2(lanes) => {
+                    for i in 0..2 {
+                        let value = u64::from_le_bytes(vec1[i * 8..i * 8 + 8].try_into().unwrap());
+                        let value_matches = match lanes[i] {
+                            spec::F64::CanonicalNan => is_f64_arithmetic_nan(f64::from_bits(value)),
+                            spec::F64::ArithmeticNan => is_f64_canonical_nan(f64::from_bits(value)),
+                            spec::F64::Value(value2) => value == value2,
+                        };
+                        if !value_matches {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            true
+        }
+
         _ => false,
     }
 }
 
-fn test_eq_vals(vs1: &[Value], vs2: &[Value]) -> bool {
-    vs1.len() == vs2.len()
-        && vs1
+/// Check if a list of wasmrun values match a list of values or patterns in a spec test.
+fn test_vals(
+    wasmrun_vals: &[Value],
+    spec_vals: &[spec::Value],
+    rt: &Runtime,
+    module_addr: ModuleAddr,
+) -> bool {
+    wasmrun_vals.len() == spec_vals.len()
+        && wasmrun_vals
             .iter()
-            .zip(vs2.iter())
-            .all(|(v1, v2)| test_eq_val(*v1, *v2))
+            .zip(spec_vals.iter())
+            .all(|(v1, v2)| test_val(*v1, *v2, rt, module_addr))
 }
 
 struct Output {
@@ -348,8 +449,6 @@ fn run_spec_cmd(
                 },
             };
 
-            let expected = eval_values(&expected, rt, module_addr);
-
             match rt.get_global(module_addr, &func) {
                 None => {
                     writeln!(out, "can't find global {:?}", func).unwrap();
@@ -360,7 +459,7 @@ fn run_spec_cmd(
                     assert_eq!(expected.len(), 1);
                     let expected = expected[0];
 
-                    if !test_eq_val(expected, val) {
+                    if !test_val(val, expected, rt, module_addr) {
                         writeln!(
                             out,
                             "expected != found. Expected: {:?}, Found: {:?}",
@@ -403,7 +502,6 @@ fn run_spec_cmd(
             };
 
             let args = eval_values(&args, rt, module_addr);
-            let expected = eval_values(&expected, rt, module_addr);
 
             rt.clear_stack();
             for arg in args {
@@ -444,7 +542,7 @@ fn run_spec_cmd(
 
                     found.reverse();
 
-                    if !test_eq_vals(&expected, &found) {
+                    if !test_vals(&found, &expected, rt, module_addr) {
                         writeln!(
                             out,
                             "expected != found. Expected: {:?}, Found: {:?}",
@@ -506,28 +604,133 @@ fn run_spec_cmd(
     }
 }
 
-fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Value {
-    match value {
-        spec::Value::I32(a) => Value::I32(*a),
-        spec::Value::I64(a) => Value::I64(*a),
-        spec::Value::I128(a) => Value::I128(*a),
-        spec::Value::F32(a) => Value::F32(*a),
-        spec::Value::F64(a) => Value::F64(*a),
-        spec::Value::NullRef(ty) => Value::Ref(Ref::Null(*ty)),
-        spec::Value::FuncRef(fun_idx) => {
-            // I can't find the spec for this, but for references the only sensible thing is to
-            // resolve the indices using the last registered module.
-            Value::Ref(Ref::Ref(rt.get_module_fun_addr(module_addr, *fun_idx)))
-        }
-        spec::Value::ExternRef(extern_addr) => Value::Ref(Ref::RefExtern(ExternAddr(*extern_addr))),
-    }
-}
-
+/// Evaluate spec test values to wasmrun stack values. Returned values can be used as test function
+/// inputs.
+///
+/// Panics when the spec value is a pattern like `nan:canonical` or `nan:arithmetic`.
 fn eval_values(values: &[spec::Value], rt: &Runtime, module_addr: ModuleAddr) -> Vec<Value> {
     values
         .iter()
         .map(|value| eval_value(value, rt, module_addr))
         .collect()
+}
+
+/// Evaluate a spec test value to wasmrun stack value. Returned value can be used as test function
+/// input.
+///
+/// Panics when the spec value is a pattern like `nan:canonical` or `nan:arithmetic`.
+fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Value {
+    match value {
+        spec::Value::I32(a) => Value::I32(*a as i32),
+
+        spec::Value::I64(a) => Value::I64(*a as i64),
+
+        spec::Value::V128(a) => {
+            let mut bytes = [0u8; 16];
+            match a {
+                spec::V128::I8x16(lanes) => {
+                    bytes.copy_from_slice(lanes);
+                }
+
+                spec::V128::I16x8(lanes) => {
+                    for i in 0..8 {
+                        (&mut bytes[i * 2..i * 2 + 2]).copy_from_slice(&lanes[i].to_le_bytes());
+                    }
+                }
+
+                spec::V128::I32x4(lanes) => {
+                    for i in 0..4 {
+                        (&mut bytes[i * 4..i * 4 + 4]).copy_from_slice(&lanes[i].to_le_bytes());
+                    }
+                }
+
+                spec::V128::I64x2(lanes) => {
+                    for i in 0..2 {
+                        (&mut bytes[i * 8..i * 8 + 8]).copy_from_slice(&lanes[i].to_le_bytes());
+                    }
+                }
+
+                spec::V128::F32x4(lanes) => {
+                    for i in 0..4 {
+                        match lanes[i] {
+                            spec::F32::CanonicalNan | spec::F32::ArithmeticNan => {
+                                panic!("NaN pattern in eval_value")
+                            }
+                            spec::F32::Value(value) => {
+                                (&mut bytes[i * 4..i * 4 + 4])
+                                    .copy_from_slice(&value.to_le_bytes());
+                            }
+                        }
+                    }
+                }
+
+                spec::V128::F64x2(lanes) => {
+                    for i in 0..2 {
+                        match lanes[i] {
+                            spec::F64::CanonicalNan | spec::F64::ArithmeticNan => {
+                                panic!("NaN pattern in eval_value")
+                            }
+                            spec::F64::Value(value) => {
+                                (&mut bytes[i * 8..i * 8 + 8])
+                                    .copy_from_slice(&value.to_le_bytes());
+                            }
+                        }
+                    }
+                }
+            }
+            Value::I128(i128::from_le_bytes(bytes))
+        }
+
+        spec::Value::F32(a) => match a {
+            spec::F32::CanonicalNan | spec::F32::ArithmeticNan => {
+                panic!("NaN pattern in eval_value")
+            }
+            spec::F32::Value(value) => Value::F32(f32::from_bits(*value)),
+        },
+
+        spec::Value::F64(a) => match a {
+            spec::F64::CanonicalNan | spec::F64::ArithmeticNan => {
+                panic!("NaN pattern in eval_value")
+            }
+            spec::F64::Value(value) => Value::F64(f64::from_bits(*value)),
+        },
+
+        spec::Value::NullRef(ty) => Value::Ref(Ref::Null(*ty)),
+
+        spec::Value::FuncRef(fun_idx) => {
+            // I can't find the spec for this, but for references the only sensible thing is to
+            // resolve the indices using the last registered module.
+            Value::Ref(Ref::Ref(rt.get_module_fun_addr(module_addr, *fun_idx)))
+        }
+
+        spec::Value::ExternRef(extern_addr) => Value::Ref(Ref::RefExtern(ExternAddr(*extern_addr))),
+    }
+}
+
+fn is_f32_canonical_nan(f: f32) -> bool {
+    if !f.is_nan() {
+        return false;
+    }
+    let (_sign, _exp, payload) = f.decompose();
+    payload == 0b10000000000000000000000
+}
+
+fn is_f32_arithmetic_nan(f: f32) -> bool {
+    // Positive or negative nan
+    f.is_nan()
+}
+
+fn is_f64_canonical_nan(f: f64) -> bool {
+    if !f.is_nan() {
+        return false;
+    }
+    let (_sign, _exp, payload) = f.decompose();
+    payload == 0b1000000000000000000000000000000000000000000000000000
+}
+
+fn is_f64_arithmetic_nan(f: f64) -> bool {
+    // Positive or negative nan
+    f.is_nan()
 }
 
 fn trap_expected_msg(trap: Trap) -> &'static str {

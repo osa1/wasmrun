@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::fmt::Display;
 use std::fs::read_to_string;
 use std::num::ParseIntError;
@@ -50,22 +49,58 @@ pub enum Command {
 pub enum ActionKind {
     /// Call a function
     Invoke,
+
     /// Call a function, expect it to trap
     Trap,
+
     /// Get a global
     GetGlobal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
-    I32(i32),
-    I64(i64),
-    I128(i128),
-    F32(f32),
-    F64(f64),
+    I32(u32),
+    I64(u64),
+    V128(V128),
+    F32(F32),
+    F64(F64),
     NullRef(wasm::ReferenceType),
     FuncRef(u32),
     ExternRef(u32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum V128 {
+    I8x16([u8; 16]),
+    I16x8([u16; 8]),
+    I32x4([u32; 4]),
+    I64x2([u64; 2]),
+    F32x4([F32; 4]),
+    F64x2([F64; 2]),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum F32 {
+    /// Matches positive and negative canonical NaNs
+    CanonicalNan,
+
+    /// Matches positive and negative NaNs
+    ArithmeticNan,
+
+    /// A specific bit pattern representing a 32-bit float. Can be NaN.
+    Value(u32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum F64 {
+    /// Matches positive and negative canonical NaNs
+    CanonicalNan,
+
+    /// Matches positive and negative NaNs
+    ArithmeticNan,
+
+    /// A specific bit pattern representing a 64-bit float. Can be NaN.
+    Value(u64),
 }
 
 pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
@@ -118,7 +153,9 @@ pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
                     module: action.module,
                     func: action.field,
                     args,
-                    expected: if action_kind != ActionKind::Trap {
+                    expected: if action_kind == ActionKind::Trap {
+                        vec![]
+                    } else {
                         let expected = command_de.expected.unwrap();
                         let mut values = Vec::with_capacity(expected.len());
                         for value in expected {
@@ -132,8 +169,6 @@ pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
                             }
                         }
                         values
-                    } else {
-                        vec![]
                     },
                     err_msg: command_de.text,
                 });
@@ -204,32 +239,28 @@ pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
 
 fn parse_value(value_de: ValueDe) -> Result<Value, String> {
     Ok(match value_de.typ.as_ref() {
-        "i32" => Value::I32(parse_str::<ParseIntError, u32>(value_de.expect_value()?) as i32),
-        "i64" => Value::I64(parse_str::<ParseIntError, u64>(value_de.expect_value()?) as i64),
+        "i32" => Value::I32(parse_str::<ParseIntError, u32>(value_de.expect_value()?)),
+        "i64" => Value::I64(parse_str::<ParseIntError, u64>(value_de.expect_value()?)),
         "f32" => {
             // f32::NAN = 0b0_11111111_10000000000000000000000
             // If I'm reading the spec right, nan:canonical and nan:arithmetic can be the same
             let str = value_de.expect_value()?;
             if str == "nan:canonical" {
-                Value::F32(f32::NAN)
+                Value::F32(F32::CanonicalNan)
             } else if str == "nan:arithmetic" {
-                Value::F32(f32::NAN)
+                Value::F32(F32::ArithmeticNan)
             } else {
-                let u32 = parse_str::<ParseIntError, u32>(str);
-                let f32 = f32::from_bits(u32);
-                Value::F32(f32)
+                Value::F32(F32::Value(parse_str::<ParseIntError, u32>(str)))
             }
         }
         "f64" => {
             let str = value_de.expect_value()?;
             if str == "nan:canonical" {
-                Value::F64(f64::NAN)
+                Value::F64(F64::CanonicalNan)
             } else if str == "nan:arithmetic" {
-                Value::F64(f64::NAN)
+                Value::F64(F64::ArithmeticNan)
             } else {
-                let u64 = parse_str::<ParseIntError, u64>(str);
-                let f64: f64 = f64::from_bits(u64);
-                Value::F64(f64)
+                Value::F64(F64::Value(parse_str::<ParseIntError, u64>(str)))
             }
         }
         "externref" => {
@@ -257,48 +288,64 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
                 None => return Err(format!("Vector value with no lane type")),
             };
             match lane_type.as_str() {
-                "i64" | "f64" => {
-                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                "i64" => {
+                    let mut v128 = [0u64; 2];
                     for i in 0..2 {
-                        let u64_bytes = if vec[i] == "nan:canonical" || vec[i] == "nan:arithmetic" {
-                            f64::NAN.to_le_bytes()
-                        } else {
-                            parse_str::<ParseIntError, u64>(&vec[i]).to_le_bytes()
-                        };
-                        bytes.extend(u64_bytes);
+                        v128[i] = parse_str::<ParseIntError, u64>(&vec[i]);
                     }
-                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
+                    Value::V128(V128::I64x2(v128))
                 }
 
-                "i32" | "f32" => {
-                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                "i32" => {
+                    let mut v128 = [0u32; 4];
                     for i in 0..4 {
-                        let u32_bytes = if vec[i] == "nan:canonical" || vec[i] == "nan:arithmetic" {
-                            f32::NAN.to_le_bytes()
-                        } else {
-                            parse_str::<ParseIntError, u32>(&vec[i]).to_le_bytes()
-                        };
-                        bytes.extend(u32_bytes);
+                        v128[i] = parse_str::<ParseIntError, u32>(&vec[i]);
                     }
-                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
+                    Value::V128(V128::I32x4(v128))
                 }
 
                 "i16" => {
-                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                    let mut v128 = [0u16; 8];
                     for i in 0..8 {
-                        let u16_bytes = parse_str::<ParseIntError, u16>(&vec[i]).to_le_bytes();
-                        bytes.extend(u16_bytes);
+                        v128[i] = parse_str::<ParseIntError, u16>(&vec[i]);
                     }
-                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
+                    Value::V128(V128::I16x8(v128))
                 }
 
                 "i8" => {
-                    let mut bytes: Vec<u8> = Vec::with_capacity(16);
+                    let mut v128 = [0u8; 16];
                     for i in 0..16 {
-                        let u8 = parse_str::<ParseIntError, u8>(&vec[i]);
-                        bytes.push(u8);
+                        v128[i] = parse_str::<ParseIntError, u8>(&vec[i]);
                     }
-                    Value::I128(i128::from_le_bytes(bytes.try_into().unwrap()))
+                    Value::V128(V128::I8x16(v128))
+                }
+
+                "f64" => {
+                    let mut v128 = [F64::Value(0); 2];
+                    for i in 0..2 {
+                        v128[i] = if vec[i] == "nan:canonical" {
+                            F64::CanonicalNan
+                        } else if vec[i] == "nan:arithmetic" {
+                            F64::ArithmeticNan
+                        } else {
+                            F64::Value(parse_str::<ParseIntError, u64>(&vec[i]))
+                        };
+                    }
+                    Value::V128(V128::F64x2(v128))
+                }
+
+                "f32" => {
+                    let mut v128 = [F32::Value(0); 4];
+                    for i in 0..4 {
+                        v128[i] = if vec[i] == "nan:canonical" {
+                            F32::CanonicalNan
+                        } else if vec[i] == "nan:arithmetic" {
+                            F32::ArithmeticNan
+                        } else {
+                            F32::Value(parse_str::<ParseIntError, u32>(&vec[i]))
+                        };
+                    }
+                    Value::V128(V128::F32x4(v128))
                 }
 
                 _ => {
