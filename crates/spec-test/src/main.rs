@@ -554,6 +554,11 @@ fn run_spec_cmd(
                     }
                 }
 
+                spec::ActionKind::Exception => {
+                    writeln!(out, "Skipping assert_exception test").unwrap();
+                    failing_lines.push(line);
+                }
+
                 spec::ActionKind::Trap => {
                     let err_msg = err_msg.unwrap();
 

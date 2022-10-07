@@ -55,6 +55,10 @@ pub enum ActionKind {
 
     /// Get a global
     GetGlobal,
+
+    /// Call a function, expect it to throw an exception. Currently the tests do not check tag of
+    /// the exceptions.
+    Exception,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -120,15 +124,18 @@ pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
                 name: command_de.name,
                 filename: command_de.filename.unwrap(),
             }),
-            "assert_return" | "assert_trap" => {
+            "assert_return" | "assert_trap" | "assert_exception" => {
                 let action = command_de.action.unwrap();
                 let action_kind = match action.typ.as_str() {
                     "invoke" => {
                         if command_de.typ == "assert_return" {
                             ActionKind::Invoke
-                        } else {
-                            assert_eq!(command_de.typ, "assert_trap");
+                        } else if command_de.typ == "assert_trap" {
                             ActionKind::Trap
+                        } else if command_de.typ == "assert_exception" {
+                            ActionKind::Exception
+                        } else {
+                            panic!("Unknown invoke action type: {}", command_de.typ)
                         }
                     }
                     "get" => ActionKind::GetGlobal,
@@ -153,22 +160,27 @@ pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
                     module: action.module,
                     func: action.field,
                     args,
-                    expected: if action_kind == ActionKind::Trap {
-                        vec![]
-                    } else {
-                        let expected = command_de.expected.unwrap();
-                        let mut values = Vec::with_capacity(expected.len());
-                        for value in expected {
-                            match parse_value(value) {
-                                Ok(value) => values.push(value),
-                                Err(err) => {
-                                    println!("{}", err);
-                                    failing_lines.push(command_de.line);
-                                    continue 'command_loop;
+                    expected: match action_kind {
+                        ActionKind::Trap => vec![],
+                        ActionKind::Exception => {
+                            // TODO: not sure what the expected types are for
+                            vec![]
+                        }
+                        ActionKind::Invoke | ActionKind::GetGlobal => {
+                            let expected = command_de.expected.unwrap();
+                            let mut values = Vec::with_capacity(expected.len());
+                            for value in expected {
+                                match parse_value(value) {
+                                    Ok(value) => values.push(value),
+                                    Err(err) => {
+                                        println!("{}", err);
+                                        failing_lines.push(command_de.line);
+                                        continue 'command_loop;
+                                    }
                                 }
                             }
+                            values
                         }
-                        values
                     },
                     err_msg: command_de.text,
                 });
