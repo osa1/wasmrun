@@ -110,7 +110,7 @@ pub(crate) struct SectionReader {
 impl SectionReader {
     pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let length = u32::from(VarUint32::deserialize(reader)?) as usize;
-        let inner_buffer = buffered_read!(ENTRIES_BUFFER_LENGTH, length, reader);
+        let inner_buffer = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(length, reader)?;
         let declared_length = inner_buffer.len();
         let cursor = io::Cursor::new(inner_buffer);
 
@@ -183,7 +183,7 @@ impl CustomSection {
 impl Deserialize for CustomSection {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let section_length: usize = u32::from(VarUint32::deserialize(reader)?) as usize;
-        let buf = buffered_read!(ENTRIES_BUFFER_LENGTH, section_length, reader);
+        let buf = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(section_length, reader)?;
         let mut cursor = io::Cursor::new(&buf[..]);
         let name = String::deserialize(&mut cursor)?;
         let payload = buf[cursor.position() as usize..].to_vec();

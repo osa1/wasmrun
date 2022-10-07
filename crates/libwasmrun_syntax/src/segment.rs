@@ -208,7 +208,7 @@ impl Deserialize for DataSegment {
 
         if passive {
             let data_len = u32::from(VarUint32::deserialize(reader)?) as usize;
-            let data = buffered_read!(VALUES_BUFFER_LENGTH, data_len, reader);
+            let data = io::buffered_read::<R, VALUES_BUFFER_LENGTH>(data_len, reader)?;
             Ok(DataSegment {
                 data,
                 mode: DataSegmentMode::Passive,
@@ -221,7 +221,7 @@ impl Deserialize for DataSegment {
             };
             let offset = InitExpr::deserialize(reader)?;
             let data_len = u32::from(VarUint32::deserialize(reader)?) as usize;
-            let data = buffered_read!(VALUES_BUFFER_LENGTH, data_len, reader);
+            let data = io::buffered_read::<R, VALUES_BUFFER_LENGTH>(data_len, reader)?;
             Ok(DataSegment {
                 data,
                 mode: DataSegmentMode::Active { mem_idx, offset },

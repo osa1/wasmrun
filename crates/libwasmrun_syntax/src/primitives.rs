@@ -370,8 +370,10 @@ impl Deserialize for VarUint1 {
 impl Deserialize for String {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let length = u32::from(VarUint32::deserialize(reader)?) as usize;
-        String::from_utf8(buffered_read!(PRIMITIVES_BUFFER_LENGTH, length, reader))
-            .map_err(|_| Error::NonUtf8String)
+        String::from_utf8(io::buffered_read::<R, PRIMITIVES_BUFFER_LENGTH>(
+            length, reader,
+        )?)
+        .map_err(|_| Error::NonUtf8String)
     }
 }
 
