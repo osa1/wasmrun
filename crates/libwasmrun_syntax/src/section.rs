@@ -514,23 +514,20 @@ mod tests {
         assert!(found, "There should be import section in test5.wasm");
     }
 
-    fn functions_test_payload() -> &'static [u8] {
-        &[
-            // functions section id
-            0x03u8, // functions section length
-            0x87, 0x80, 0x80, 0x80, 0x0,  // number of functions
-            0x04, // type reference 1
-            0x01, // type reference 2
-            0x86, 0x80, 0x00, // type reference 3
-            0x09, // type reference 4
-            0x33,
-        ]
-    }
+    const FUNCTIONS_TEST_PAYLOAD: [u8; 13] = [
+        3, // section id
+        0x87, 0x80, 0x80, 0x80, 0x0,  // section length
+        4,    // number of functions
+        0x01, // type ref 1
+        0x86, 0x80, 0x00, // type ref 2
+        0x09, // type ref 3
+        0x33, // type ref 4
+    ];
 
     #[test]
     fn fn_section_detect() {
         let section: Section =
-            deserialize_buffer(functions_test_payload()).expect("section to be deserialized");
+            deserialize_buffer(&FUNCTIONS_TEST_PAYLOAD).expect("section to be deserialized");
 
         match section {
             Section::Function(_) => {}
@@ -543,7 +540,7 @@ mod tests {
     #[test]
     fn fn_section_number() {
         let section: Section =
-            deserialize_buffer(functions_test_payload()).expect("section to be deserialized");
+            deserialize_buffer(&FUNCTIONS_TEST_PAYLOAD).expect("section to be deserialized");
 
         if let Section::Function(fn_section) = section {
             assert_eq!(
@@ -557,35 +554,33 @@ mod tests {
     #[test]
     fn fn_section_ref() {
         let section: Section =
-            deserialize_buffer(functions_test_payload()).expect("section to be deserialized");
+            deserialize_buffer(&FUNCTIONS_TEST_PAYLOAD).expect("section to be deserialized");
 
         if let Section::Function(fn_section) = section {
             assert_eq!(6, fn_section.entries()[1].type_ref());
         }
     }
 
-    fn types_test_payload() -> &'static [u8] {
-        &[
-            // section length
-            11,   // 2 functions
-            2,    // func 1, form =1
-            0x60, // param_count=1
-            1,    // first param
-            0x7e, // i64
-            // no return params
-            0x00, // func 2, form=1
-            0x60, // param_count=2
-            2,    // first param
-            0x7e, // second param
-            0x7d, // return param (is_present, param_type)
-            0x01, 0x7e,
-        ]
-    }
+    #[rustfmt::skip]
+    const TYPE_PAYLOAD: [u8; 12] = [
+        11,     // section size
+        2,      // 2 functions
+        0x60,   // constant
+        1,      // 1 arg
+        0x7e,
+        0x00,   // 0 return
+        0x60,   // constant
+        2,      // 2 args
+        0x7e,
+        0x7d,
+        0x01,   // 1 return
+        0x7e,
+    ];
 
     #[test]
     fn type_section_len() {
         let type_section: TypeSection =
-            deserialize_buffer(types_test_payload()).expect("type_section be deserialized");
+            deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
 
         assert_eq!(type_section.types().len(), 2);
     }
@@ -593,34 +588,30 @@ mod tests {
     #[test]
     fn type_section_infer() {
         let type_section: TypeSection =
-            deserialize_buffer(types_test_payload()).expect("type_section be deserialized");
+            deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
 
         let Type::Function(ref t1) = type_section.types()[1];
         assert_eq!(vec![ValueType::I64], t1.results());
         assert_eq!(2, t1.params().len());
     }
 
-    fn export_payload() -> &'static [u8] {
-        &[
-            // section id
-            0x07, // section length
-            28,   // 6 entries
-            6,
-            // func "A", index 6
-            // [name_len(1-5 bytes), name_bytes(name_len, internal_kind(1byte), internal_index(1-5 bytes)])
-            0x01, 0x41, 0x01, 0x86, 0x80, 0x00, // func "B", index 8
-            0x01, 0x42, 0x01, 0x86, 0x00, // func "C", index 7
-            0x01, 0x43, 0x01, 0x07, // memory "D", index 0
-            0x01, 0x44, 0x02, 0x00, // func "E", index 1
-            0x01, 0x45, 0x01, 0x01, // func "F", index 2
-            0x01, 0x46, 0x01, 0x02,
-        ]
-    }
-
     #[test]
     fn export_detect() {
+        let export_payload = [
+            0x07, // section id = 7
+            28,   // section length = 28
+            6,    // num entries
+            // [name_len(1-5 bytes), name_bytes(name_len, internal_kind(1byte), internal_index(1-5 bytes)])
+            0x01, 0x41, 0x01, 0x86, 0x80, 0x00, // func "A", index 6
+            0x01, 0x42, 0x01, 0x86, 0x00, // func "B", index 8
+            0x01, 0x43, 0x01, 0x07, // func "C", index 7
+            0x01, 0x44, 0x02, 0x00, // memory "D", index 0
+            0x01, 0x45, 0x01, 0x01, // func "E", index 1
+            0x01, 0x46, 0x01, 0x02, // func "F", index 2
+        ];
+
         let section: Section =
-            deserialize_buffer(export_payload()).expect("section to be deserialized");
+            deserialize_buffer(&export_payload).expect("section to be deserialized");
 
         match section {
             Section::Export(_) => {}
@@ -630,13 +621,15 @@ mod tests {
         }
     }
 
-    fn code_payload() -> &'static [u8] {
-        &[
-            // sectionid
-            0x0Au8, // section length, 32
-            0x20,   // body count
-            0x01,   // body 1, length 30
-            0x1E, 0x01, 0x01, 0x7F, // local i32 (one collection of length one of type i32)
+    #[test]
+    fn code_detect() {
+        let code_payload = [
+            0x0A, // section id = 10
+            32,   // section length
+            1,    // function count
+            30,   // function body size
+            1,    // local vedc length
+            0x01, 0x7F, // one local of type i32
             0x02, 0x7F, // block i32
             0x23, 0x00, // get_global 0
             0x21, 0x01, // set_local 1
@@ -651,14 +644,12 @@ mod tests {
             0x71, // i32.and
             0x24, 0x00, // set_global 0
             0x20, 0x01, // get_local 1
-            0x0B, 0x0B,
-        ]
-    }
+            0x0B, // end block
+            0x0B, // end expr
+        ];
 
-    #[test]
-    fn code_detect() {
         let section: Section =
-            deserialize_buffer(code_payload()).expect("section to be deserialized");
+            deserialize_buffer(&code_payload).expect("section to be deserialized");
 
         match section {
             Section::Code(_) => {}
@@ -671,10 +662,10 @@ mod tests {
     fn data_payload() -> &'static [u8] {
         &[
             0x0bu8, // section id
-            20,     // 20 bytes overall
+            20,     // section length
             0x01,   // number of segments
             0x00,   // index
-            0x0b,   // just `end` op
+            0x0b,   // end
             0x10,   // 16x 0x00
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00,
