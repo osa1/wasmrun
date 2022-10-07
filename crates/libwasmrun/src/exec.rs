@@ -329,7 +329,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     let module_addr = rt.store.allocate_module(Module::default());
 
     if let Some(type_section) = parsed_module.type_section_mut() {
-        for ty in type_section.types_mut().drain(..) {
+        for ty in type_section.entries_mut().drain(..) {
             match ty {
                 wasm::Type::Function(fun_ty) => {
                     rt.store.get_module_mut(module_addr).add_type(fun_ty);
@@ -390,7 +390,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
     // Allocate functions
     if let Some(code_section) = parsed_module.code_section_mut().take() {
-        for (fun_idx, fun) in take(code_section.bodies_mut()).into_iter().enumerate() {
+        for (fun_idx, fun) in take(code_section.entries_mut()).into_iter().enumerate() {
             let function_section = parsed_module.function_section().ok_or_else(|| {
                 ExecError::Panic("Module has a code section but no function section".to_string())
             })?;

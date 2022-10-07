@@ -632,7 +632,7 @@ impl Deserialize for Module {
 
         if module
             .code_section()
-            .map(|cs| cs.bodies().len())
+            .map(|cs| cs.entries().len())
             .unwrap_or(0)
             != module
                 .function_section()
@@ -734,7 +734,7 @@ mod integration_tests {
         let func = &module
             .code_section()
             .expect("Code section to exist")
-            .bodies()[0];
+            .entries()[0];
         assert_eq!(func.code().elements().len(), 20);
 
         assert_eq!(I64Const(9223372036854775807), func.code().elements()[0]);
@@ -766,7 +766,7 @@ mod integration_tests {
         let func = &module
             .code_section()
             .expect("Code section to exist")
-            .bodies()[0];
+            .entries()[0];
 
         assert_eq!(func.code().elements().len(), 5);
         assert_eq!(I64Store(0, 32), func.code().elements()[2]);
@@ -1002,11 +1002,11 @@ mod integration_tests {
             .is_err());
 
         assert!(module
-            .insert_section(Section::Type(TypeSection::with_types(vec![])))
+            .insert_section(Section::Type(TypeSection::with_entries(vec![])))
             .is_ok());
         // Duplicate.
         assert!(module
-            .insert_section(Section::Type(TypeSection::with_types(vec![])))
+            .insert_section(Section::Type(TypeSection::with_entries(vec![])))
             .is_err());
 
         assert!(module
@@ -1018,11 +1018,11 @@ mod integration_tests {
             .is_err());
 
         assert!(module
-            .insert_section(Section::Code(CodeSection::with_bodies(vec![])))
+            .insert_section(Section::Code(CodeSection::with_entries(vec![])))
             .is_ok());
         // Duplicate.
         assert!(module
-            .insert_section(Section::Code(CodeSection::with_bodies(vec![])))
+            .insert_section(Section::Code(CodeSection::with_entries(vec![])))
             .is_err());
     }
 }

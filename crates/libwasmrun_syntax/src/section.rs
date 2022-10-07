@@ -1,56 +1,46 @@
 use crate::{
     io, name_section::NameSection, reloc_section::RelocSection, types::Type, CountedList,
-    DataSegment, Deserialize, ElementSegment, Error, ExportEntry, External, Func, FuncBody,
-    GlobalEntry, ImportEntry, MemoryType, TableType, VarUint32, VarUint7,
+    DataSegment, Deserialize, ElementSegment, Error, ExportEntry, Func, FuncBody, GlobalEntry,
+    ImportEntry, MemoryType, TableType, VarUint32, VarUint7,
 };
 
 const ENTRIES_BUFFER_LENGTH: usize = 16384;
 
-/// Section in the WebAssembly module.
+/// A section in a WebAssembly module
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Section {
-    /// Custom section (`id=0`).
-    Custom(CustomSection),
-    /// Types section.
     Type(TypeSection),
-    /// Import section.
     Import(ImportSection),
-    /// Function signatures section.
     Function(FunctionSection),
-    /// Table definition section.
     Table(TableSection),
-    /// Memory definition section.
     Memory(MemorySection),
-    /// Global entries section.
     Global(GlobalSection),
-    /// Export definitions.
     Export(ExportSection),
-    /// Entry reference of the module.
     Start(u32),
-    /// Elements section.
     Element(ElementSection),
-    /// Number of passive data entries in the data section
     DataCount(u32),
-    /// Function bodies section.
     Code(CodeSection),
-    /// Data definition section.
     Data(DataSection),
-    /// Name section.
+
+    /// A custom section
+    Custom(CustomSection),
+
+    /// A name section.
     ///
     /// Note that initially it is not parsed until `parse_names` is called explicitly.
     Name(NameSection),
-    /// Relocation section.
+
+    /// A relocation section.
     ///
-    /// Note that initially it is not parsed until `parse_reloc` is called explicitly.
-    /// Also note that currently there are serialization (but not de-serialization)
-    ///   issues with this section (#198).
+    /// Note that relocation sections are not parsed until `parse_reloc` is called explicitly.
+    /// Also, currently there are serialization (but not de-serialization) issues with this section
+    /// (parity-wasm#198).
     Reloc(RelocSection),
 }
 
 impl Deserialize for Section {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let id = match VarUint7::deserialize(reader) {
-            // todo: be more selective detecting no more section
             Err(_) => return Err(Error::UnexpectedEof),
             Ok(id) => id,
         };
@@ -206,18 +196,15 @@ impl Deserialize for CustomSection {
 pub struct TypeSection(Vec<Type>);
 
 impl TypeSection {
-    ///  New type section with provided types.
-    pub fn with_types(types: Vec<Type>) -> Self {
+    pub fn with_entries(types: Vec<Type>) -> Self {
         TypeSection(types)
     }
 
-    /// List of type declarations.
-    pub fn types(&self) -> &[Type] {
+    pub fn entries(&self) -> &[Type] {
         &self.0
     }
 
-    /// List of type declarations (mutable).
-    pub fn types_mut(&mut self) -> &mut Vec<Type> {
+    pub fn entries_mut(&mut self) -> &mut Vec<Type> {
         &mut self.0
     }
 }
@@ -233,35 +220,16 @@ impl Deserialize for TypeSection {
 pub struct ImportSection(Vec<ImportEntry>);
 
 impl ImportSection {
-    ///  New import section with provided types.
     pub fn with_entries(entries: Vec<ImportEntry>) -> Self {
         ImportSection(entries)
     }
 
-    /// List of import entries.
     pub fn entries(&self) -> &[ImportEntry] {
         &self.0
     }
 
-    /// List of import entries (mutable).
     pub fn entries_mut(&mut self) -> &mut Vec<ImportEntry> {
         &mut self.0
-    }
-
-    /// Returns number of functions.
-    pub fn functions(&self) -> usize {
-        self.0
-            .iter()
-            .filter(|entry| matches!(*entry.external(), External::Function(_)))
-            .count()
-    }
-
-    /// Returns number of globals
-    pub fn globals(&self) -> usize {
-        self.0
-            .iter()
-            .filter(|entry| matches!(entry.external(), &External::Global(_)))
-            .count()
     }
 }
 
@@ -276,19 +244,16 @@ impl Deserialize for ImportSection {
 pub struct FunctionSection(Vec<Func>);
 
 impl FunctionSection {
-    ///  New function signatures section with provided entries.
     pub fn with_entries(entries: Vec<Func>) -> Self {
         FunctionSection(entries)
     }
 
-    /// List of all functions in the section, mutable.
-    pub fn entries_mut(&mut self) -> &mut Vec<Func> {
-        &mut self.0
-    }
-
-    /// List of all functions in the section.
     pub fn entries(&self) -> &[Func] {
         &self.0
+    }
+
+    pub fn entries_mut(&mut self) -> &mut Vec<Func> {
+        &mut self.0
     }
 }
 
@@ -303,17 +268,14 @@ impl Deserialize for FunctionSection {
 pub struct TableSection(Vec<TableType>);
 
 impl TableSection {
-    /// Table entries.
-    pub fn entries(&self) -> &[TableType] {
-        &self.0
-    }
-
-    ///  New table section with provided table entries.
     pub fn with_entries(entries: Vec<TableType>) -> Self {
         TableSection(entries)
     }
 
-    /// Mutable table entries.
+    pub fn entries(&self) -> &[TableType] {
+        &self.0
+    }
+
     pub fn entries_mut(&mut self) -> &mut Vec<TableType> {
         &mut self.0
     }
@@ -330,17 +292,14 @@ impl Deserialize for TableSection {
 pub struct MemorySection(Vec<MemoryType>);
 
 impl MemorySection {
-    /// List of all memory entries in the section
-    pub fn entries(&self) -> &[MemoryType] {
-        &self.0
-    }
-
-    ///  New memory section with memory types.
     pub fn with_entries(entries: Vec<MemoryType>) -> Self {
         MemorySection(entries)
     }
 
-    /// Mutable list of all memory entries in the section.
+    pub fn entries(&self) -> &[MemoryType] {
+        &self.0
+    }
+
     pub fn entries_mut(&mut self) -> &mut Vec<MemoryType> {
         &mut self.0
     }
@@ -357,17 +316,14 @@ impl Deserialize for MemorySection {
 pub struct GlobalSection(Vec<GlobalEntry>);
 
 impl GlobalSection {
-    /// List of all global entries in the section.
-    pub fn entries(&self) -> &[GlobalEntry] {
-        &self.0
-    }
-
-    /// New global section from list of global entries.
     pub fn with_entries(entries: Vec<GlobalEntry>) -> Self {
         GlobalSection(entries)
     }
 
-    /// List of all global entries in the section (mutable).
+    pub fn entries(&self) -> &[GlobalEntry] {
+        &self.0
+    }
+
     pub fn entries_mut(&mut self) -> &mut Vec<GlobalEntry> {
         &mut self.0
     }
@@ -384,17 +340,14 @@ impl Deserialize for GlobalSection {
 pub struct ExportSection(Vec<ExportEntry>);
 
 impl ExportSection {
-    /// List of all export entries in the section.
-    pub fn entries(&self) -> &[ExportEntry] {
-        &self.0
-    }
-
-    /// New export section from list of export entries.
     pub fn with_entries(entries: Vec<ExportEntry>) -> Self {
         ExportSection(entries)
     }
 
-    /// List of all export entries in the section (mutable).
+    pub fn entries(&self) -> &[ExportEntry] {
+        &self.0
+    }
+
     pub fn entries_mut(&mut self) -> &mut Vec<ExportEntry> {
         &mut self.0
     }
@@ -411,18 +364,15 @@ impl Deserialize for ExportSection {
 pub struct CodeSection(Vec<FuncBody>);
 
 impl CodeSection {
-    /// New code section with specified function bodies.
-    pub fn with_bodies(bodies: Vec<FuncBody>) -> Self {
-        CodeSection(bodies)
+    pub fn with_entries(entries: Vec<FuncBody>) -> Self {
+        CodeSection(entries)
     }
 
-    /// All function bodies in the section.
-    pub fn bodies(&self) -> &[FuncBody] {
+    pub fn entries(&self) -> &[FuncBody] {
         &self.0
     }
 
-    /// All function bodies in the section, mutable.
-    pub fn bodies_mut(&mut self) -> &mut Vec<FuncBody> {
+    pub fn entries_mut(&mut self) -> &mut Vec<FuncBody> {
         &mut self.0
     }
 }
@@ -438,17 +388,14 @@ impl Deserialize for CodeSection {
 pub struct ElementSection(Vec<ElementSegment>);
 
 impl ElementSection {
-    /// New elements section.
     pub fn with_entries(entries: Vec<ElementSegment>) -> Self {
         ElementSection(entries)
     }
 
-    /// New elements entries in the section.
     pub fn entries(&self) -> &[ElementSegment] {
         &self.0
     }
 
-    /// List of all data entries in the section (mutable).
     pub fn entries_mut(&mut self) -> &mut Vec<ElementSegment> {
         &mut self.0
     }
@@ -465,17 +412,14 @@ impl Deserialize for ElementSection {
 pub struct DataSection(Vec<DataSegment>);
 
 impl DataSection {
-    /// New data section.
     pub fn with_entries(entries: Vec<DataSegment>) -> Self {
         DataSection(entries)
     }
 
-    /// List of all data entries in the section.
     pub fn entries(&self) -> &[DataSegment] {
         &self.0
     }
 
-    /// List of all data entries in the section (mutable).
     pub fn entries_mut(&mut self) -> &mut Vec<DataSegment> {
         &mut self.0
     }
@@ -519,12 +463,10 @@ mod tests {
         let section: Section =
             deserialize_buffer(&FUNCTIONS_TEST_PAYLOAD).expect("section to be deserialized");
 
-        match section {
-            Section::Function(_) => {}
-            _ => {
-                panic!("Payload should be recognized as functions section")
-            }
-        }
+        assert!(
+            matches!(section, Section::Function(_)),
+            "Payload should be recognized as functions section"
+        );
     }
 
     #[test]
@@ -572,7 +514,7 @@ mod tests {
         let type_section: TypeSection =
             deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
 
-        assert_eq!(type_section.types().len(), 2);
+        assert_eq!(type_section.entries().len(), 2);
     }
 
     #[test]
@@ -580,7 +522,7 @@ mod tests {
         let type_section: TypeSection =
             deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
 
-        let Type::Function(ref t1) = type_section.types()[1];
+        let Type::Function(ref t1) = type_section.entries()[1];
         assert_eq!(vec![ValueType::I64], t1.results());
         assert_eq!(2, t1.params().len());
     }
@@ -603,12 +545,10 @@ mod tests {
         let section: Section =
             deserialize_buffer(&export_payload).expect("section to be deserialized");
 
-        match section {
-            Section::Export(_) => {}
-            _ => {
-                panic!("Payload should be recognized as export section")
-            }
-        }
+        assert!(
+            matches!(section, Section::Export(_)),
+            "Payload should be recognized as export section"
+        );
     }
 
     #[test]
@@ -641,12 +581,10 @@ mod tests {
         let section: Section =
             deserialize_buffer(&code_payload).expect("section to be deserialized");
 
-        match section {
-            Section::Code(_) => {}
-            _ => {
-                panic!("Payload should be recognized as a code section")
-            }
-        }
+        assert!(
+            matches!(section, Section::Code(_)),
+            "Payload should be recognized as a code section"
+        );
     }
 
     fn data_payload() -> &'static [u8] {
@@ -667,11 +605,9 @@ mod tests {
         let section: Section =
             deserialize_buffer(data_payload()).expect("section to be deserialized");
 
-        match section {
-            Section::Data(_) => {}
-            _ => {
-                panic!("Payload should be recognized as a data section")
-            }
-        }
+        assert!(
+            matches!(section, Section::Data(_)),
+            "Payload should be recognized as a data section"
+        );
     }
 }

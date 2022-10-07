@@ -201,7 +201,7 @@ impl LocalNameSubsection {
         let max_signature_args = module
             .type_section()
             .map(|ts| {
-                ts.types()
+                ts.entries()
                     .iter()
                     .map(|x| {
                         let Type::Function(ref func) = *x;
@@ -215,7 +215,7 @@ impl LocalNameSubsection {
         let max_locals = module
             .code_section()
             .map(|cs| {
-                cs.bodies()
+                cs.entries()
                     .iter()
                     .map(|f| f.locals().iter().map(|l| l.count() as usize).sum())
                     .max()
