@@ -9,13 +9,6 @@ const ENTRIES_BUFFER_LENGTH: usize = 16384;
 /// Section in the WebAssembly module.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Section {
-    /// Section is unparsed.
-    Unparsed {
-        /// id of the unparsed section.
-        id: u8,
-        /// raw bytes of the unparsed section.
-        payload: Vec<u8>,
-    },
     /// Custom section (`id=0`).
     Custom(CustomSection),
     /// Types section.
@@ -114,10 +107,7 @@ impl Section {
             Section::Data(_) => 11,
 
             // Custom sections come last
-            Section::Custom(_)
-            | Section::Unparsed { .. }
-            | Section::Name(_)
-            | Section::Reloc(_) => u8::MAX,
+            Section::Custom(_) | Section::Name(_) | Section::Reloc(_) => u8::MAX,
         }
     }
 }
