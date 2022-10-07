@@ -92,24 +92,32 @@ impl Deserialize for Section {
 }
 
 impl Section {
+    /// Order of the section in a valid Wasm module. Custom sections are the last and have
+    /// `u8::MAX` as the order.
+    ///
+    /// Note that order or a section is not the same as its id. For example, data count section id
+    /// is smaller than code section id, but data count section needs to come before code section
+    /// in a valid Wasm module.
     pub(crate) fn order(&self) -> u8 {
         match *self {
-            Section::Custom(_) => 0x00,
-            Section::Unparsed { .. } => 0x00,
-            Section::Type(_) => 0x1,
-            Section::Import(_) => 0x2,
-            Section::Function(_) => 0x3,
-            Section::Table(_) => 0x4,
-            Section::Memory(_) => 0x5,
-            Section::Global(_) => 0x6,
-            Section::Export(_) => 0x7,
-            Section::Start(_) => 0x8,
-            Section::Element(_) => 0x9,
-            Section::DataCount(_) => 0x0a,
-            Section::Code(_) => 0x0b,
-            Section::Data(_) => 0x0c,
-            Section::Name(_) => 0x00,
-            Section::Reloc(_) => 0x00,
+            Section::Type(_) => 0,
+            Section::Import(_) => 1,
+            Section::Function(_) => 2,
+            Section::Table(_) => 3,
+            Section::Memory(_) => 4,
+            Section::Global(_) => 5,
+            Section::Export(_) => 6,
+            Section::Start(_) => 7,
+            Section::Element(_) => 8,
+            Section::DataCount(_) => 9,
+            Section::Code(_) => 10,
+            Section::Data(_) => 11,
+
+            // Custom sections come last
+            Section::Custom(_)
+            | Section::Unparsed { .. }
+            | Section::Name(_)
+            | Section::Reloc(_) => u8::MAX,
         }
     }
 }

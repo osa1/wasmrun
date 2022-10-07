@@ -84,27 +84,20 @@ impl Module {
         &mut self.sections
     }
 
-    /// Insert a section, in the correct section ordering. This will fail with an error,
-    /// if the section can only appear once.
+    /// Insert a section, in the correct section ordering. This will fail with
+    /// `Error::DuplicatedSections` if the section already exists and it can appear at most once.
     pub fn insert_section(&mut self, section: Section) -> Result<(), Error> {
         let sections = self.sections_mut();
 
-        // Custom sections can be inserted anywhere. Lets always insert them last here.
-        if section.order() == 0 {
+        // Custom sections can appear more than once
+        if section.order() == u8::MAX {
             sections.push(section);
             return Ok(());
         }
 
-        // Check if the section already exists.
-        if sections.iter().any(|s| s.order() == section.order()) {
-            return Err(Error::DuplicatedSections(section.order()));
-        }
-
-        // Assume that the module is already well-ordered.
-        if let Some(pos) = sections.iter().position(|s| section.order() < s.order()) {
-            sections.insert(pos, section);
-        } else {
-            sections.push(section);
+        match sections.binary_search_by_key(&section.order(), Section::order) {
+            Ok(_) => return Err(Error::DuplicatedSections(section.order())),
+            Err(pos) => sections.insert(pos, section),
         }
 
         Ok(())
@@ -594,8 +587,6 @@ impl Module {
 
 impl Deserialize for Module {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let mut sections = Vec::new();
-
         let mut magic = [0u8; 4];
         reader.read(&mut magic)?;
         if magic != WASM_MAGIC_NUMBER {
@@ -608,34 +599,36 @@ impl Deserialize for Module {
             return Err(Error::UnsupportedVersion(version));
         }
 
-        let mut last_section_order = 0;
+        let mut module = Module {
+            magic: u32::from_le_bytes(magic),
+            version,
+            sections: Vec::new(),
+        };
+
+        let mut last_non_custom_section = None;
 
         loop {
             match Section::deserialize(reader) {
                 Err(Error::UnexpectedEof) => break,
                 Err(e) => return Err(e),
                 Ok(section) => {
-                    if section.order() != 0 {
-                        match last_section_order {
-                            x if x > section.order() => return Err(Error::SectionsOutOfOrder),
-                            x if x == section.order() => {
-                                return Err(Error::DuplicatedSections(last_section_order))
+                    let order = section.order();
+                    if order == u8::MAX {
+                        // Custom section
+                        module.sections.push(section);
+                    } else {
+                        // Non-custom section
+                        if let Some(last_section_order) = last_non_custom_section {
+                            if order < last_section_order {
+                                return Err(Error::SectionsOutOfOrder);
                             }
-                            _ => {}
-                        };
-
-                        last_section_order = section.order();
+                        }
+                        module.insert_section(section)?;
+                        last_non_custom_section = Some(order);
                     }
-                    sections.push(section);
                 }
             }
         }
-
-        let module = Module {
-            magic: u32::from_le_bytes(magic),
-            version,
-            sections,
-        };
 
         if module
             .code_section()
@@ -930,7 +923,7 @@ mod integration_tests {
             .iter()
             .map(|s| s.order())
             .collect::<Vec<_>>();
-        assert_eq!(sections, vec![1, 2, 3, 6, 7, 8, 9, 11, 12]);
+        assert_eq!(sections, vec![0, 1, 2, 5, 6, 7, 8, 10, 11]);
     }
 
     #[test]
@@ -943,7 +936,7 @@ mod integration_tests {
             .iter()
             .map(|s| s.order())
             .collect::<Vec<_>>();
-        assert_eq!(sections, vec![1, 2, 3, 6, 7, 9, 11, 12, 0]);
+        assert_eq!(sections, vec![0, 1, 2, 5, 6, 8, 10, 11, u8::MAX]);
 
         assert!(module.start_section().is_none());
         module.set_start_section(0);
@@ -959,7 +952,7 @@ mod integration_tests {
             .iter()
             .map(|s| s.order())
             .collect::<Vec<_>>();
-        assert_eq!(sections, vec![1, 2, 3, 6, 7, 8, 9, 11, 12, 0]);
+        assert_eq!(sections, vec![0, 1, 2, 5, 6, 7, 8, 10, 11, u8::MAX]);
     }
 
     #[test]
