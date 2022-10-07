@@ -287,6 +287,7 @@ fn run_spec_test(path: &Path, out: &mut Output) -> Result<Vec<usize>, String> {
 
     let cmd_ret = Command::new("wast2json")
         .arg("--debug-names")
+        .arg("--enable-all")
         .arg(path)
         .arg("-o")
         .arg(&spec_json_path)
