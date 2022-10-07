@@ -2463,7 +2463,7 @@ fn display() {
 
 #[test]
 fn size_off() {
-    assert!(::std::mem::size_of::<Instruction>() <= 24);
+    assert!(::std::mem::size_of::<Instruction>() <= 32);
 }
 
 #[test]
