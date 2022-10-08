@@ -1,4 +1,6 @@
-use super::{Deserialize, Error, ReferenceType, Uint8, ValueType, VarUint1, VarUint32, VarUint7};
+use super::{
+    Deserialize, Error, ReferenceType, TagType, Uint8, ValueType, VarUint1, VarUint32, VarUint7,
+};
 use crate::io;
 
 const FLAG_HAS_MAX: u8 = 0x01;
@@ -181,6 +183,8 @@ pub enum External {
     Memory(MemoryType),
     /// Describes local global entry to be imported as.
     Global(GlobalType),
+
+    Tag(TagType),
 }
 
 impl Deserialize for External {
@@ -191,6 +195,7 @@ impl Deserialize for External {
             0x01 => Ok(External::Table(TableType::deserialize(reader)?)),
             0x02 => Ok(External::Memory(MemoryType::deserialize(reader)?)),
             0x03 => Ok(External::Global(GlobalType::deserialize(reader)?)),
+            0x04 => Ok(External::Tag(TagType::deserialize(reader)?)),
             _ => Err(Error::UnknownExternalKind(kind.into())),
         }
     }

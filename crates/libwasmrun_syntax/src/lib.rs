@@ -29,7 +29,7 @@ pub use self::{
     },
     section::{
         CodeSection, CustomSection, DataSection, ElementSection, ExportSection, FunctionSection,
-        GlobalSection, ImportSection, MemorySection, Section, TableSection, TypeSection,
+        GlobalSection, ImportSection, MemorySection, Section, TableSection, TagType, TypeSection,
     },
     types::{BlockType, FunctionType, ReferenceType, Type, ValueType},
 };
@@ -131,6 +131,8 @@ pub enum Error {
     UnknownReferenceType(u8),
     /// Unknown element kind
     UnknownElementKind(u8),
+
+    InvalidTagAttribute(u8),
 }
 
 impl fmt::Display for Error {
@@ -179,6 +181,7 @@ impl fmt::Display for Error {
             Error::UnknownNameSubsectionType(n) => write!(f, "Unknown subsection type: {}", n),
             Error::UnknownReferenceType(n) => write!(f, "Unknown reference type: {}", n),
             Error::UnknownElementKind(n) => write!(f, "Unknown element kind: {}", n),
+            Error::InvalidTagAttribute(n) => write!(f, "Invalid tag attribute: {}", n),
         }
     }
 }
@@ -222,6 +225,7 @@ impl ::std::error::Error for Error {
             Error::UnknownNameSubsectionType(_) => "Unknown name subsections type",
             Error::UnknownReferenceType(_) => "Unknown reference type",
             Error::UnknownElementKind(_) => "Unknown element kind",
+            Error::InvalidTagAttribute(_) => "Invalid tag attribute",
         }
     }
 }

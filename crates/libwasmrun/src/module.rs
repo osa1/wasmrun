@@ -1,5 +1,5 @@
 use crate::export::{Export, ExportKind};
-use crate::store::{DataAddr, ElemAddr, FunAddr, GlobalAddr, MemAddr, TableAddr};
+use crate::store::{DataAddr, ElemAddr, FunAddr, GlobalAddr, MemAddr, TableAddr, TagAddr};
 
 use fxhash::FxHashMap;
 use libwasmrun_syntax as wasm;
@@ -25,6 +25,9 @@ pub(crate) struct DataIdx(pub u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ElemIdx(pub u32);
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TagIdx(pub u32);
+
 #[derive(Debug, Default)]
 pub(crate) struct Module {
     types: Vec<wasm::FunctionType>,
@@ -37,6 +40,7 @@ pub(crate) struct Module {
     name_to_fun: FxHashMap<String, FunIdx>,
     datas: Vec<DataAddr>,
     elems: Vec<ElemAddr>,
+    tag_addrs: Vec<TagAddr>,
 }
 
 impl Module {
@@ -94,6 +98,16 @@ impl Module {
         self.global_addrs[global_idx.0 as usize]
     }
 
+    pub(crate) fn add_tag(&mut self, tag_addr: TagAddr) -> TagIdx {
+        let ret = self.tag_addrs.len();
+        self.tag_addrs.push(tag_addr);
+        TagIdx(ret as u32)
+    }
+
+    pub(crate) fn get_tag(&self, tag_idx: TagIdx) -> TagAddr {
+        self.tag_addrs[tag_idx.0 as usize]
+    }
+
     pub(crate) fn add_export(&mut self, export: Export) {
         self.exports.push(export);
     }
@@ -136,6 +150,17 @@ impl Module {
             if let ExportKind::Global(global_idx) = export.kind() {
                 if export.field() == global {
                     return Some(self.get_global(global_idx));
+                }
+            }
+        }
+        None
+    }
+
+    pub(crate) fn get_exported_tag(&self, tag: &str) -> Option<TagAddr> {
+        for export in &self.exports {
+            if let ExportKind::Tag(tag_idx) = export.kind() {
+                if export.field() == tag {
+                    return Some(self.get_tag(tag_idx));
                 }
             }
         }

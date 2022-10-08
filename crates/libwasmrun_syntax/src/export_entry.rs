@@ -12,6 +12,8 @@ pub enum Internal {
     Memory(u32),
     /// Global reference.
     Global(u32),
+
+    Tag(u32),
 }
 
 impl Deserialize for Internal {
@@ -22,6 +24,7 @@ impl Deserialize for Internal {
             0x01 => Ok(Internal::Table(VarUint32::deserialize(reader)?.into())),
             0x02 => Ok(Internal::Memory(VarUint32::deserialize(reader)?.into())),
             0x03 => Ok(Internal::Global(VarUint32::deserialize(reader)?.into())),
+            0x04 => Ok(Internal::Tag(VarUint32::deserialize(reader)?.into())),
             _ => Err(Error::UnknownInternalKind(kind.into())),
         }
     }

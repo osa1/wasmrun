@@ -4,7 +4,9 @@ use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
 use crate::mem::Mem;
-use crate::module::{DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TypeIdx};
+use crate::module::{
+    DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
+};
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
 use crate::value::{self, Ref, Value};
@@ -338,6 +340,17 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         }
     }
 
+    if let Some(tag_section) = parsed_module.tag_section_mut() {
+        for tag in tag_section.entries_mut().drain(..) {
+            let tag_type = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(tag.type_));
+            let tag_addr = rt.store.allocate_tag(tag_type.clone());
+            rt.store.get_module_mut(module_addr).add_tag(tag_addr);
+        }
+    }
+
     // Number of functions seen in imports. Used to get function indices in code section
     let mut n_funs = 0;
 
@@ -383,6 +396,10 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                 wasm::External::Global(_gbl_ty) => {
                     let global_addr = imported_module.get_exported_global(field_name).unwrap();
                     rt.store.get_module_mut(module_addr).add_global(global_addr);
+                }
+                wasm::External::Tag(_ty_idx) => {
+                    let tag_addr = imported_module.get_exported_tag(field_name).unwrap();
+                    rt.store.get_module_mut(module_addr).add_tag(tag_addr);
                 }
             }
         }
@@ -598,6 +615,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                 wasm::Internal::Global(global_idx) => {
                     Export::new_global(export_field, GlobalIdx(*global_idx))
                 }
+                wasm::Internal::Tag(tag_idx) => Export::new_tag(export_field, TagIdx(*tag_idx)),
             };
             rt.store.get_module_mut(module_addr).add_export(export);
         }
@@ -2654,6 +2672,45 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
             rt.stack.push_ref(Ref::Ref(fun_addr))?;
             rt.ip += 1;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // Exception handling instructions
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::Try(_block_ty) => {
+            return Err(ExecError::Panic(
+                "Instruction not implemented: try".to_string(),
+            ));
+        }
+
+        Instruction::Catch(_tag_idx) => {
+            return Err(ExecError::Panic(
+                "Instruction not implemented: catch".to_string(),
+            ));
+        }
+
+        Instruction::CatchAll => {
+            return Err(ExecError::Panic(
+                "Instruction not implemented: catch_all".to_string(),
+            ));
+        }
+
+        Instruction::Delegate(_depth) => {
+            return Err(ExecError::Panic(
+                "Instruction not implemented: delegate".to_string(),
+            ));
+        }
+
+        Instruction::Throw(_tag_idx) => {
+            return Err(ExecError::Panic(
+                "Instruction not implemented: throw".to_string(),
+            ));
+        }
+
+        Instruction::Rethrow(_tag_idx) => {
+            return Err(ExecError::Panic(
+                "Instruction not implemented: rethrow".to_string(),
+            ));
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////

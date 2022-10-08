@@ -8,7 +8,7 @@ use crate::value::Value;
 use crate::Result;
 pub use table::Table;
 
-use libwasmrun_syntax::{self as wasm, IndexMap};
+use libwasmrun_syntax::{self as wasm, FunctionType, IndexMap};
 
 use std::rc::Rc;
 
@@ -36,6 +36,9 @@ pub(crate) struct DataAddr(u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ElemAddr(u32);
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TagAddr(u32);
+
 #[derive(Default)]
 pub struct Store {
     modules: Vec<Module>,
@@ -43,6 +46,7 @@ pub struct Store {
     tables: Vec<Table>,
     mems: Vec<Mem>,
     globals: Vec<Global>,
+    tags: Vec<Tag>,
     datas: Vec<wasm::DataSegment>,
     elems: Vec<wasm::ElementSegment>,
 }
@@ -175,6 +179,15 @@ impl Store {
     pub(crate) fn get_elem_mut(&mut self, elem_addr: ElemAddr) -> &mut wasm::ElementSegment {
         &mut self.elems[elem_addr.0 as usize]
     }
+
+    pub(crate) fn allocate_tag(&mut self, tag_ty: wasm::FunctionType) -> TagAddr {
+        let ret = self.tags.len() as u32;
+        self.tags.push(Tag {
+            id: ret,
+            ty: tag_ty,
+        });
+        TagAddr(ret)
+    }
 }
 
 #[derive(Debug)]
@@ -182,4 +195,14 @@ pub(crate) struct Global {
     pub(crate) value: Value,
     #[allow(unused)]
     pub(crate) mutable: bool, // Only needed for validation
+}
+
+// NB. Currently there is one type of tag which is for exceptions
+#[derive(Debug)]
+pub(crate) struct Tag {
+    /// Unique id of the tag
+    pub(crate) id: u32,
+
+    /// Type of the exception tag
+    pub(crate) ty: FunctionType,
 }

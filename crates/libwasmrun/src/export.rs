@@ -1,4 +1,4 @@
-use crate::module::{FunIdx, GlobalIdx, MemIdx, TableIdx};
+use crate::module::{FunIdx, GlobalIdx, MemIdx, TableIdx, TagIdx};
 
 #[derive(Debug)]
 pub(crate) struct Export {
@@ -12,6 +12,7 @@ pub(crate) enum ExportKind {
     Table(TableIdx),
     Mem(MemIdx),
     Global(GlobalIdx),
+    Tag(TagIdx),
 }
 
 impl Export {
@@ -39,6 +40,13 @@ impl Export {
     pub(crate) fn new_global(field: String, global_idx: GlobalIdx) -> Self {
         Export {
             kind: ExportKind::Global(global_idx),
+            field,
+        }
+    }
+
+    pub(crate) fn new_tag(field: String, tag_idx: TagIdx) -> Self {
+        Export {
+            kind: ExportKind::Tag(tag_idx),
             field,
         }
     }
