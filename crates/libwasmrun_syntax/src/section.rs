@@ -495,7 +495,7 @@ mod tests {
         let module = deserialize_file("./res/cases/v1/test5.wasm").expect("Should be deserialized");
         let mut found = false;
         for section in module.sections() {
-            if let Section::Import(ref import_section) = *section {
+            if let Section::Import(import_section) = section {
                 assert_eq!(25, import_section.entries().len());
                 found = true
             }
@@ -577,7 +577,7 @@ mod tests {
         let type_section: TypeSection =
             deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
 
-        let Type::Function(ref t1) = type_section.entries()[1];
+        let Type::Function(t1) = &type_section.entries()[1];
         assert_eq!(vec![ValueType::I64], t1.results());
         assert_eq!(2, t1.params().len());
     }

@@ -242,7 +242,7 @@ mod tests {
             .expect("Reloc section should be deserialized");
         let mut found = false;
         for section in module.sections() {
-            if let Section::Reloc(ref reloc_section) = *section {
+            if let Section::Reloc(reloc_section) = section {
                 assert_eq!(
                     vec![
                         RelocationEntry::MemoryAddressSleb {

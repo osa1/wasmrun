@@ -201,8 +201,10 @@ pub(crate) struct Global {
 #[derive(Debug)]
 pub(crate) struct Tag {
     /// Unique id of the tag
+    #[allow(unused)]
     pub(crate) id: u32,
 
     /// Type of the exception tag
+    #[allow(unused)]
     pub(crate) ty: FunctionType,
 }

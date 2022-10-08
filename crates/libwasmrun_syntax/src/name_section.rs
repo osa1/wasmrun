@@ -204,7 +204,7 @@ impl LocalNameSubsection {
                 ts.entries()
                     .iter()
                     .map(|x| {
-                        let Type::Function(ref func) = *x;
+                        let Type::Function(func) = x;
                         func.params().len()
                     })
                     .max()

@@ -44,8 +44,8 @@ impl<T> IndexMap<T> {
     /// Return the name for the specified index, if it exists.
     pub fn get(&self, idx: u32) -> Option<&T> {
         match self.entries.get(idx as usize) {
-            Some(&Some(ref value)) => Some(value),
-            Some(&None) | None => None,
+            Some(Some(value)) => Some(value),
+            Some(None) | None => None,
         }
     }
 
@@ -295,7 +295,7 @@ impl<'a, T: 'static> Iterator for Iter<'a, T> {
         for value_opt in &mut self.iter {
             let idx = self.next_idx;
             self.next_idx += 1;
-            if let Some(ref value) = *value_opt {
+            if let Some(value) = value_opt {
                 self.remaining_len -= 1;
                 return Some((idx, value));
             }

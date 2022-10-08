@@ -2093,7 +2093,7 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Instruction::*;
 
-        match *self {
+        match self {
             Unreachable => fmt_op!(f, "unreachable"),
             Nop => fmt_op!(f, "nop"),
             Block(BlockType::Empty) => fmt_op!(f, "block"),
@@ -2109,13 +2109,13 @@ impl fmt::Display for Instruction {
             End => fmt_op!(f, "end"),
             Br(idx) => fmt_op!(f, "br", idx),
             BrIf(idx) => fmt_op!(f, "br_if", idx),
-            BrTable(ref table) => fmt_op!(f, "br_table", table.default),
+            BrTable(table) => fmt_op!(f, "br_table", table.default),
             Return => fmt_op!(f, "return"),
             Call(index) => fmt_op!(f, "call", index),
             CallIndirect(index, _) => fmt_op!(f, "call_indirect", index),
             Drop => fmt_op!(f, "drop"),
             Select(None) => fmt_op!(f, "select"),
-            Select(Some(ref tys)) => write!(f, "select {:?}", tys),
+            Select(Some(tys)) => write!(f, "select {:?}", tys),
             GetLocal(index) => fmt_op!(f, "get_local", index),
             SetLocal(index) => fmt_op!(f, "set_local", index),
             TeeLocal(index) => fmt_op!(f, "tee_local", index),
@@ -2345,7 +2345,7 @@ impl fmt::Display for Instruction {
             I64TruncSatUF64 => write!(f, "i64.trunc_sat_f64_u"),
             I64TruncSatSF64 => write!(f, "i64.trunc_sat_f64_s"),
 
-            SignExt(ref i) => match i {
+            SignExt(i) => match i {
                 SignExtInstruction::I32Extend8S => write!(f, "i32.extend8_s"),
                 SignExtInstruction::I32Extend16S => write!(f, "i32.extend16_s"),
                 SignExtInstruction::I64Extend8S => write!(f, "i64.extend8_s"),
@@ -2353,9 +2353,9 @@ impl fmt::Display for Instruction {
                 SignExtInstruction::I64Extend32S => write!(f, "i64.extend32_s"),
             },
 
-            Atomics(ref i) => i.fmt(f),
+            Atomics(i) => i.fmt(f),
 
-            Simd(ref i) => i.fmt(f),
+            Simd(i) => i.fmt(f),
 
             MemoryInit(mem_idx) => fmt_op!(f, "memory.init", mem_idx),
             DataDrop(data_idx) => fmt_op!(f, "data.drop", data_idx),

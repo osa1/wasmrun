@@ -32,25 +32,35 @@ pub(crate) const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 pub enum Trap {
     /// Undefined table element called
     UndefinedElement,
+
     /// Uninitialized table element called
     UninitializedElement,
+
     /// Indirect function call target doesn't have expected type
     IndirectCallTypeMismatch,
+
     /// Element out of bounds
     ElementOOB,
+
     /// Out of bounds memory access
     OOBMemoryAccess,
+
     /// Out of bounds table access
     OOBTableAccess,
+
     /// Integer divide by zero
     IntDivideByZero,
+
     /// Integer overflow
     IntOverflow,
+
     /// Invalid conversion to integer
     InvalidConvToInt,
+
     /// 'unreachable' instruction executed
     Unreachable,
-    /// `call_indirect` called with a extern reference table
+
+    /// `call_indirect` called with an extern reference table
     CallIndirectOnExternRef,
 }
 

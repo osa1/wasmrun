@@ -137,7 +137,7 @@ pub enum Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             Error::UnexpectedEof => write!(f, "Unexpected end of input"),
             Error::InvalidMagic => write!(f, "Invalid magic number at start of file"),
             Error::UnsupportedVersion(v) => write!(f, "Unsupported wasm version {}", v),
@@ -145,7 +145,7 @@ impl fmt::Display for Error {
                 write!(f, "Expected length {}, found {}", expected, actual)
             }
             Error::Other(msg) => write!(f, "{}", msg),
-            Error::HeapOther(ref msg) => write!(f, "{}", msg),
+            Error::HeapOther(msg) => write!(f, "{}", msg),
             Error::UnknownValueType(ty) => write!(f, "Invalid or unknown value type {}", ty),
             Error::UnknownBlockType(ty) => write!(f, "Invalid or unknown block type {}", ty),
             Error::UnknownTableElementType(ty) => write!(f, "Unknown table element type {}", ty),
@@ -161,14 +161,14 @@ impl fmt::Display for Error {
             Error::InvalidVarInt64 => write!(f, "Not a signed 64-bit integer"),
             Error::InvalidVarUint64 => write!(f, "Not an unsigned 64-bit integer"),
             Error::InconsistentMetadata => write!(f, "Inconsistent metadata"),
-            Error::InvalidSectionId(ref id) => write!(f, "Invalid section id: {}", id),
+            Error::InvalidSectionId(id) => write!(f, "Invalid section id: {}", id),
             Error::SectionsOutOfOrder => write!(f, "Sections out of order"),
-            Error::DuplicatedSections(ref id) => write!(f, "Duplicated sections ({})", id),
-            Error::InvalidMemoryReference(ref mem_ref) => {
+            Error::DuplicatedSections(id) => write!(f, "Duplicated sections ({})", id),
+            Error::InvalidMemoryReference(mem_ref) => {
                 write!(f, "Invalid memory reference ({})", mem_ref)
             }
-            Error::InvalidLimitsFlags(ref flags) => write!(f, "Invalid limits flags ({})", flags),
-            Error::UnknownFunctionForm(ref form) => write!(f, "Unknown function form ({})", form),
+            Error::InvalidLimitsFlags(flags) => write!(f, "Invalid limits flags ({})", flags),
+            Error::UnknownFunctionForm(form) => write!(f, "Unknown function form ({})", form),
             Error::InconsistentCode => {
                 write!(
                     f,
@@ -188,13 +188,13 @@ impl fmt::Display for Error {
 
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
-        match *self {
+        match self {
             Error::UnexpectedEof => "Unexpected end of input",
             Error::InvalidMagic => "Invalid magic number at start of file",
             Error::UnsupportedVersion(_) => "Unsupported wasm version",
             Error::InconsistentLength { .. } => "Inconsistent length",
             Error::Other(msg) => msg,
-            Error::HeapOther(ref msg) => &msg[..],
+            Error::HeapOther(msg) => &msg[..],
             Error::UnknownValueType(_) => "Invalid or unknown value type",
             Error::UnknownBlockType(_) => "Invalid or unknown block type",
             Error::UnknownTableElementType(_) => "Unknown table element type",
