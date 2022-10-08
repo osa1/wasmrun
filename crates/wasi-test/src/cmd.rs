@@ -16,8 +16,7 @@ pub(crate) fn parse_cmds(contents: &str) -> Vec<Cmd> {
 
     for line in contents.lines() {
         let line = line.trim();
-        if line.starts_with("//") {
-            let line = line[2..].trim_start();
+        if let Some(line) = line.strip_prefix("//") {
             let words = line.split_whitespace().collect::<Vec<_>>();
             match words[0] {
                 "wasm-preopen" => {

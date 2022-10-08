@@ -112,19 +112,10 @@ impl Deserialize for BlockType {
 }
 
 /// A function type
-#[derive(Debug, Clone, PartialEq, Hash, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Hash, Eq)]
 pub struct FunctionType {
     params: Vec<ValueType>,
     results: Vec<ValueType>,
-}
-
-impl Default for FunctionType {
-    fn default() -> Self {
-        FunctionType {
-            params: Vec::new(),
-            results: Vec::new(),
-        }
-    }
 }
 
 impl FunctionType {

@@ -16,7 +16,7 @@ use libwasmrun_syntax as wasm;
 
 fn main() {
     let cli::Args { file } = cli::parse();
-    let file_path = file.as_ref().map(|s| s.as_str()).unwrap_or("tests/spec");
+    let file_path = file.as_deref().unwrap_or("tests/spec");
     let file_meta = fs::metadata(file_path).expect("Unable to get input file or dir metadata");
 
     if file_meta.is_dir() {
@@ -231,7 +231,7 @@ impl Write for Output {
             None => io::stdout().lock().write(buf),
             Some(file) => match file.write(buf) {
                 Ok(n_written) => {
-                    io::stdout().lock().write(&buf[..n_written]).unwrap();
+                    let _ = io::stdout().lock().write(&buf[..n_written]).unwrap();
                     Ok(n_written)
                 }
                 Err(err) => {
@@ -259,7 +259,7 @@ fn run_spec_dir(dir: &[PathBuf], out: &mut Output) -> Vec<(PathBuf, Vec<usize>)>
             if ext == "wast" {
                 writeln!(out, "{}", file_path.file_name().unwrap().to_str().unwrap()).unwrap();
 
-                match run_spec_test(&file_path, out) {
+                match run_spec_test(file_path, out) {
                     Ok(failing_lines) => {
                         if !failing_lines.is_empty() {
                             fails.push((file_path.to_owned(), failing_lines));
@@ -454,7 +454,6 @@ fn run_spec_cmd(
                 None => {
                     writeln!(out, "can't find global {:?}", func).unwrap();
                     failing_lines.push(line);
-                    return;
                 }
                 Some(val) => {
                     assert_eq!(expected.len(), 1);
@@ -531,7 +530,7 @@ fn run_spec_cmd(
                     for i in 0..n_expected {
                         match rt.pop_value() {
                             Some(val) => {
-                                found.push(val.into());
+                                found.push(val);
                             }
                             None => {
                                 writeln!(out, "Can't pop return value {}", i + 1).unwrap();
@@ -640,19 +639,19 @@ fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Val
 
                 spec::V128::I16x8(lanes) => {
                     for i in 0..8 {
-                        (&mut bytes[i * 2..i * 2 + 2]).copy_from_slice(&lanes[i].to_le_bytes());
+                        bytes[i * 2..i * 2 + 2].copy_from_slice(&lanes[i].to_le_bytes());
                     }
                 }
 
                 spec::V128::I32x4(lanes) => {
                     for i in 0..4 {
-                        (&mut bytes[i * 4..i * 4 + 4]).copy_from_slice(&lanes[i].to_le_bytes());
+                        bytes[i * 4..i * 4 + 4].copy_from_slice(&lanes[i].to_le_bytes());
                     }
                 }
 
                 spec::V128::I64x2(lanes) => {
                     for i in 0..2 {
-                        (&mut bytes[i * 8..i * 8 + 8]).copy_from_slice(&lanes[i].to_le_bytes());
+                        bytes[i * 8..i * 8 + 8].copy_from_slice(&lanes[i].to_le_bytes());
                     }
                 }
 
@@ -663,8 +662,7 @@ fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Val
                                 panic!("NaN pattern in eval_value")
                             }
                             spec::F32::Value(value) => {
-                                (&mut bytes[i * 4..i * 4 + 4])
-                                    .copy_from_slice(&value.to_le_bytes());
+                                bytes[i * 4..i * 4 + 4].copy_from_slice(&value.to_le_bytes());
                             }
                         }
                     }
@@ -677,8 +675,7 @@ fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Val
                                 panic!("NaN pattern in eval_value")
                             }
                             spec::F64::Value(value) => {
-                                (&mut bytes[i * 8..i * 8 + 8])
-                                    .copy_from_slice(&value.to_le_bytes());
+                                bytes[i * 8..i * 8 + 8].copy_from_slice(&value.to_le_bytes());
                             }
                         }
                     }

@@ -1,3 +1,9 @@
+#![allow(
+    clippy::len_without_is_empty,
+    clippy::new_without_default,
+    clippy::type_complexity
+)]
+
 pub mod exec;
 mod export;
 mod frame;

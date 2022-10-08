@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 mod cli;
 mod cmd;
 
@@ -20,8 +22,7 @@ fn main() {
 
     let cli::Args { file } = cli::parse();
     let file_or_dir = file
-        .as_ref()
-        .map(|s| s.as_str())
+        .as_deref()
         .unwrap_or("tests/wasi/target/wasm32-wasi/debug");
 
     print_version("cargo");

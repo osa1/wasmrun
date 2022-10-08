@@ -1,3 +1,5 @@
+#![allow(clippy::identity_op, clippy::needless_range_loop)]
+
 use crate::exec::{trapping_add, MemIdx, Result};
 use crate::store::ModuleAddr;
 use crate::value::{canonicalize_f32_nan, canonicalize_f64_nan};
@@ -466,8 +468,8 @@ pub fn exec_simd_instr(
         SimdInstruction::I8x16Shl => {
             let shift = rt.stack.pop_i32()?;
             let mut v = rt.stack.pop_i128()?.to_le_bytes();
-            for i in 0..16 {
-                v[i] = v[i].wrapping_shl(shift as u32);
+            for i in &mut v {
+                *i = i.wrapping_shl(shift as u32);
             }
             rt.stack.push_i128(i128::from_le_bytes(v))?;
         }
@@ -608,8 +610,8 @@ pub fn exec_simd_instr(
         SimdInstruction::I16x8ExtendHighI8x16S => {
             let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
             let mut res: Vec<u8> = Vec::with_capacity(16);
-            for i in 0..8 {
-                let i16 = (v[i] as i8) as i16;
+            for i in v {
+                let i16 = (*i) as i8 as i16;
                 res.extend_from_slice(&i16.to_le_bytes());
             }
             rt.stack
@@ -619,8 +621,8 @@ pub fn exec_simd_instr(
         SimdInstruction::I16x8ExtendHighI8x16U => {
             let v = &rt.stack.pop_i128()?.to_le_bytes()[8..];
             let mut res: Vec<u8> = Vec::with_capacity(16);
-            for i in 0..8 {
-                let u16 = v[i] as u16;
+            for i in v {
+                let u16 = (*i) as u16;
                 res.extend_from_slice(&u16.to_le_bytes());
             }
             rt.stack
@@ -630,8 +632,8 @@ pub fn exec_simd_instr(
         SimdInstruction::I16x8ExtendLowI8x16S => {
             let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
             let mut res: Vec<u8> = Vec::with_capacity(16);
-            for i in 0..8 {
-                let i16 = (v[i] as i8) as i16;
+            for i in v {
+                let i16 = (*i) as i8 as i16;
                 res.extend_from_slice(&i16.to_le_bytes());
             }
             rt.stack
@@ -641,8 +643,8 @@ pub fn exec_simd_instr(
         SimdInstruction::I16x8ExtendLowI8x16U => {
             let v = &rt.stack.pop_i128()?.to_le_bytes()[..8];
             let mut res: Vec<u8> = Vec::with_capacity(16);
-            for i in 0..8 {
-                let u16 = v[i] as u16;
+            for i in v {
+                let u16 = (*i) as u16;
                 res.extend_from_slice(&u16.to_le_bytes());
             }
             rt.stack
@@ -1571,7 +1573,7 @@ pub fn exec_simd_instr(
             let mut v1 = vec_to_i16x8(rt.stack.pop_i128()?).map(i32::from);
             let mut res = [0i32; 4];
             for i in 0..8 {
-                v1[i] = v1[i] * v2[i];
+                v1[i] *= v2[i];
             }
             for i in 0..4 {
                 res[i] = v1[2 * i].wrapping_add(v1[2 * i + 1]);
@@ -1721,8 +1723,8 @@ where
     F: Fn(u8) -> u8,
 {
     let mut v = rt.stack.pop_i128()?.to_le_bytes();
-    for i in 0..16 {
-        v[i] = f(v[i]);
+    for i in &mut v {
+        *i = f(*i);
     }
     rt.stack.push_i128(i128::from_le_bytes(v))
 }
@@ -1745,8 +1747,8 @@ where
     F: Fn(i16) -> i16,
 {
     let mut v = vec_to_i16x8(rt.stack.pop_i128()?);
-    for i in 0..8 {
-        v[i] = f(v[i]);
+    for i in &mut v {
+        *i = f(*i);
     }
     rt.stack.push_i128(i16x8_to_vec(v))
 }
@@ -1769,8 +1771,8 @@ where
     F: Fn(i32) -> i32,
 {
     let mut v = vec_to_i32x4(rt.stack.pop_i128()?);
-    for i in 0..4 {
-        v[i] = f(v[i]);
+    for i in &mut v {
+        *i = f(*i);
     }
     rt.stack.push_i128(i32x4_to_vec(v))
 }
@@ -1806,8 +1808,8 @@ where
     F: Fn(f32) -> f32,
 {
     let mut v = vec_to_f32x4(rt.stack.pop_i128()?);
-    for i in 0..4 {
-        v[i] = f(v[i]);
+    for i in &mut v {
+        *i = f(*i);
     }
     rt.stack.push_i128(f32x4_to_vec(v))
 }
@@ -1830,8 +1832,8 @@ where
     F: Fn(i64) -> i64,
 {
     let mut v = vec_to_i64x2(rt.stack.pop_i128()?);
-    for i in 0..2 {
-        v[i] = f(v[i]);
+    for i in &mut v {
+        *i = f(*i);
     }
     rt.stack.push_i128(i64x2_to_vec(v))
 }
@@ -1854,8 +1856,8 @@ where
     F: Fn(f64) -> f64,
 {
     let mut v = vec_to_f64x2(rt.stack.pop_i128()?);
-    for i in 0..2 {
-        v[i] = f(v[i]);
+    for i in &mut v {
+        *i = f(*i);
     }
     rt.stack.push_i128(f64x2_to_vec(v))
 }

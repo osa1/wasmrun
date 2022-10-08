@@ -25,7 +25,7 @@ pub enum ElementKind {
 }
 
 impl ElementKind {
-    fn to_ref_type(&self) -> ReferenceType {
+    fn to_ref_type(self) -> ReferenceType {
         match self {
             ElementKind::FuncRef => ReferenceType::FuncRef,
         }

@@ -61,7 +61,7 @@ pub enum ActionKind {
     Exception,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Value {
     I32(u32),
     I64(u64),
@@ -73,7 +73,7 @@ pub enum Value {
     ExternRef(u32),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum V128 {
     I8x16([u8; 16]),
     I16x8([u16; 8]),
@@ -83,7 +83,7 @@ pub enum V128 {
     F64x2([F64; 2]),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum F32 {
     /// Matches positive and negative canonical NaNs
     CanonicalNan,
@@ -95,7 +95,7 @@ pub enum F32 {
     Value(u32),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum F64 {
     /// Matches positive and negative canonical NaNs
     CanonicalNan,
@@ -297,7 +297,7 @@ fn parse_value(value_de: ValueDe) -> Result<Value, String> {
             let vec = value_de.expect_vector()?;
             let lane_type = match &value_de.lane_type {
                 Some(lane_type) => lane_type,
-                None => return Err(format!("Vector value with no lane type")),
+                None => return Err("Vector value with no lane type".to_string()),
             };
             match lane_type.as_str() {
                 "i64" => {

@@ -1,3 +1,5 @@
+#![allow(clippy::if_same_then_else)]
+
 mod simd;
 
 use crate::export::Export;
@@ -85,14 +87,19 @@ impl fmt::Display for Trap {
 pub struct Runtime {
     /// The heap
     pub store: Store,
+
     /// Value and continuation stack
     pub(crate) stack: Stack,
+
     /// Call stack. Frames hold locals.
     pub(crate) frames: FrameStack,
+
     /// WASI state
     pub(crate) wasi_ctx: WasiCtx,
+
     /// Maps registered modules to their module addresses
     module_names: FxHashMap<String, ModuleAddr>,
+
     /// Instruction pointer
     ip: u32,
 }
