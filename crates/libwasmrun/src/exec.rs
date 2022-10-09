@@ -2,6 +2,7 @@
 
 mod simd;
 
+use crate::collections::Map;
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
@@ -16,7 +17,6 @@ use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
 use crate::{ExecError, Result};
 
-use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
@@ -98,7 +98,7 @@ pub struct Runtime {
     pub(crate) wasi_ctx: WasiCtx,
 
     /// Maps registered modules to their module addresses
-    module_names: FxHashMap<String, ModuleAddr>,
+    module_names: Map<String, ModuleAddr>,
 
     /// Instruction pointer
     ip: u32,
@@ -130,7 +130,7 @@ impl Runtime {
         let mut store = Default::default();
         let wasi_addr = allocate_wasi(&mut store);
 
-        let mut module_names: FxHashMap<String, ModuleAddr> = Default::default();
+        let mut module_names: Map<String, ModuleAddr> = Default::default();
         module_names.insert("wasi_snapshot_preview1".to_owned(), wasi_addr);
         module_names.insert("wasi_unstable".to_owned(), wasi_addr);
 

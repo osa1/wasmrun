@@ -1,7 +1,7 @@
+use crate::collections::Map;
 use crate::export::{Export, ExportKind};
 use crate::store::{DataAddr, ElemAddr, FunAddr, GlobalAddr, MemAddr, TableAddr, TagAddr};
 
-use fxhash::FxHashMap;
 use libwasmrun_syntax as wasm;
 
 #[derive(Debug, Clone, Copy)]
@@ -37,7 +37,7 @@ pub(crate) struct Module {
     global_addrs: Vec<GlobalAddr>,
     exports: Vec<Export>,
     start: Option<FunIdx>,
-    name_to_fun: FxHashMap<String, FunIdx>,
+    name_to_fun: Map<String, FunIdx>,
     datas: Vec<DataAddr>,
     elems: Vec<ElemAddr>,
     tag_addrs: Vec<TagAddr>,

@@ -4,6 +4,7 @@
     clippy::type_complexity
 )]
 
+mod collections;
 pub mod exec;
 mod export;
 mod frame;
