@@ -62,6 +62,13 @@ pub struct WasmFun {
 
     /// Maps `if` instructions to their else instructions
     pub(crate) if_to_else: Map<u32, u32>,
+
+    /// Maps `try` instructions to their `catch`, `catch_all`, `delegate`, and `end`.
+    ///
+    /// The syntax will be validated: last one in the list will be `delegate` or `end`. `catch_all`
+    /// can appear at most once, and after `catch` blocks.
+    #[allow(unused)]
+    pub(crate) try_to_catch: Map<u32, Vec<u32>>,
 }
 
 impl Fun {
@@ -73,7 +80,7 @@ impl Fun {
         name: Option<String>,
         local_names: Option<IndexMap<String>>,
     ) -> Result<Fun> {
-        let (block_to_end, if_to_else) = gen_block_bounds(fun.code().elements())?;
+        let (block_to_end, if_to_else, try_to_catch) = gen_block_bounds(fun.code().elements())?;
         Ok(Fun::Wasm(WasmFun {
             module_addr,
             ty_idx,
@@ -83,6 +90,7 @@ impl Fun {
             local_names,
             block_to_end,
             if_to_else,
+            try_to_catch,
         }))
     }
 
@@ -122,34 +130,52 @@ impl Fun {
     }
 }
 
-fn gen_block_bounds(instrs: &[wasm::Instruction]) -> Result<(Map<u32, u32>, Map<u32, u32>)> {
+fn gen_block_bounds(
+    instrs: &[wasm::Instruction],
+) -> Result<(Map<u32, u32>, Map<u32, u32>, Map<u32, Vec<u32>>)> {
+    enum BlockType {
+        /// Starts with `block` or `loop`, ends with `end`
+        BlockOrLoop,
+
+        /// Starts with `if`, may contain an `else`, ends with `end`
+        If,
+
+        /// Starts with `try`, if contains `catch` or `catch_all` must end with `end`. Otherwise
+        /// ends with `delegate`
+        Try,
+    }
+
     let mut block_to_end: Map<u32, u32> = Default::default();
     let mut if_to_else: Map<u32, u32> = Default::default();
-    let mut blocks: Vec<u32> = vec![];
+    let mut try_to_catch: Map<u32, Vec<u32>> = Default::default();
+
+    let mut blocks: Vec<(BlockType, u32)> = vec![];
 
     for (instr_idx, instr) in instrs.iter().enumerate() {
         let instr_idx = instr_idx as u32;
 
         // println!("gen_block_bounds instr={:?}, blocks={:?}", instr, blocks);
         match instr {
-            Instruction::Block(_) => {
-                blocks.push(instr_idx);
+            Instruction::Block(_) | Instruction::Loop(_) => {
+                blocks.push((BlockType::BlockOrLoop, instr_idx));
             }
 
             Instruction::If(_) => {
-                blocks.push(instr_idx);
+                blocks.push((BlockType::If, instr_idx));
             }
 
-            Instruction::Loop(_) => {
-                blocks.push(instr_idx);
+            Instruction::Try(_) => {
+                blocks.push((BlockType::Try, instr_idx));
             }
 
             Instruction::Else => match blocks.last_mut() {
-                Some(if_loc) => {
+                Some((BlockType::If, if_loc)) => {
                     if_to_else.insert(*if_loc, instr_idx);
                 }
-                None => {
-                    return Err(ExecError::Panic("Found else block without if".to_string()));
+                _ => {
+                    return Err(ExecError::Panic(
+                        "Found `else` block without `if`".to_string(),
+                    ))
                 }
             },
 
@@ -158,15 +184,85 @@ fn gen_block_bounds(instrs: &[wasm::Instruction]) -> Result<(Map<u32, u32>, Map<
                     None => {
                         // Must be the end of the function
                     }
-                    Some(start_idx) => {
+                    Some((BlockType::Try, start_idx)) => {
+                        try_to_catch.entry(start_idx).or_default().push(instr_idx);
+                    }
+                    Some((BlockType::BlockOrLoop | BlockType::If, start_idx)) => {
                         block_to_end.insert(start_idx, instr_idx);
                     }
                 }
             }
 
+            Instruction::Catch(_) | Instruction::CatchAll => match blocks.last_mut() {
+                Some((BlockType::Try, try_loc)) => {
+                    try_to_catch.entry(*try_loc).or_default().push(instr_idx)
+                }
+                _ => {
+                    return Err(ExecError::Panic(
+                        "Found `catch`, `catch_all` outside `try`".to_string(),
+                    ))
+                }
+            },
+
+            Instruction::Delegate(_) => match blocks.pop() {
+                Some((BlockType::Try, try_loc)) => {
+                    try_to_catch.entry(try_loc).or_default().push(instr_idx)
+                }
+                _ => {
+                    return Err(ExecError::Panic(
+                        "Found `delegate` outside `try`".to_string(),
+                    ))
+                }
+            },
+
             _ => {}
         }
     }
 
-    Ok((block_to_end, if_to_else))
+    // Validate try-catch-catch-all and try-delegate syntax
+    for try_conts in try_to_catch.values() {
+        let n_conts = try_conts.len();
+        let mut catch_all_seen = false;
+        for (cont_idx, cont) in try_conts.iter().enumerate() {
+            match &instrs[(*cont) as usize] {
+                Instruction::End => {
+                    // This is an assertion and `end` should terminate the current `try` block when
+                    // generating the map in the previous pass
+                    assert_eq!(cont_idx, n_conts - 1);
+                }
+
+                Instruction::Catch(_) => {
+                    if catch_all_seen {
+                        return Err(ExecError::Panic(
+                            "Invalid `try`: `catch` after `catch_all`".to_string(),
+                        ));
+                    }
+                }
+
+                Instruction::CatchAll => {
+                    if catch_all_seen {
+                        return Err(ExecError::Panic(
+                            "Invalid `try`: multiple `catch_all` blocks".to_string(),
+                        ));
+                    }
+
+                    catch_all_seen = true;
+                }
+
+                Instruction::Delegate(_) => {
+                    if cont_idx != n_conts - 1 {
+                        return Err(ExecError::Panic(
+                            "Invalid `try`: more blocks after `delegate`".to_string(),
+                        ));
+                    }
+                }
+
+                other => {
+                    panic!("Unexpected instruction in try-to-catch map: {:?}", other);
+                }
+            }
+        }
+    }
+
+    Ok((block_to_end, if_to_else, try_to_catch))
 }
