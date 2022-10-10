@@ -188,6 +188,10 @@ impl Store {
         });
         TagAddr(ret)
     }
+
+    pub(crate) fn get_tag(&self, tag_addr: TagAddr) -> &Tag {
+        &self.tags[tag_addr.0 as usize]
+    }
 }
 
 #[derive(Debug)]

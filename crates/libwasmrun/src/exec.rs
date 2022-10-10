@@ -379,12 +379,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
             let imported_module_addr = match rt.module_names.get(module_name) {
                 Some(module_addr) => *module_addr,
-                None => {
-                    return Err(ExecError::Panic(format!(
-                        "Can't find imported module {:?}",
-                        module_name
-                    )));
-                }
+                None => exec_panic!("Can't find imported module {:?}", module_name),
             };
             let imported_module = rt.store.get_module(imported_module_addr);
 
@@ -505,12 +500,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                                 Ref::Ref(rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)))
                             }
                             &[Instruction::RefNull(ref_ty), Instruction::End] => Ref::Null(ref_ty),
-                            other => {
-                                return Err(ExecError::Panic(format!(
-                                    "Unhandled element expression: {:?}",
-                                    other
-                                )))
-                            }
+                            other => exec_panic!("Unhandled element expression: {:?}", other),
                         };
                         rt.store.get_table_mut(table_addr).set(elem_idx, elem)?;
 
@@ -681,13 +671,13 @@ fn eval_const_expr(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Res
                 .get_global(module.get_global(GlobalIdx(*idx)))
                 .value
         }
-        other => return Err(ExecError::Panic(format!("Global initializer: {:?}", other))),
+        other => exec_panic!("Global initializer: {:?}", other),
     })
 }
 
 pub fn invoke_by_name(rt: &mut Runtime, module_addr: ModuleAddr, fun_name: &str) -> Result<()> {
     match rt.store.get_module(module_addr).get_fun_name(fun_name) {
-        None => Err(ExecError::Panic(format!("Unknown function: {}", fun_name))),
+        None => exec_panic!("Unknown function: {}", fun_name),
         Some(fun_idx) => invoke(rt, module_addr, fun_idx),
     }
 }
@@ -778,9 +768,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     };
     let current_fun = match &rt.store.get_fun(current_fun_addr) {
         Fun::Wasm(fun) => fun,
-        Fun::Host { .. } => {
-            return Err(ExecError::Panic("single_step: host function".to_string()));
-        }
+        Fun::Host { .. } => exec_panic!("single_step: host function"),
     };
 
     assert!((rt.ip as usize) < current_fun.fun.code().elements().len());
@@ -2373,11 +2361,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             }
 
             let end_ip = match current_fun.block_to_end.get(&rt.ip) {
-                None => {
-                    return Err(ExecError::Panic(
-                        "Couldn't find continuation of block".to_string(),
-                    ));
-                }
+                None => exec_panic!("Couldn't find continuation of block"),
                 Some(end) => *end,
             };
 
@@ -2416,11 +2400,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             }
 
             let end_ip = match current_fun.block_to_end.get(&rt.ip) {
-                None => {
-                    return Err(ExecError::Panic(
-                        "Couldn't find continuation of if".to_string(),
-                    ));
-                }
+                None => exec_panic!("Couldn't find continuation of if"),
                 Some(end_ip) => *end_ip,
             };
 
@@ -2694,40 +2674,118 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Exception handling instructions
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Try(_block_ty) => {
-            return Err(ExecError::Panic(
-                "Instruction not implemented: try".to_string(),
-            ));
+        Instruction::Try(block_ty) => {
+            // Same as 'block'
+            let (n_args, n_rets) = block_arity(rt, module_addr, block_ty);
+            let mut args = Vec::with_capacity(n_args as usize);
+            for _ in 0..n_args {
+                args.push(rt.stack.pop_value()?);
+            }
+
+            let end_ip = match current_fun.try_to_catch.get(&rt.ip) {
+                None => exec_panic!("Couldn't find continuation of block"),
+                Some(conts) => conts.last().unwrap(),
+            };
+
+            rt.stack.push_try(rt.ip, end_ip + 1, n_args, n_rets);
+
+            for arg in args.into_iter().rev() {
+                rt.stack.push_value(arg)?;
+            }
+
+            rt.ip += 1;
         }
 
-        Instruction::Catch(_tag_idx) => {
-            return Err(ExecError::Panic(
-                "Instruction not implemented: catch".to_string(),
-            ));
+        Instruction::Catch(_) | Instruction::CatchAll => {
+            // Same as 'end'
+            let return_arity = rt.stack.return_arity(0, EndOrBreak::End)?;
+            let mut vals = Vec::with_capacity(return_arity as usize);
+            for _ in 0..return_arity {
+                vals.push(rt.stack.pop_value()?);
+            }
+
+            let Block { kind, .. } = rt.stack.pop_block()?;
+
+            for val in vals.into_iter().rev() {
+                rt.stack.push_value(val)?;
+            }
+
+            let try_ip = match kind {
+                BlockKind::Try { ip } => ip,
+                _ => exec_panic!("`catch` instruction outside `try`"),
+            };
+
+            let cont = match current_fun.try_to_catch.get(&try_ip) {
+                Some(conts) => conts.last().unwrap() + 1,
+                None => exec_panic!("`try` instruction continuation missing"),
+            };
+
+            rt.ip = cont;
         }
 
-        Instruction::CatchAll => {
-            return Err(ExecError::Panic(
-                "Instruction not implemented: catch_all".to_string(),
-            ));
-        }
+        Instruction::Delegate(_depth) => exec_panic!("Instruction not implemented: delegate"),
 
-        Instruction::Delegate(_depth) => {
-            return Err(ExecError::Panic(
-                "Instruction not implemented: delegate".to_string(),
-            ));
-        }
+        Instruction::Throw(tag_idx) => {
+            // Pop blocks until we find a `try` block with a catch block for the tag or a catch-all
+            let tag_addr = rt.store.get_module(module_addr).get_tag(TagIdx(tag_idx));
+            let tag_id = rt.store.get_tag(tag_addr).id;
 
-        Instruction::Throw(_tag_idx) => {
-            return Err(ExecError::Panic(
-                "Instruction not implemented: throw".to_string(),
-            ));
+            let mut current_fun_addr;
+            let mut current_fun = current_fun;
+
+            while let Ok(block) = rt.stack.pop_block() {
+                let ip = match block.kind {
+                    BlockKind::Top => todo!("Uncaught exception"),
+                    BlockKind::Block | BlockKind::Loop => continue,
+                    BlockKind::Fun => {
+                        rt.frames.pop();
+                        current_fun_addr = rt.frames.current().unwrap().fun_addr;
+                        current_fun = match rt.store.get_fun(current_fun_addr) {
+                            Fun::Wasm(fun) => fun,
+                            Fun::Host(_) => panic!(),
+                        };
+                        continue;
+                    }
+                    BlockKind::Try { ip } => ip,
+                };
+
+                let try_blocks = match current_fun.try_to_catch.get(&ip) {
+                    Some(blocks) => blocks,
+                    None => exec_panic!("`try` instruction continuation missing"),
+                };
+
+                for block_idx in try_blocks {
+                    let instr = current_fun.fun.code().elements()[*block_idx as usize].clone();
+                    match instr {
+                        Instruction::Catch(catch_tag_idx) => {
+                            let catch_tag_addr = rt
+                                .store
+                                .get_module(module_addr)
+                                .get_tag(TagIdx(catch_tag_idx));
+                            let catch_tag_id = rt.store.get_tag(catch_tag_addr).id;
+
+                            if catch_tag_id == tag_id {
+                                // TODO: How to adjust stack?
+                                todo!("Catch");
+                            }
+                        }
+
+                        Instruction::CatchAll => todo!(),
+
+                        Instruction::Delegate(_) => todo!(),
+
+                        Instruction::End => todo!(),
+
+                        other => exec_panic!("Invalid `try` continuation: {}", other),
+                    }
+                }
+            }
+
+            exec_panic!("Instruction not implemented: throw");
         }
 
         Instruction::Rethrow(_tag_idx) => {
-            return Err(ExecError::Panic(
-                "Instruction not implemented: rethrow".to_string(),
-            ));
+            exec_panic!("Instruction not implemented: rethrow");
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -2736,10 +2794,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::Atomics(_) => {
-            return Err(ExecError::Panic(format!(
-                "Instruction not implemented: {:?}",
-                instr
-            )));
+            exec_panic!("Instruction not implemented: {:?}", instr);
         }
     }
 
@@ -2989,7 +3044,7 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
 
     match kind {
         BlockKind::Top => panic!(),
-        BlockKind::Block | BlockKind::Loop => {
+        BlockKind::Block | BlockKind::Loop | BlockKind::Try { .. } => {
             rt.ip = cont;
         }
         BlockKind::Fun => {

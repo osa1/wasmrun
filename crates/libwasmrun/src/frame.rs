@@ -31,18 +31,14 @@ impl FrameStack {
 
     pub(crate) fn current(&self) -> Result<&Frame> {
         match self.frames.last() {
-            None => Err(ExecError::Panic(
-                "FrameStack::current: call stack empty".to_string(),
-            )),
+            None => exec_panic!("FrameStack::current: call stack empty"),
             Some(frame) => Ok(frame),
         }
     }
 
     pub(crate) fn current_mut(&mut self) -> Result<&mut Frame> {
         match self.frames.last_mut() {
-            None => Err(ExecError::Panic(
-                "FrameStack::current_mut: call stack empty".to_string(),
-            )),
+            None => exec_panic!("FrameStack::current_mut: call stack empty"),
             Some(frame) => Ok(frame),
         }
     }
@@ -69,11 +65,11 @@ impl Frame {
     pub fn get_local(&self, idx: u32) -> Result<Value> {
         match self.locals.get(idx as usize) {
             Some(value) => Ok(*value),
-            None => Err(ExecError::Panic(format!(
+            None => exec_panic!(
                 "Frame::get_local: local index OOB (n locals={}, local idx={})",
                 self.locals.len(),
                 idx
-            ))),
+            ),
         }
     }
 

@@ -172,11 +172,7 @@ fn gen_block_bounds(
                 Some((BlockType::If, if_loc)) => {
                     if_to_else.insert(*if_loc, instr_idx);
                 }
-                _ => {
-                    return Err(ExecError::Panic(
-                        "Found `else` block without `if`".to_string(),
-                    ))
-                }
+                _ => exec_panic!("Found `else` block without `if`"),
             },
 
             Instruction::End => {
@@ -197,22 +193,14 @@ fn gen_block_bounds(
                 Some((BlockType::Try, try_loc)) => {
                     try_to_catch.entry(*try_loc).or_default().push(instr_idx)
                 }
-                _ => {
-                    return Err(ExecError::Panic(
-                        "Found `catch`, `catch_all` outside `try`".to_string(),
-                    ))
-                }
+                _ => exec_panic!("Found `catch`, `catch_all` outside `try`"),
             },
 
             Instruction::Delegate(_) => match blocks.pop() {
                 Some((BlockType::Try, try_loc)) => {
                     try_to_catch.entry(try_loc).or_default().push(instr_idx)
                 }
-                _ => {
-                    return Err(ExecError::Panic(
-                        "Found `delegate` outside `try`".to_string(),
-                    ))
-                }
+                _ => exec_panic!("Found `delegate` outside `try`"),
             },
 
             _ => {}
@@ -233,17 +221,13 @@ fn gen_block_bounds(
 
                 Instruction::Catch(_) => {
                     if catch_all_seen {
-                        return Err(ExecError::Panic(
-                            "Invalid `try`: `catch` after `catch_all`".to_string(),
-                        ));
+                        exec_panic!("Invalid `try`: `catch` after `catch_all`");
                     }
                 }
 
                 Instruction::CatchAll => {
                     if catch_all_seen {
-                        return Err(ExecError::Panic(
-                            "Invalid `try`: multiple `catch_all` blocks".to_string(),
-                        ));
+                        exec_panic!("Invalid `try`: multiple `catch_all` blocks");
                     }
 
                     catch_all_seen = true;
@@ -251,14 +235,12 @@ fn gen_block_bounds(
 
                 Instruction::Delegate(_) => {
                     if cont_idx != n_conts - 1 {
-                        return Err(ExecError::Panic(
-                            "Invalid `try`: more blocks after `delegate`".to_string(),
-                        ));
+                        exec_panic!("Invalid `try`: more blocks after `delegate`");
                     }
                 }
 
                 other => {
-                    panic!("Unexpected instruction in try-to-catch map: {:?}", other);
+                    exec_panic!("Unexpected instruction in try-to-catch map: {:?}", other);
                 }
             }
         }

@@ -4,6 +4,9 @@
     clippy::type_complexity
 )]
 
+#[macro_use]
+mod macros;
+
 mod collections;
 pub mod exec;
 mod export;
@@ -37,10 +40,13 @@ extern crate log;
 pub enum ExecError {
     /// Wasm code trapped
     Trap(exec::Trap),
-    /// Invalid module, unsupported operation, IO error, or a bug
+
+    /// Interpreter panic. For valid Wasm modules this means bug.
     Panic(String),
+
     /// WASI error
     WASI(String),
+
     /// WASI proc_exit called
     Exit(i32),
 }
