@@ -2340,6 +2340,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             invoke_direct(rt, fun_addr)?;
         }
 
+        Instruction::ReturnCall(_fun_idx) => exec_panic!("return_call"),
+
+        Instruction::ReturnCallIndirect(_sig, _table_ref) => exec_panic!("return_call_indirect"),
+
         Instruction::Drop => {
             let _ = rt.stack.pop_value();
             rt.ip += 1;

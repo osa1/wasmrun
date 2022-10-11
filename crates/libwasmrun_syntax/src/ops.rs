@@ -145,6 +145,8 @@ pub enum Instruction {
 
     Call(u32),
     CallIndirect(u32, u8),
+    ReturnCall(u32),
+    ReturnCallIndirect(u32, u8),
 
     Drop,
     Select(Option<Vec<ValueType>>),
@@ -732,6 +734,8 @@ pub mod opcodes {
     pub const RETURN: u8 = 0x0f;
     pub const CALL: u8 = 0x10;
     pub const CALLINDIRECT: u8 = 0x11;
+    pub const RETURN_CALL: u8 = 0x12;
+    pub const RETURN_CALL_INDIRECT: u8 = 0x13;
     pub const DROP: u8 = 0x1a;
     pub const SELECT_1: u8 = 0x1b;
     pub const SELECT_2: u8 = 0x1c;
@@ -1317,6 +1321,12 @@ impl Deserialize for Instruction {
                 let signature: u32 = VarUint32::deserialize(reader)?.into();
                 let table_ref: u8 = Uint8::deserialize(reader)?.into();
                 CallIndirect(signature, table_ref)
+            }
+            RETURN_CALL => ReturnCall(VarUint32::deserialize(reader)?.into()),
+            RETURN_CALL_INDIRECT => {
+                let signature: u32 = VarUint32::deserialize(reader)?.into();
+                let table_ref: u8 = Uint8::deserialize(reader)?.into();
+                ReturnCallIndirect(signature, table_ref)
             }
             DROP => Drop,
             SELECT_1 => Select(None),
@@ -2113,6 +2123,8 @@ impl fmt::Display for Instruction {
             Return => fmt_op!(f, "return"),
             Call(index) => fmt_op!(f, "call", index),
             CallIndirect(index, _) => fmt_op!(f, "call_indirect", index),
+            ReturnCall(index) => fmt_op!(f, "return_call", index),
+            ReturnCallIndirect(index, _) => fmt_op!(f, "return_call_indirect", index),
             Drop => fmt_op!(f, "drop"),
             Select(None) => fmt_op!(f, "select"),
             Select(Some(tys)) => write!(f, "select {:?}", tys),
