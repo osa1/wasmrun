@@ -2521,13 +2521,13 @@ fn ifelse() {
 #[test]
 fn display() {
     let instruction = Instruction::GetLocal(0);
-    assert_eq!("get_local 0", format!("{}", instruction));
+    assert_eq!("get_local 0", instruction.to_string());
 
     let instruction = Instruction::F64Store(0, 24);
-    assert_eq!("f64.store offset=24", format!("{}", instruction));
+    assert_eq!("f64.store offset=24", instruction.to_string());
 
     let instruction = Instruction::I64Store(0, 0);
-    assert_eq!("i64.store", format!("{}", instruction));
+    assert_eq!("i64.store", instruction.to_string());
 }
 
 #[test]
