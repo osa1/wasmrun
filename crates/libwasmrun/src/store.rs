@@ -36,7 +36,7 @@ pub(crate) struct DataAddr(u32);
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ElemAddr(u32);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct TagAddr(u32);
 
 #[derive(Default)]

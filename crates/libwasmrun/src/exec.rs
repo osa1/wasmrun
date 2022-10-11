@@ -2733,7 +2733,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             // Pop blocks until we find a `try` block with a catch block for the tag or a catch-all
             let exception_tag_addr = rt.store.get_module(module_addr).get_tag(TagIdx(tag_idx));
             let exception_tag = rt.store.get_tag(exception_tag_addr);
-            let exception_tag_id = exception_tag.id;
             let exception_n_args = exception_tag.ty.params().len();
 
             let mut exception_args = Vec::with_capacity(exception_n_args);
@@ -2771,12 +2770,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                         Instruction::Catch(catch_tag_idx) => {
                             let catch_tag_addr = rt
                                 .store
-                                .get_module(module_addr)
+                                .get_module(current_fun.module_addr)
                                 .get_tag(TagIdx(catch_tag_idx));
 
-                            let catch_tag_id = rt.store.get_tag(catch_tag_addr).id;
-
-                            if catch_tag_id == exception_tag_id {
+                            if catch_tag_addr == exception_tag_addr {
                                 // `try` block already popped, so no need to adjust the stack.
                                 // Continue with the `catch` block with empty stack.
                                 let cont = conts.last().unwrap() + 1;
@@ -2792,9 +2789,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                             }
                         }
 
-                        Instruction::CatchAll => todo!(),
+                        Instruction::CatchAll => exec_panic!("TODO: catch_all"),
 
-                        Instruction::Delegate(_) => todo!(),
+                        Instruction::Delegate(_) => exec_panic!("TODO: delegate"),
 
                         Instruction::End => {}
 
