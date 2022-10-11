@@ -18,7 +18,7 @@ pub(crate) struct Block {
     n_args: u32,
 
     /// Number of return values of this block
-    n_rets: u32,
+    pub(crate) n_rets: u32,
 
     /// Block or function. The distinction is important as we pop the call frame when returning
     /// from a function block.

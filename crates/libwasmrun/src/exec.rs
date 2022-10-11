@@ -2727,13 +2727,20 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::Throw(tag_idx) => {
             // Pop blocks until we find a `try` block with a catch block for the tag or a catch-all
-            let tag_addr = rt.store.get_module(module_addr).get_tag(TagIdx(tag_idx));
-            let tag_id = rt.store.get_tag(tag_addr).id;
+            let exception_tag_addr = rt.store.get_module(module_addr).get_tag(TagIdx(tag_idx));
+            let exception_tag = rt.store.get_tag(exception_tag_addr);
+            let exception_tag_id = exception_tag.id;
+            let exception_n_args = exception_tag.ty.params().len();
+
+            let mut exception_args = Vec::with_capacity(exception_n_args);
+            for _ in 0..exception_n_args {
+                exception_args.push(rt.stack.pop_value()?);
+            }
 
             let mut current_fun_addr;
             let mut current_fun = current_fun;
 
-            while let Ok(block) = rt.stack.pop_block() {
+            'unwind: while let Ok(block) = rt.stack.pop_block() {
                 let ip = match block.kind {
                     BlockKind::Top => todo!("Uncaught exception"),
                     BlockKind::Block | BlockKind::Loop => continue,
@@ -2749,12 +2756,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                     BlockKind::Try { ip } => ip,
                 };
 
-                let try_blocks = match current_fun.try_to_catch.get(&ip) {
-                    Some(blocks) => blocks,
+                let conts = match current_fun.try_to_catch.get(&ip) {
+                    Some(conts) => conts,
                     None => exec_panic!("`try` instruction continuation missing"),
                 };
 
-                for block_idx in try_blocks {
+                for block_idx in conts {
                     let instr = current_fun.fun.code().elements()[*block_idx as usize].clone();
                     match instr {
                         Instruction::Catch(catch_tag_idx) => {
@@ -2762,11 +2769,22 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                                 .store
                                 .get_module(module_addr)
                                 .get_tag(TagIdx(catch_tag_idx));
+
                             let catch_tag_id = rt.store.get_tag(catch_tag_addr).id;
 
-                            if catch_tag_id == tag_id {
-                                // TODO: How to adjust stack?
-                                todo!("Catch");
+                            if catch_tag_id == exception_tag_id {
+                                // `try` block already popped, so no need to adjust the stack.
+                                // Continue with the `catch` block with empty stack.
+                                let cont = conts.last().unwrap() + 1;
+                                // `catch` block takes exception arguments as arguments, and
+                                // returns same number of values as the `try` block
+                                rt.stack
+                                    .push_block(cont, exception_n_args as u32, block.n_rets);
+                                for value in exception_args.into_iter().rev() {
+                                    rt.stack.push_value(value)?;
+                                }
+                                rt.ip = block_idx + 1;
+                                break 'unwind;
                             }
                         }
 
@@ -2780,8 +2798,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                     }
                 }
             }
-
-            exec_panic!("Instruction not implemented: throw");
         }
 
         Instruction::Rethrow(_tag_idx) => {
