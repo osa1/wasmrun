@@ -14,22 +14,40 @@ use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 
-fn main() {
-    let cli::Args { file } = cli::parse();
-    let file_path = file.as_deref().unwrap_or("tests/spec");
-    let file_meta = fs::metadata(file_path).expect("Unable to get input file or dir metadata");
+static TEST_DIRS: [&str; 2] = ["tests/spec", "tests/spec/proposals/exception-handling"];
 
-    if file_meta.is_dir() {
-        run_dir(file_path);
-    } else if file_meta.is_file() {
-        run_file(file_path);
-    } else {
-        eprintln!("Input file {} is not a directory or file", file_path);
+fn main() {
+    let cli::Args { mut files } = cli::parse();
+
+    if files.is_empty() {
+        files = TEST_DIRS.iter().map(|s| s.to_string()).collect();
+    }
+
+    let mut fails = 0;
+
+    for file in files {
+        fails += run_file_or_dir(&file);
+    }
+
+    if fails != 0 {
         exit(1);
     }
 }
 
-fn run_dir(dir_path: &str) {
+fn run_file_or_dir(file_or_dir: &str) -> usize {
+    let file_meta = fs::metadata(file_or_dir).expect("Unable to get input file or dir metadata");
+
+    if file_meta.is_dir() {
+        run_dir(file_or_dir)
+    } else if file_meta.is_file() {
+        run_file(file_or_dir)
+    } else {
+        eprintln!("Input file {} is not a directory or file", file_or_dir);
+        1
+    }
+}
+
+fn run_dir(dir_path: &str) -> usize {
     let dir_contents = fs::read_dir(dir_path).expect("Unable to get dir contents");
 
     let out_file = fs::File::create("test_output").unwrap();
@@ -52,7 +70,6 @@ fn run_dir(dir_path: &str) {
     dir_files.sort();
 
     let fails = run_spec_dir(&dir_files, &mut out);
-    let ret = if fails.is_empty() { 0 } else { 1 };
 
     writeln!(&mut out).unwrap();
 
@@ -64,10 +81,11 @@ fn run_dir(dir_path: &str) {
     if total_fails != 0 {
         writeln!(&mut out, "Total fails: {}", total_fails).unwrap();
     }
-    exit(ret)
+
+    total_fails
 }
 
-fn run_file(file_path: &str) {
+fn run_file(file_path: &str) -> usize {
     let mut out = Output { file: None };
     let file_path: PathBuf = file_path.into();
 
@@ -75,16 +93,16 @@ fn run_file(file_path: &str) {
         Some(ext) => {
             if ext != "wast" {
                 writeln!(out, "Spec test extension should be .wast, found: {:?}", ext).unwrap();
-                exit(1);
+                return 1;
             }
         }
         None => {
             writeln!(out, "Spec file should have .wast extension").unwrap();
-            exit(1);
+            return 1;
         }
     }
 
-    let ret = match run_spec_test(&file_path, &mut out) {
+    match run_spec_test(&file_path, &mut out) {
         Ok(fails) => {
             if fails.is_empty() {
                 0
@@ -97,8 +115,7 @@ fn run_file(file_path: &str) {
             writeln!(&mut out, "{}", err).unwrap();
             1
         }
-    };
-    exit(ret)
+    }
 }
 
 /// Check if a wasmrun value matches a value or pattern in a spec test.

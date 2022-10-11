@@ -7,7 +7,8 @@ capabilities.
 
 ## Current status
 
-wasmrun currently passes Wasm [reference test suite][1].
+wasmrun currently passes Wasm [reference test suite][1], with exception
+handling proposal.
 
 ## Development
 
