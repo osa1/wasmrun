@@ -2710,7 +2710,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::Catch(_) | Instruction::CatchAll => {
+        Instruction::Catch(_) | Instruction::CatchAll | Instruction::Delegate(_) => {
             // Same as 'end'
             let return_arity = rt.stack.return_arity(0, EndOrBreak::End)?;
             let mut vals = Vec::with_capacity(return_arity as usize);
@@ -2739,8 +2739,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 _ => exec_panic!("`catch` instruction outside `try`"),
             };
         }
-
-        Instruction::Delegate(_depth) => exec_panic!("Instruction not implemented: delegate"),
 
         Instruction::Throw(tag_idx) => {
             // Pop blocks until we find a `try` block with a catch block for the tag or a catch-all
@@ -2853,7 +2851,16 @@ fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
                     break 'unwind;
                 }
 
-                Instruction::Delegate(_) => exec_panic!("TODO: delegate"),
+                Instruction::Delegate(n_blocks) => {
+                    for _ in 0..n_blocks {
+                        let block = rt.stack.pop_block().unwrap();
+                        if block.kind == BlockKind::Catch {
+                            rt.exceptions.pop().unwrap();
+                        }
+                    }
+                    throw(rt, exc)?;
+                    break 'unwind;
+                }
 
                 Instruction::End => {}
 
