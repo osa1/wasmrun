@@ -11,7 +11,7 @@ use crate::module::{
     DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
 };
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
+use crate::store::{FunAddr, Global, ModuleAddr, Store, Table, TagAddr};
 use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
@@ -102,6 +102,19 @@ pub struct Runtime {
 
     /// Instruction pointer
     ip: u32,
+
+    /// Stack of exceptions that can be re-thrown with a `rethrow` instruction in `catch` blocks.
+    /// One exception per nested `catch`.
+    exceptions: Vec<Exception>,
+}
+
+#[derive(Debug)]
+struct Exception {
+    /// Address of the exception in the store.
+    addr: TagAddr,
+
+    /// Arguments of the exception. Used by `throw` blocks.
+    args: Vec<Value>,
 }
 
 impl Runtime {
@@ -113,6 +126,7 @@ impl Runtime {
             wasi_ctx: WasiCtx::new(iter::empty::<String>()).unwrap(),
             module_names: Default::default(),
             ip: Default::default(),
+            exceptions: Vec::new(),
         }
     }
 
@@ -136,11 +150,9 @@ impl Runtime {
 
         Runtime {
             store,
-            stack: Default::default(),
-            frames: Default::default(),
             wasi_ctx,
             module_names,
-            ip: Default::default(),
+            ..Runtime::new()
         }
     }
 
@@ -2720,7 +2732,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                     };
                     rt.ip = cont;
                 }
-                BlockKind::Block => {
+                BlockKind::Catch => {
                     rt.ip = cont;
                 }
                 _ => exec_panic!("`catch` instruction outside `try`"),
@@ -2740,72 +2752,16 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 exception_args.push(rt.stack.pop_value()?);
             }
 
-            let mut current_fun_addr;
-            let mut current_fun = current_fun;
-
-            'unwind: while let Ok(block) = rt.stack.pop_block() {
-                let ip = match block.kind {
-                    BlockKind::Top => todo!("Uncaught exception"),
-                    BlockKind::Block | BlockKind::Loop => continue,
-                    BlockKind::Fun => {
-                        rt.frames.pop();
-                        current_fun_addr = rt.frames.current().unwrap().fun_addr;
-                        current_fun = match rt.store.get_fun(current_fun_addr) {
-                            Fun::Wasm(fun) => fun,
-                            Fun::Host(_) => panic!(),
-                        };
-                        continue;
-                    }
-                    BlockKind::Try { ip } => ip,
-                };
-
-                let conts = match current_fun.try_to_catch.get(&ip) {
-                    Some(conts) => conts,
-                    None => exec_panic!("`try` instruction continuation missing"),
-                };
-
-                for block_idx in conts {
-                    let instr = current_fun.fun.code().elements()[*block_idx as usize].clone();
-                    match instr {
-                        Instruction::Catch(catch_tag_idx) => {
-                            let catch_tag_addr = rt
-                                .store
-                                .get_module(current_fun.module_addr)
-                                .get_tag(TagIdx(catch_tag_idx));
-
-                            if catch_tag_addr == exception_tag_addr {
-                                // `try` block already popped, so no need to adjust the stack.
-                                // Continue with the `catch` block with empty stack.
-                                let cont = conts.last().unwrap() + 1;
-                                // `catch` block takes exception arguments as arguments, and
-                                // returns same number of values as the `try` block
-                                rt.stack
-                                    .push_block(cont, exception_n_args as u32, block.n_rets);
-                                for value in exception_args.into_iter().rev() {
-                                    rt.stack.push_value(value)?;
-                                }
-                                rt.ip = block_idx + 1;
-                                break 'unwind;
-                            }
-                        }
-
-                        Instruction::CatchAll => {
-                            // Similar to `catch`, but does not use exception arguments
-                            rt.ip = block_idx + 1;
-                            break 'unwind;
-                        }
-
-                        Instruction::Delegate(_) => exec_panic!("TODO: delegate"),
-
-                        Instruction::End => {}
-
-                        other => exec_panic!("Invalid `try` continuation: {}", other),
-                    }
-                }
-            }
+            throw(
+                rt,
+                Exception {
+                    addr: exception_tag_addr,
+                    args: exception_args,
+                },
+            )?;
         }
 
-        Instruction::Rethrow(_tag_idx) => {
+        Instruction::Rethrow(_exc_idx) => {
             exec_panic!("Instruction not implemented: rethrow");
         }
 
@@ -2816,6 +2772,84 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::Atomics(_) => {
             exec_panic!("Instruction not implemented: {:?}", instr);
+        }
+    }
+
+    Ok(())
+}
+
+fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
+    let mut current_fun_addr = rt.frames.current().unwrap().fun_addr;
+
+    let mut current_fun = match &rt.store.get_fun(current_fun_addr) {
+        Fun::Wasm(fun) => fun,
+        Fun::Host { .. } => panic!(),
+    };
+
+    'unwind: while let Ok(block) = rt.stack.pop_block() {
+        let ip = match block.kind {
+            BlockKind::Top => todo!("Uncaught exception"),
+            BlockKind::Block | BlockKind::Loop | BlockKind::Catch => continue,
+            BlockKind::Fun => {
+                rt.frames.pop();
+                current_fun_addr = rt.frames.current().unwrap().fun_addr;
+                current_fun = match rt.store.get_fun(current_fun_addr) {
+                    Fun::Wasm(fun) => fun,
+                    Fun::Host(_) => panic!(),
+                };
+                continue;
+            }
+            BlockKind::Try { ip } => ip,
+        };
+
+        let conts = match current_fun.try_to_catch.get(&ip) {
+            Some(conts) => conts,
+            None => exec_panic!("`try` instruction continuation missing"),
+        };
+
+        for block_idx in conts {
+            let instr = current_fun.fun.code().elements()[*block_idx as usize].clone();
+            match instr {
+                Instruction::Catch(catch_tag_idx) => {
+                    let catch_tag_addr = rt
+                        .store
+                        .get_module(current_fun.module_addr)
+                        .get_tag(TagIdx(catch_tag_idx));
+
+                    if catch_tag_addr == exc.addr {
+                        // `try` block already popped, so no need to adjust the stack. Continue
+                        // with the `catch` block with empty stack.
+                        let cont = conts.last().unwrap() + 1;
+
+                        // `catch` block takes exception arguments as arguments, and returns same
+                        // number of values as the `try` block
+                        rt.stack
+                            .push_catch(cont, exc.args.len() as u32, block.n_rets);
+
+                        for value in exc.args.iter().rev() {
+                            rt.stack.push_value(*value)?;
+                        }
+
+                        rt.ip = block_idx + 1;
+
+                        rt.exceptions.push(exc);
+
+                        break 'unwind;
+                    }
+                }
+
+                Instruction::CatchAll => {
+                    // Similar to `catch`, but does not use exception arguments
+                    rt.ip = block_idx + 1;
+                    break 'unwind;
+                }
+
+                Instruction::Delegate(_) => exec_panic!("TODO: delegate"),
+
+                Instruction::End => {}
+
+                other => exec_panic!("Invalid `try` continuation: {}", other),
+            }
         }
     }
 
@@ -3065,7 +3099,7 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
 
     match kind {
         BlockKind::Top => panic!(),
-        BlockKind::Block | BlockKind::Loop | BlockKind::Try { .. } => {
+        BlockKind::Block | BlockKind::Loop | BlockKind::Try { .. } | BlockKind::Catch => {
             rt.ip = cont;
         }
         BlockKind::Fun => {

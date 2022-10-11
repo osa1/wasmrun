@@ -30,13 +30,22 @@ pub(crate) enum BlockKind {
     /// Special block which is not supposed to be popped. Used in entry points in tests and
     /// elsewhere to push function arguments and get return values.
     Top,
+
     Block,
+
     Loop,
+
     Fun,
+
     Try {
-        /// Index of the `try` instruction
+        /// Index of the `try` instruction. This is used to find catch blocks of the `try` in
+        /// `WasmFun.try_to_catch` map.
         ip: u32,
     },
+
+    /// A catch block. We need to distinguish catch blocks from others to be able to pop catch
+    /// blocks in `rethrow`.
+    Catch,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -179,6 +188,16 @@ impl Stack {
         })
     }
 
+    pub(crate) fn push_catch(&mut self, cont: u32, n_args: u32, n_rets: u32) {
+        self.0.push(Block {
+            values: vec![],
+            cont,
+            n_args,
+            n_rets,
+            kind: BlockKind::Catch,
+        })
+    }
+
     pub(crate) fn push_fun_block(&mut self, cont: u32, n_args: u32, n_rets: u32) {
         self.0.push(Block {
             values: vec![],
@@ -230,7 +249,9 @@ impl Stack {
                 BlockKind::Top => Err(ExecError::Panic(
                     "Stack::return_arity of top frame".to_string(),
                 )),
-                BlockKind::Block | BlockKind::Fun | BlockKind::Try { .. } => Ok(*n_rets),
+                BlockKind::Block | BlockKind::Fun | BlockKind::Try { .. } | BlockKind::Catch => {
+                    Ok(*n_rets)
+                }
                 BlockKind::Loop => match end_or_break {
                     EndOrBreak::End => Ok(*n_rets),
                     EndOrBreak::Break => Ok(*n_args),
