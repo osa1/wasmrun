@@ -196,10 +196,7 @@ impl Stack {
             .ok_or_else(|| ExecError::Panic("Stack::pop_block: empty".to_string()))?;
 
         if block.kind == BlockKind::Top {
-            return Err(ExecError::Panic(format!(
-                "Stack::pop_block: popped {:?}",
-                block.kind
-            )));
+            exec_panic!("Stack::pop_block: popped {:?}", block.kind);
         }
 
         Ok(block)
@@ -219,11 +216,11 @@ impl Stack {
     // TODO: We should probably separate handling of block and loop in different functions.
     pub(crate) fn return_arity(&mut self, depth: u32, end_or_break: EndOrBreak) -> Result<u32> {
         match self.0.get(self.0.len() - 1 - depth as usize) {
-            None => Err(ExecError::Panic(format!(
+            None => exec_panic!(
                 "Stack::return_arity: depth {} is greater than stack depth {}",
                 depth,
                 self.0.len()
-            ))),
+            ),
             Some(Block {
                 kind,
                 n_args,
