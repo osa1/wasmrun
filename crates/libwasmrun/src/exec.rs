@@ -2789,7 +2789,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                             }
                         }
 
-                        Instruction::CatchAll => exec_panic!("TODO: catch_all"),
+                        Instruction::CatchAll => {
+                            // Similar to `catch`, but does not use exception arguments
+                            rt.ip = block_idx + 1;
+                            break 'unwind;
+                        }
 
                         Instruction::Delegate(_) => exec_panic!("TODO: delegate"),
 
