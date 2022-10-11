@@ -105,6 +105,7 @@ pub struct Runtime {
 
     /// Stack of exceptions that can be re-thrown with a `rethrow` instruction in `catch` blocks.
     /// One exception per nested `catch`.
+    // TODO: Maybe add an `Exception` field to `BlockKind::Catch`?
     exceptions: Vec<Exception>,
 }
 
@@ -2761,8 +2762,16 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             )?;
         }
 
-        Instruction::Rethrow(_exc_idx) => {
-            exec_panic!("Instruction not implemented: rethrow");
+        Instruction::Rethrow(n_blocks) => {
+            for _ in 0..n_blocks - 1 {
+                let block = rt.stack.pop_block().unwrap();
+                if block.kind == BlockKind::Catch {
+                    rt.exceptions.pop().unwrap();
+                }
+            }
+
+            let exc = rt.exceptions.pop().unwrap();
+            throw(rt, exc)?;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
