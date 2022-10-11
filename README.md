@@ -8,7 +8,7 @@ capabilities.
 ## Current status
 
 wasmrun currently passes Wasm [reference test suite][1], with exception
-handling proposal.
+handling and extended constant expressions proposals.
 
 ## Development
 

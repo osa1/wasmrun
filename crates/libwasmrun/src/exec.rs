@@ -20,7 +20,7 @@ use crate::{ExecError, Result};
 use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
-use wasm::{Instruction, SignExtInstruction, SimdInstruction};
+use wasm::{Instruction, SignExtInstruction};
 
 use std::fmt;
 use std::iter;
@@ -663,34 +663,12 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     Ok(module_addr)
 }
 
-/// <https://webassembly.github.io/spec/core/valid/instructions.html?highlight=const%20expr#constant-expressions>
-///
-/// - All instructions must be constant
-///
-/// - Constant instructions:
-///   - `t.const`
-///   - `ref.null`
-///   - `ref.func`
-///   - `global.get x` and `globals[x]` is a constant
-///
-/// - In addition, `global.get`s in global initializers can only refer to imported globals.
 fn eval_const_expr(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Result<Value> {
-    use Instruction::*;
-    Ok(match instrs {
-        [I32Const(value), End] => Value::I32(*value),
-        [I64Const(value), End] => Value::I64(*value),
-        [F32Const(value), End] => Value::F32(f32::from_bits(*value)),
-        [F64Const(value), End] => Value::F64(f64::from_bits(*value)),
-        [Simd(SimdInstruction::V128Const(value)), End] => Value::I128(i128::from_le_bytes(*value)),
-        [RefNull(ref_ty), End] => Value::Ref(Ref::Null(*ref_ty)),
-        [RefFunc(fun_idx), End] => Value::Ref(Ref::Ref(module.get_fun(FunIdx(*fun_idx)))),
-        [GetGlobal(idx), End] => {
-            rt.store
-                .get_global(module.get_global(GlobalIdx(*idx)))
-                .value
-        }
-        other => exec_panic!("Global initializer: {:?}", other),
-    })
+    crate::const_eval::eval_const_expr(
+        |global_idx| rt.store.get_global(module.get_global(global_idx)).value,
+        |fun_idx| module.get_fun(fun_idx),
+        instrs,
+    )
 }
 
 pub fn invoke_by_name(rt: &mut Runtime, module_addr: ModuleAddr, fun_name: &str) -> Result<()> {

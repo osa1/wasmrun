@@ -14,7 +14,11 @@ use fxhash::FxHashMap;
 use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 
-static TEST_DIRS: [&str; 2] = ["tests/spec", "tests/spec/proposals/exception-handling"];
+static TEST_DIRS: [&str; 3] = [
+    "tests/spec",
+    "tests/spec/proposals/exception-handling",
+    "tests/spec/proposals/extended-const",
+];
 
 fn main() {
     let cli::Args { mut files } = cli::parse();
