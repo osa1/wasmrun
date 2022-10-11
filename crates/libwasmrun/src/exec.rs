@@ -357,17 +357,6 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         }
     }
 
-    if let Some(tag_section) = parsed_module.tag_section_mut() {
-        for tag in tag_section.entries_mut().drain(..) {
-            let tag_type = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(tag.type_));
-            let tag_addr = rt.store.allocate_tag(tag_type.clone());
-            rt.store.get_module_mut(module_addr).add_tag(tag_addr);
-        }
-    }
-
     // Number of functions seen in imports. Used to get function indices in code section
     let mut n_funs = 0;
 
@@ -414,6 +403,18 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     rt.store.get_module_mut(module_addr).add_tag(tag_addr);
                 }
             }
+        }
+    }
+
+    // Allocate tags
+    if let Some(tag_section) = parsed_module.tag_section_mut() {
+        for tag in tag_section.entries_mut().drain(..) {
+            let tag_type = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(tag.type_));
+            let tag_addr = rt.store.allocate_tag(tag_type.clone());
+            rt.store.get_module_mut(module_addr).add_tag(tag_addr);
         }
     }
 
@@ -2704,23 +2705,26 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 vals.push(rt.stack.pop_value()?);
             }
 
-            let Block { kind, .. } = rt.stack.pop_block()?;
+            let Block { kind, cont, .. } = rt.stack.pop_block()?;
 
             for val in vals.into_iter().rev() {
                 rt.stack.push_value(val)?;
             }
 
-            let try_ip = match kind {
-                BlockKind::Try { ip } => ip,
+            // The previous block should be either a `try` block or a previous `catch`
+            match kind {
+                BlockKind::Try { ip } => {
+                    let cont = match current_fun.try_to_catch.get(&ip) {
+                        Some(conts) => conts.last().unwrap() + 1,
+                        None => exec_panic!("`try` instruction continuation missing"),
+                    };
+                    rt.ip = cont;
+                }
+                BlockKind::Block => {
+                    rt.ip = cont;
+                }
                 _ => exec_panic!("`catch` instruction outside `try`"),
             };
-
-            let cont = match current_fun.try_to_catch.get(&try_ip) {
-                Some(conts) => conts.last().unwrap() + 1,
-                None => exec_panic!("`try` instruction continuation missing"),
-            };
-
-            rt.ip = cont;
         }
 
         Instruction::Delegate(_depth) => exec_panic!("Instruction not implemented: delegate"),
@@ -2792,7 +2796,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
                         Instruction::Delegate(_) => todo!(),
 
-                        Instruction::End => todo!(),
+                        Instruction::End => {}
 
                         other => exec_panic!("Invalid `try` continuation: {}", other),
                     }
