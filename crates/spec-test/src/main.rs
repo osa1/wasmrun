@@ -483,12 +483,6 @@ fn run_spec_cmd(
         } => {
             // println!("invoke module={:?}, func={}", module, func);
 
-            if kind == spec::ActionKind::Exception {
-                writeln!(out, "Skipping assert_exception test").unwrap();
-                failing_lines.push(line);
-                return;
-            }
-
             let module_addr = match module {
                 Some(module_name) => match modules.get(&module_name) {
                     Some(module_addr) => *module_addr,
@@ -560,7 +554,16 @@ fn run_spec_cmd(
                 }
 
                 spec::ActionKind::Exception => {
-                    panic!(); // already skipped above
+                    if let Err(err) = exec_ret {
+                        writeln!(out, "Error while running function {}: {}", func, err).unwrap();
+                        failing_lines.push(line);
+                        return;
+                    }
+
+                    if rt.pop_exception().is_none() {
+                        writeln!(out, "assert_exception function didn't throw").unwrap();
+                        failing_lines.push(line);
+                    }
                 }
 
                 spec::ActionKind::Trap => {

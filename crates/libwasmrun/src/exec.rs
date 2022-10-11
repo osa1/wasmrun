@@ -110,7 +110,7 @@ pub struct Runtime {
 }
 
 #[derive(Debug)]
-struct Exception {
+pub struct Exception {
     /// Address of the exception in the store.
     addr: TagAddr,
 
@@ -195,6 +195,10 @@ impl Runtime {
 
     pub fn push_value(&mut self, value: Value) {
         self.stack.push_value(value).unwrap()
+    }
+
+    pub fn pop_exception(&mut self) -> Option<Exception> {
+        self.exceptions.pop()
     }
 
     pub fn register_module(&mut self, name: String, module_addr: ModuleAddr) {
@@ -2761,7 +2765,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::Rethrow(n_blocks) => {
-            for _ in 0..n_blocks - 1 {
+            for _ in 1..n_blocks {
                 let block = rt.stack.pop_block().unwrap();
                 if block.kind == BlockKind::Catch {
                     rt.exceptions.pop().unwrap();
@@ -2799,7 +2803,13 @@ fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
             BlockKind::Block | BlockKind::Loop | BlockKind::Catch => continue,
             BlockKind::Fun => {
                 rt.frames.pop();
-                current_fun_addr = rt.frames.current().unwrap().fun_addr;
+                current_fun_addr = match rt.frames.current() {
+                    Ok(frame) => frame.fun_addr,
+                    Err(_) => {
+                        rt.exceptions.push(exc);
+                        return Ok(());
+                    }
+                };
                 current_fun = match rt.store.get_fun(current_fun_addr) {
                     Fun::Wasm(fun) => fun,
                     Fun::Host(_) => panic!(),
@@ -2847,6 +2857,7 @@ fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
 
                 Instruction::CatchAll => {
                     // Similar to `catch`, but does not use exception arguments
+                    rt.exceptions.push(exc);
                     rt.ip = block_idx + 1;
                     break 'unwind;
                 }
