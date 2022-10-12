@@ -5,27 +5,22 @@ use crate::{
 
 use std::fmt;
 
-/// List of instructions (usually inside a block section).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instructions(Vec<Instruction>);
 
 impl Instructions {
-    /// New list of instructions from vector of instructions.
     pub fn new(elements: Vec<Instruction>) -> Self {
         Instructions(elements)
     }
 
-    /// Empty expression with only `Instruction::End` instruction.
     pub fn empty() -> Self {
         Instructions(vec![Instruction::End])
     }
 
-    /// List of individual instructions.
     pub fn elements(&self) -> &[Instruction] {
         &self.0
     }
 
-    /// Individual instructions, mutable.
     pub fn elements_mut(&mut self) -> &mut Vec<Instruction> {
         &mut self.0
     }
@@ -128,7 +123,6 @@ impl Deserialize for InitExpr {
     }
 }
 
-/// Instruction.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Instruction {
     Unreachable,
@@ -720,7 +714,7 @@ impl Instruction {
     }
 }
 
-pub mod opcodes {
+mod opcodes {
     pub const UNREACHABLE: u8 = 0x00;
     pub const NOP: u8 = 0x01;
     pub const BLOCK: u8 = 0x02;

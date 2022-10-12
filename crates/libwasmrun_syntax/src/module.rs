@@ -12,8 +12,6 @@ use super::{
     Deserialize, Error, External, Uint32,
 };
 
-use core::cmp;
-
 const WASM_MAGIC_NUMBER: [u8; 4] = [0x00, 0x61, 0x73, 0x6d];
 
 /// WebAssembly module
@@ -654,72 +652,6 @@ impl Deserialize for Module {
 
         Ok(module)
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct PeekSection<'a> {
-    cursor: usize,
-    region: &'a [u8],
-}
-
-impl<'a> io::Read for PeekSection<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        let available = cmp::min(buf.len(), self.region.len() - self.cursor);
-        if available < buf.len() {
-            return Err(io::Error::UnexpectedEof);
-        }
-
-        let range = self.cursor..self.cursor + buf.len();
-        buf.copy_from_slice(&self.region[range]);
-
-        self.cursor += available;
-        Ok(())
-    }
-}
-
-/// Returns size of the module in the provided stream.
-pub fn peek_size(source: &[u8]) -> usize {
-    if source.len() < 9 {
-        return 0;
-    }
-
-    let mut cursor = 8;
-    loop {
-        let (new_cursor, section_id, section_len) = {
-            let mut peek_section = PeekSection {
-                cursor: 0,
-                region: &source[cursor..],
-            };
-            let section_id: u8 = match super::VarUint7::deserialize(&mut peek_section) {
-                Ok(res) => res.into(),
-                Err(_) => break,
-            };
-            let section_len: u32 = match super::VarUint32::deserialize(&mut peek_section) {
-                Ok(res) => res.into(),
-                Err(_) => break,
-            };
-
-            (peek_section.cursor, section_id, section_len)
-        };
-
-        if section_id <= 11 && section_len > 0 {
-            let next_cursor = cursor + new_cursor + section_len as usize;
-
-            match next_cursor {
-                x if x > source.len() => break,
-                x if x == source.len() => {
-                    cursor = next_cursor;
-                    break;
-                }
-                _ => {}
-            }
-            cursor = next_cursor;
-        } else {
-            break;
-        }
-    }
-
-    cursor
 }
 
 #[cfg(test)]

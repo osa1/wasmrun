@@ -1,13 +1,9 @@
-mod io;
-
-use core::fmt;
-use core::fmt::Write;
-
 mod export_entry;
 mod func;
 mod global_entry;
 mod import_entry;
 mod index_map;
+mod io;
 mod module;
 mod name_section;
 mod ops;
@@ -19,39 +15,35 @@ mod types;
 
 pub use self::{
     export_entry::{ExportEntry, Internal},
+    func::{Func, FuncBody, Local},
     global_entry::GlobalEntry,
     import_entry::{External, GlobalType, ImportEntry, MemoryType, ResizableLimits, TableType},
-    module::{peek_size, ImportCountType, Module},
-    ops::{opcodes, BrTableData, InitExpr, Instruction, Instructions},
+    index_map::IndexMap,
+    module::{ImportCountType, Module},
+    name_section::{
+        FunctionNameSubsection, LocalNameSubsection, ModuleNameSubsection, NameMap, NameSection,
+    },
+    ops::{
+        AtomicsInstruction, BrTableData, InitExpr, Instruction, Instructions, MemArg,
+        SignExtInstruction, SimdInstruction,
+    },
     primitives::{
         CountedList, Uint32, Uint64, Uint8, VarInt32, VarInt64, VarInt7, VarUint1, VarUint32,
         VarUint64, VarUint7,
     },
+    reloc_section::{RelocSection, RelocationEntry},
     section::{
         CodeSection, CustomSection, DataSection, ElementSection, ExportSection, FunctionSection,
         GlobalSection, ImportSection, MemorySection, Section, TableSection, TagType, TypeSection,
     },
+    segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
     types::{BlockType, FunctionType, ReferenceType, Type, ValueType},
 };
 
-pub use self::ops::AtomicsInstruction;
-pub use self::ops::MemArg;
-pub use self::ops::SignExtInstruction;
-pub use self::ops::SimdInstruction;
+use core::fmt;
+use core::fmt::Write;
 
-pub use self::{
-    func::{Func, FuncBody, Local},
-    index_map::IndexMap,
-    name_section::{
-        FunctionNameSubsection, LocalNameSubsection, ModuleNameSubsection, NameMap, NameSection,
-    },
-    reloc_section::{RelocSection, RelocationEntry},
-    segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
-};
-
-/// Deserialization from serial i/o.
 pub trait Deserialize: Sized {
-    /// Deserialize type from serial i/o
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error>;
 }
 
@@ -60,75 +52,109 @@ pub trait Deserialize: Sized {
 pub enum Error {
     /// Unexpected end of input
     UnexpectedEof,
+
     /// Invalid magic
     InvalidMagic,
+
     /// Unsupported version
     UnsupportedVersion(u32),
+
     /// Inconsistence between declared and actual length
     InconsistentLength {
         /// Expected length of the definition
         expected: usize,
+
         /// Actual length of the definition
         actual: usize,
     },
+
     /// Other static error
     Other(&'static str),
+
     /// Other allocated error
     HeapOther(String),
+
     /// Invalid/unknown value type declaration
     UnknownValueType(u8),
+
     /// Invalid block type declaration
     UnknownBlockType(i32),
+
     /// Invalid/unknown table element type declaration
     UnknownTableElementType(i8),
+
     /// Non-utf8 string
     NonUtf8String,
+
     /// Unknown external kind code
     UnknownExternalKind(u8),
+
     /// Unknown internal kind code
     UnknownInternalKind(u8),
+
     /// Unknown opcode encountered
     UnknownOpcode(u32),
+
     /// Unknown SIMD opcode encountered
     UnknownSimdOpcode(u32),
+
     /// Invalid VarUint1 value
     InvalidVarUint1(u8),
+
     /// Invalid VarInt32 value
     InvalidVarInt32,
+
     /// Invalid VarInt64 value
     InvalidVarInt64,
+
     /// Invalid VarUint32 value
     InvalidVarUint32,
+
     /// Invalid VarUint64 value
     InvalidVarUint64,
+
     /// Inconsistent metadata
     InconsistentMetadata,
+
     /// Invalid section id
     InvalidSectionId(u8),
+
     /// Sections are out of order
     SectionsOutOfOrder,
+
     /// Duplicated sections
     DuplicatedSections(u8),
+
     /// Invalid memory reference (should be 0)
     InvalidMemoryReference(u8),
+
     /// Invalid value used for flags in limits type
     InvalidLimitsFlags(u8),
+
     /// Unknown function form (should be 0x60)
     UnknownFunctionForm(u8),
+
     /// Invalid varint7 (should be in -64..63 range)
     InvalidVarInt7(u8),
+
     /// Number of function body entries and signatures does not match
     InconsistentCode,
+
     /// Only flags 0, 1, and 2 are accepted on segments
     InvalidSegmentFlags(u32),
+
     /// Sum of counts of locals is greater than 2^32
     TooManyLocals,
+
     /// Duplicated name subsections
     DuplicatedNameSubsections(u8),
+
     /// Unknown name subsection type
     UnknownNameSubsectionType(u8),
+
     /// Unknown reference type
     UnknownReferenceType(u8),
+
     /// Unknown element kind
     UnknownElementKind(u8),
 
@@ -277,7 +303,7 @@ pub fn deserialize_buffer<T: Deserialize>(contents: &[u8]) -> Result<T, Error> {
     Ok(result)
 }
 
-/// Deserialize module from the file.
+/// Deserialize module from file.
 pub fn deserialize_file<P: AsRef<::std::path::Path>>(p: P) -> Result<Module, Error> {
     let mut f = ::std::fs::File::open(p)
         .map_err(|e| Error::HeapOther(format!("Can't read from the file: {:?}", e)))?;
