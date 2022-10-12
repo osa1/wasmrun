@@ -141,6 +141,8 @@ pub enum Instruction {
     CallIndirect(u32, u8),
     ReturnCall(u32),
     ReturnCallIndirect(u32, u8),
+    CallRef(u32),       // type idx
+    ReturnCallRef(u32), // type idx
 
     Drop,
     Select(Option<Vec<ValueType>>),
@@ -348,6 +350,9 @@ pub enum Instruction {
     RefNull(ReferenceType),
     RefIsNull,
     RefFunc(u32), // func idx
+    RefAsNonNull,
+    BrOnNull(u32),
+    BrOnNonNull(u32),
 
     // Exception handling instructions
     Try(BlockType),
@@ -730,6 +735,8 @@ mod opcodes {
     pub const CALLINDIRECT: u8 = 0x11;
     pub const RETURN_CALL: u8 = 0x12;
     pub const RETURN_CALL_INDIRECT: u8 = 0x13;
+    pub const CALL_REF: u8 = 0x14;
+    pub const RETURN_CALL_REF: u8 = 0x15;
     pub const DROP: u8 = 0x1a;
     pub const SELECT_1: u8 = 0x1b;
     pub const SELECT_2: u8 = 0x1c;
@@ -906,350 +913,344 @@ mod opcodes {
     pub const I64_TRUNC_SAT_F64_S: u32 = 6; // BULK_PREFIX
     pub const I64_TRUNC_SAT_F64_U: u32 = 7; // BULK_PREFIX
 
-    pub mod sign_ext {
-        pub const I32_EXTEND8_S: u8 = 0xc0;
-        pub const I32_EXTEND16_S: u8 = 0xc1;
-        pub const I64_EXTEND8_S: u8 = 0xc2;
-        pub const I64_EXTEND16_S: u8 = 0xc3;
-        pub const I64_EXTEND32_S: u8 = 0xc4;
-    }
+    pub const I32_EXTEND8_S: u8 = 0xc0;
+    pub const I32_EXTEND16_S: u8 = 0xc1;
+    pub const I64_EXTEND8_S: u8 = 0xc2;
+    pub const I64_EXTEND16_S: u8 = 0xc3;
+    pub const I64_EXTEND32_S: u8 = 0xc4;
 
-    pub mod atomics {
-        pub const ATOMIC_PREFIX: u8 = 0xfe;
-        pub const ATOMIC_WAKE: u8 = 0x00;
-        pub const I32_ATOMIC_WAIT: u8 = 0x01;
-        pub const I64_ATOMIC_WAIT: u8 = 0x02;
+    pub const ATOMIC_PREFIX: u8 = 0xfe;
+    pub const ATOMIC_WAKE: u8 = 0x00;
+    pub const I32_ATOMIC_WAIT: u8 = 0x01;
+    pub const I64_ATOMIC_WAIT: u8 = 0x02;
 
-        pub const I32_ATOMIC_LOAD: u8 = 0x10;
-        pub const I64_ATOMIC_LOAD: u8 = 0x11;
-        pub const I32_ATOMIC_LOAD8U: u8 = 0x12;
-        pub const I32_ATOMIC_LOAD16U: u8 = 0x13;
-        pub const I64_ATOMIC_LOAD8U: u8 = 0x14;
-        pub const I64_ATOMIC_LOAD16U: u8 = 0x15;
-        pub const I64_ATOMIC_LOAD32U: u8 = 0x16;
-        pub const I32_ATOMIC_STORE: u8 = 0x17;
-        pub const I64_ATOMIC_STORE: u8 = 0x18;
-        pub const I32_ATOMIC_STORE8U: u8 = 0x19;
-        pub const I32_ATOMIC_STORE16U: u8 = 0x1a;
-        pub const I64_ATOMIC_STORE8U: u8 = 0x1b;
-        pub const I64_ATOMIC_STORE16U: u8 = 0x1c;
-        pub const I64_ATOMIC_STORE32U: u8 = 0x1d;
+    pub const I32_ATOMIC_LOAD: u8 = 0x10;
+    pub const I64_ATOMIC_LOAD: u8 = 0x11;
+    pub const I32_ATOMIC_LOAD8U: u8 = 0x12;
+    pub const I32_ATOMIC_LOAD16U: u8 = 0x13;
+    pub const I64_ATOMIC_LOAD8U: u8 = 0x14;
+    pub const I64_ATOMIC_LOAD16U: u8 = 0x15;
+    pub const I64_ATOMIC_LOAD32U: u8 = 0x16;
+    pub const I32_ATOMIC_STORE: u8 = 0x17;
+    pub const I64_ATOMIC_STORE: u8 = 0x18;
+    pub const I32_ATOMIC_STORE8U: u8 = 0x19;
+    pub const I32_ATOMIC_STORE16U: u8 = 0x1a;
+    pub const I64_ATOMIC_STORE8U: u8 = 0x1b;
+    pub const I64_ATOMIC_STORE16U: u8 = 0x1c;
+    pub const I64_ATOMIC_STORE32U: u8 = 0x1d;
 
-        pub const I32_ATOMIC_RMW_ADD: u8 = 0x1e;
-        pub const I64_ATOMIC_RMW_ADD: u8 = 0x1f;
-        pub const I32_ATOMIC_RMW_ADD8U: u8 = 0x20;
-        pub const I32_ATOMIC_RMW_ADD16U: u8 = 0x21;
-        pub const I64_ATOMIC_RMW_ADD8U: u8 = 0x22;
-        pub const I64_ATOMIC_RMW_ADD16U: u8 = 0x23;
-        pub const I64_ATOMIC_RMW_ADD32U: u8 = 0x24;
+    pub const I32_ATOMIC_RMW_ADD: u8 = 0x1e;
+    pub const I64_ATOMIC_RMW_ADD: u8 = 0x1f;
+    pub const I32_ATOMIC_RMW_ADD8U: u8 = 0x20;
+    pub const I32_ATOMIC_RMW_ADD16U: u8 = 0x21;
+    pub const I64_ATOMIC_RMW_ADD8U: u8 = 0x22;
+    pub const I64_ATOMIC_RMW_ADD16U: u8 = 0x23;
+    pub const I64_ATOMIC_RMW_ADD32U: u8 = 0x24;
 
-        pub const I32_ATOMIC_RMW_SUB: u8 = 0x25;
-        pub const I64_ATOMIC_RMW_SUB: u8 = 0x26;
-        pub const I32_ATOMIC_RMW_SUB8U: u8 = 0x27;
-        pub const I32_ATOMIC_RMW_SUB16U: u8 = 0x28;
-        pub const I64_ATOMIC_RMW_SUB8U: u8 = 0x29;
-        pub const I64_ATOMIC_RMW_SUB16U: u8 = 0x2a;
-        pub const I64_ATOMIC_RMW_SUB32U: u8 = 0x2b;
+    pub const I32_ATOMIC_RMW_SUB: u8 = 0x25;
+    pub const I64_ATOMIC_RMW_SUB: u8 = 0x26;
+    pub const I32_ATOMIC_RMW_SUB8U: u8 = 0x27;
+    pub const I32_ATOMIC_RMW_SUB16U: u8 = 0x28;
+    pub const I64_ATOMIC_RMW_SUB8U: u8 = 0x29;
+    pub const I64_ATOMIC_RMW_SUB16U: u8 = 0x2a;
+    pub const I64_ATOMIC_RMW_SUB32U: u8 = 0x2b;
 
-        pub const I32_ATOMIC_RMW_AND: u8 = 0x2c;
-        pub const I64_ATOMIC_RMW_AND: u8 = 0x2d;
-        pub const I32_ATOMIC_RMW_AND8U: u8 = 0x2e;
-        pub const I32_ATOMIC_RMW_AND16U: u8 = 0x2f;
-        pub const I64_ATOMIC_RMW_AND8U: u8 = 0x30;
-        pub const I64_ATOMIC_RMW_AND16U: u8 = 0x31;
-        pub const I64_ATOMIC_RMW_AND32U: u8 = 0x32;
+    pub const I32_ATOMIC_RMW_AND: u8 = 0x2c;
+    pub const I64_ATOMIC_RMW_AND: u8 = 0x2d;
+    pub const I32_ATOMIC_RMW_AND8U: u8 = 0x2e;
+    pub const I32_ATOMIC_RMW_AND16U: u8 = 0x2f;
+    pub const I64_ATOMIC_RMW_AND8U: u8 = 0x30;
+    pub const I64_ATOMIC_RMW_AND16U: u8 = 0x31;
+    pub const I64_ATOMIC_RMW_AND32U: u8 = 0x32;
 
-        pub const I32_ATOMIC_RMW_OR: u8 = 0x33;
-        pub const I64_ATOMIC_RMW_OR: u8 = 0x34;
-        pub const I32_ATOMIC_RMW_OR8U: u8 = 0x35;
-        pub const I32_ATOMIC_RMW_OR16U: u8 = 0x36;
-        pub const I64_ATOMIC_RMW_OR8U: u8 = 0x37;
-        pub const I64_ATOMIC_RMW_OR16U: u8 = 0x38;
-        pub const I64_ATOMIC_RMW_OR32U: u8 = 0x39;
+    pub const I32_ATOMIC_RMW_OR: u8 = 0x33;
+    pub const I64_ATOMIC_RMW_OR: u8 = 0x34;
+    pub const I32_ATOMIC_RMW_OR8U: u8 = 0x35;
+    pub const I32_ATOMIC_RMW_OR16U: u8 = 0x36;
+    pub const I64_ATOMIC_RMW_OR8U: u8 = 0x37;
+    pub const I64_ATOMIC_RMW_OR16U: u8 = 0x38;
+    pub const I64_ATOMIC_RMW_OR32U: u8 = 0x39;
 
-        pub const I32_ATOMIC_RMW_XOR: u8 = 0x3a;
-        pub const I64_ATOMIC_RMW_XOR: u8 = 0x3b;
-        pub const I32_ATOMIC_RMW_XOR8U: u8 = 0x3c;
-        pub const I32_ATOMIC_RMW_XOR16U: u8 = 0x3d;
-        pub const I64_ATOMIC_RMW_XOR8U: u8 = 0x3e;
-        pub const I64_ATOMIC_RMW_XOR16U: u8 = 0x3f;
-        pub const I64_ATOMIC_RMW_XOR32U: u8 = 0x40;
+    pub const I32_ATOMIC_RMW_XOR: u8 = 0x3a;
+    pub const I64_ATOMIC_RMW_XOR: u8 = 0x3b;
+    pub const I32_ATOMIC_RMW_XOR8U: u8 = 0x3c;
+    pub const I32_ATOMIC_RMW_XOR16U: u8 = 0x3d;
+    pub const I64_ATOMIC_RMW_XOR8U: u8 = 0x3e;
+    pub const I64_ATOMIC_RMW_XOR16U: u8 = 0x3f;
+    pub const I64_ATOMIC_RMW_XOR32U: u8 = 0x40;
 
-        pub const I32_ATOMIC_RMW_XCHG: u8 = 0x41;
-        pub const I64_ATOMIC_RMW_XCHG: u8 = 0x42;
-        pub const I32_ATOMIC_RMW_XCHG8U: u8 = 0x43;
-        pub const I32_ATOMIC_RMW_XCHG16U: u8 = 0x44;
-        pub const I64_ATOMIC_RMW_XCHG8U: u8 = 0x45;
-        pub const I64_ATOMIC_RMW_XCHG16U: u8 = 0x46;
-        pub const I64_ATOMIC_RMW_XCHG32U: u8 = 0x47;
+    pub const I32_ATOMIC_RMW_XCHG: u8 = 0x41;
+    pub const I64_ATOMIC_RMW_XCHG: u8 = 0x42;
+    pub const I32_ATOMIC_RMW_XCHG8U: u8 = 0x43;
+    pub const I32_ATOMIC_RMW_XCHG16U: u8 = 0x44;
+    pub const I64_ATOMIC_RMW_XCHG8U: u8 = 0x45;
+    pub const I64_ATOMIC_RMW_XCHG16U: u8 = 0x46;
+    pub const I64_ATOMIC_RMW_XCHG32U: u8 = 0x47;
 
-        pub const I32_ATOMIC_RMW_CMPXCHG: u8 = 0x48;
-        pub const I64_ATOMIC_RMW_CMPXCHG: u8 = 0x49;
-        pub const I32_ATOMIC_RMW_CMPXCHG8U: u8 = 0x4a;
-        pub const I32_ATOMIC_RMW_CMPXCHG16U: u8 = 0x4b;
-        pub const I64_ATOMIC_RMW_CMPXCHG8U: u8 = 0x4c;
-        pub const I64_ATOMIC_RMW_CMPXCHG16U: u8 = 0x4d;
-        pub const I64_ATOMIC_RMW_CMPXCHG32U: u8 = 0x4e;
-    }
+    pub const I32_ATOMIC_RMW_CMPXCHG: u8 = 0x48;
+    pub const I64_ATOMIC_RMW_CMPXCHG: u8 = 0x49;
+    pub const I32_ATOMIC_RMW_CMPXCHG8U: u8 = 0x4a;
+    pub const I32_ATOMIC_RMW_CMPXCHG16U: u8 = 0x4b;
+    pub const I64_ATOMIC_RMW_CMPXCHG8U: u8 = 0x4c;
+    pub const I64_ATOMIC_RMW_CMPXCHG16U: u8 = 0x4d;
+    pub const I64_ATOMIC_RMW_CMPXCHG32U: u8 = 0x4e;
 
-    pub mod simd {
-        pub const SIMD_PREFIX: u8 = 0xfd;
+    pub const SIMD_PREFIX: u8 = 0xfd;
 
-        pub const V128_LOAD: u32 = 0;
-        pub const V128_LOAD_8X8_S: u32 = 1;
-        pub const V128_LOAD_8X8_U: u32 = 2;
-        pub const V128_LOAD_16X4_S: u32 = 3;
-        pub const V128_LOAD_16X4_U: u32 = 4;
-        pub const V128_LOAD_32X2_S: u32 = 5;
-        pub const V128_LOAD_32X2_U: u32 = 6;
-        pub const V128_LOAD_8_SPLAT: u32 = 7;
-        pub const V128_LOAD_16_SPLAT: u32 = 8;
-        pub const V128_LOAD_32_SPLAT: u32 = 9;
-        pub const V128_LOAD_64_SPLAT: u32 = 10;
-        pub const V128_LOAD_32_ZERO: u32 = 92;
-        pub const V128_LOAD_64_ZERO: u32 = 93;
-        pub const V128_STORE: u32 = 11;
-        pub const V128_LOAD_8_LANE: u32 = 84;
-        pub const V128_LOAD_16_LANE: u32 = 85;
-        pub const V128_LOAD_32_LANE: u32 = 86;
-        pub const V128_LOAD_64_LANE: u32 = 87;
-        pub const V128_STORE_8_LANE: u32 = 88;
-        pub const V128_STORE_16_LANE: u32 = 89;
-        pub const V128_STORE_32_LANE: u32 = 90;
-        pub const V128_STORE_64_LANE: u32 = 91;
+    pub const V128_LOAD: u32 = 0;
+    pub const V128_LOAD_8X8_S: u32 = 1;
+    pub const V128_LOAD_8X8_U: u32 = 2;
+    pub const V128_LOAD_16X4_S: u32 = 3;
+    pub const V128_LOAD_16X4_U: u32 = 4;
+    pub const V128_LOAD_32X2_S: u32 = 5;
+    pub const V128_LOAD_32X2_U: u32 = 6;
+    pub const V128_LOAD_8_SPLAT: u32 = 7;
+    pub const V128_LOAD_16_SPLAT: u32 = 8;
+    pub const V128_LOAD_32_SPLAT: u32 = 9;
+    pub const V128_LOAD_64_SPLAT: u32 = 10;
+    pub const V128_LOAD_32_ZERO: u32 = 92;
+    pub const V128_LOAD_64_ZERO: u32 = 93;
+    pub const V128_STORE: u32 = 11;
+    pub const V128_LOAD_8_LANE: u32 = 84;
+    pub const V128_LOAD_16_LANE: u32 = 85;
+    pub const V128_LOAD_32_LANE: u32 = 86;
+    pub const V128_LOAD_64_LANE: u32 = 87;
+    pub const V128_STORE_8_LANE: u32 = 88;
+    pub const V128_STORE_16_LANE: u32 = 89;
+    pub const V128_STORE_32_LANE: u32 = 90;
+    pub const V128_STORE_64_LANE: u32 = 91;
 
-        pub const V128_CONST: u32 = 12;
+    pub const V128_CONST: u32 = 12;
 
-        pub const I8X16_SHUFFLE: u32 = 13;
+    pub const I8X16_SHUFFLE: u32 = 13;
 
-        pub const I8X16_EXTRACT_LANE_S: u32 = 21;
-        pub const I8X16_EXTRACT_LANE_U: u32 = 22;
-        pub const I8X16_REPLACE_LANE: u32 = 23;
-        pub const I16X8_EXTRACT_LANE_S: u32 = 24;
-        pub const I16X8_EXTRACT_LANE_U: u32 = 25;
-        pub const I16X8_REPLACE_LANE: u32 = 26;
-        pub const I32X4_EXTRACT_LANE: u32 = 27;
-        pub const I32X4_REPLACE_LANE: u32 = 28;
-        pub const I64X2_EXTRACT_LANE: u32 = 29;
-        pub const I64X2_REPLACE_LANE: u32 = 30;
-        pub const F32X4_EXTRACT_LANE: u32 = 31;
-        pub const F32X4_REPLACE_LANE: u32 = 32;
-        pub const F64X2_EXTRACT_LANE: u32 = 33;
-        pub const F64X2_REPLACE_LANE: u32 = 34;
+    pub const I8X16_EXTRACT_LANE_S: u32 = 21;
+    pub const I8X16_EXTRACT_LANE_U: u32 = 22;
+    pub const I8X16_REPLACE_LANE: u32 = 23;
+    pub const I16X8_EXTRACT_LANE_S: u32 = 24;
+    pub const I16X8_EXTRACT_LANE_U: u32 = 25;
+    pub const I16X8_REPLACE_LANE: u32 = 26;
+    pub const I32X4_EXTRACT_LANE: u32 = 27;
+    pub const I32X4_REPLACE_LANE: u32 = 28;
+    pub const I64X2_EXTRACT_LANE: u32 = 29;
+    pub const I64X2_REPLACE_LANE: u32 = 30;
+    pub const F32X4_EXTRACT_LANE: u32 = 31;
+    pub const F32X4_REPLACE_LANE: u32 = 32;
+    pub const F64X2_EXTRACT_LANE: u32 = 33;
+    pub const F64X2_REPLACE_LANE: u32 = 34;
 
-        pub const I8X16_SWIZZLE: u32 = 14;
-        pub const I8X16_SPLAT: u32 = 15;
-        pub const I16X8_SPLAT: u32 = 16;
-        pub const I32X4_SPLAT: u32 = 17;
-        pub const I64X2_SPLAT: u32 = 18;
-        pub const F32X4_SPLAT: u32 = 19;
-        pub const F64X2_SPLAT: u32 = 20;
+    pub const I8X16_SWIZZLE: u32 = 14;
+    pub const I8X16_SPLAT: u32 = 15;
+    pub const I16X8_SPLAT: u32 = 16;
+    pub const I32X4_SPLAT: u32 = 17;
+    pub const I64X2_SPLAT: u32 = 18;
+    pub const F32X4_SPLAT: u32 = 19;
+    pub const F64X2_SPLAT: u32 = 20;
 
-        pub const I8X16_EQ: u32 = 35;
-        pub const I8X16_NE: u32 = 36;
-        pub const I8X16_LT_S: u32 = 37;
-        pub const I8X16_LT_U: u32 = 38;
-        pub const I8X16_GT_S: u32 = 39;
-        pub const I8X16_GT_U: u32 = 40;
-        pub const I8X16_LE_S: u32 = 41;
-        pub const I8X16_LE_U: u32 = 42;
-        pub const I8X16_GE_S: u32 = 43;
-        pub const I8X16_GE_U: u32 = 44;
+    pub const I8X16_EQ: u32 = 35;
+    pub const I8X16_NE: u32 = 36;
+    pub const I8X16_LT_S: u32 = 37;
+    pub const I8X16_LT_U: u32 = 38;
+    pub const I8X16_GT_S: u32 = 39;
+    pub const I8X16_GT_U: u32 = 40;
+    pub const I8X16_LE_S: u32 = 41;
+    pub const I8X16_LE_U: u32 = 42;
+    pub const I8X16_GE_S: u32 = 43;
+    pub const I8X16_GE_U: u32 = 44;
 
-        pub const I16X8_EQ: u32 = 45;
-        pub const I16X8_NE: u32 = 46;
-        pub const I16X8_LT_S: u32 = 47;
-        pub const I16X8_LT_U: u32 = 48;
-        pub const I16X8_GT_S: u32 = 49;
-        pub const I16X8_GT_U: u32 = 50;
-        pub const I16X8_LE_S: u32 = 51;
-        pub const I16X8_LE_U: u32 = 52;
-        pub const I16X8_GE_S: u32 = 53;
-        pub const I16X8_GE_U: u32 = 54;
+    pub const I16X8_EQ: u32 = 45;
+    pub const I16X8_NE: u32 = 46;
+    pub const I16X8_LT_S: u32 = 47;
+    pub const I16X8_LT_U: u32 = 48;
+    pub const I16X8_GT_S: u32 = 49;
+    pub const I16X8_GT_U: u32 = 50;
+    pub const I16X8_LE_S: u32 = 51;
+    pub const I16X8_LE_U: u32 = 52;
+    pub const I16X8_GE_S: u32 = 53;
+    pub const I16X8_GE_U: u32 = 54;
 
-        pub const I32X4_EQ: u32 = 55;
-        pub const I32X4_NE: u32 = 56;
-        pub const I32X4_LT_S: u32 = 57;
-        pub const I32X4_LT_U: u32 = 58;
-        pub const I32X4_GT_S: u32 = 59;
-        pub const I32X4_GT_U: u32 = 60;
-        pub const I32X4_LE_S: u32 = 61;
-        pub const I32X4_LE_U: u32 = 62;
-        pub const I32X4_GE_S: u32 = 63;
-        pub const I32X4_GE_U: u32 = 64;
+    pub const I32X4_EQ: u32 = 55;
+    pub const I32X4_NE: u32 = 56;
+    pub const I32X4_LT_S: u32 = 57;
+    pub const I32X4_LT_U: u32 = 58;
+    pub const I32X4_GT_S: u32 = 59;
+    pub const I32X4_GT_U: u32 = 60;
+    pub const I32X4_LE_S: u32 = 61;
+    pub const I32X4_LE_U: u32 = 62;
+    pub const I32X4_GE_S: u32 = 63;
+    pub const I32X4_GE_U: u32 = 64;
 
-        pub const I64X2_EQ: u32 = 214;
-        pub const I64X2_NE: u32 = 215;
-        pub const I64X2_LT_S: u32 = 216;
-        pub const I64X2_GT_S: u32 = 217;
-        pub const I64X2_LE_S: u32 = 218;
-        pub const I64X2_GE_S: u32 = 219;
+    pub const I64X2_EQ: u32 = 214;
+    pub const I64X2_NE: u32 = 215;
+    pub const I64X2_LT_S: u32 = 216;
+    pub const I64X2_GT_S: u32 = 217;
+    pub const I64X2_LE_S: u32 = 218;
+    pub const I64X2_GE_S: u32 = 219;
 
-        pub const F32X4_EQ: u32 = 65;
-        pub const F32X4_NE: u32 = 66;
-        pub const F32X4_LT: u32 = 67;
-        pub const F32X4_GT: u32 = 68;
-        pub const F32X4_LE: u32 = 69;
-        pub const F32X4_GE: u32 = 70;
+    pub const F32X4_EQ: u32 = 65;
+    pub const F32X4_NE: u32 = 66;
+    pub const F32X4_LT: u32 = 67;
+    pub const F32X4_GT: u32 = 68;
+    pub const F32X4_LE: u32 = 69;
+    pub const F32X4_GE: u32 = 70;
 
-        pub const F64X2_EQ: u32 = 71;
-        pub const F64X2_NE: u32 = 72;
-        pub const F64X2_LT: u32 = 73;
-        pub const F64X2_GT: u32 = 74;
-        pub const F64X2_LE: u32 = 75;
-        pub const F64X2_GE: u32 = 76;
+    pub const F64X2_EQ: u32 = 71;
+    pub const F64X2_NE: u32 = 72;
+    pub const F64X2_LT: u32 = 73;
+    pub const F64X2_GT: u32 = 74;
+    pub const F64X2_LE: u32 = 75;
+    pub const F64X2_GE: u32 = 76;
 
-        pub const V128_NOT: u32 = 77;
-        pub const V128_AND: u32 = 78;
-        pub const V128_AND_NOT: u32 = 79;
-        pub const V128_OR: u32 = 80;
-        pub const V128_XOR: u32 = 81;
-        pub const V128_BITSELECT: u32 = 82;
-        pub const V128_ANY_TRUE: u32 = 83;
+    pub const V128_NOT: u32 = 77;
+    pub const V128_AND: u32 = 78;
+    pub const V128_AND_NOT: u32 = 79;
+    pub const V128_OR: u32 = 80;
+    pub const V128_XOR: u32 = 81;
+    pub const V128_BITSELECT: u32 = 82;
+    pub const V128_ANY_TRUE: u32 = 83;
 
-        pub const I8X16_ABS: u32 = 96;
-        pub const I8X16_NEG: u32 = 97;
-        pub const I8X16_POPCNT: u32 = 98;
-        pub const I8X16_ALL_TRUE: u32 = 99;
-        pub const I8X16_BITMASK: u32 = 100;
-        pub const I8X16_NARROW_I16X8_S: u32 = 101;
-        pub const I8X16_NARROW_I16X8_U: u32 = 102;
-        pub const I8X16_SHL: u32 = 107;
-        pub const I8X16_SHR_S: u32 = 108;
-        pub const I8X16_SHR_U: u32 = 109;
-        pub const I8X16_ADD: u32 = 110;
-        pub const I8X16_ADD_SAT_S: u32 = 111;
-        pub const I8X16_ADD_SAT_U: u32 = 112;
-        pub const I8X16_SUB: u32 = 113;
-        pub const I8X16_SUB_SAT_S: u32 = 114;
-        pub const I8X16_SUB_SAT_U: u32 = 115;
-        pub const I8X16_MIN_S: u32 = 118;
-        pub const I8X16_MIN_U: u32 = 119;
-        pub const I8X16_MAX_S: u32 = 120;
-        pub const I8X16_MAX_U: u32 = 121;
-        pub const I8X16_AVGR_U: u32 = 123;
+    pub const I8X16_ABS: u32 = 96;
+    pub const I8X16_NEG: u32 = 97;
+    pub const I8X16_POPCNT: u32 = 98;
+    pub const I8X16_ALL_TRUE: u32 = 99;
+    pub const I8X16_BITMASK: u32 = 100;
+    pub const I8X16_NARROW_I16X8_S: u32 = 101;
+    pub const I8X16_NARROW_I16X8_U: u32 = 102;
+    pub const I8X16_SHL: u32 = 107;
+    pub const I8X16_SHR_S: u32 = 108;
+    pub const I8X16_SHR_U: u32 = 109;
+    pub const I8X16_ADD: u32 = 110;
+    pub const I8X16_ADD_SAT_S: u32 = 111;
+    pub const I8X16_ADD_SAT_U: u32 = 112;
+    pub const I8X16_SUB: u32 = 113;
+    pub const I8X16_SUB_SAT_S: u32 = 114;
+    pub const I8X16_SUB_SAT_U: u32 = 115;
+    pub const I8X16_MIN_S: u32 = 118;
+    pub const I8X16_MIN_U: u32 = 119;
+    pub const I8X16_MAX_S: u32 = 120;
+    pub const I8X16_MAX_U: u32 = 121;
+    pub const I8X16_AVGR_U: u32 = 123;
 
-        pub const I16X8_EXTADD_PAIRWISE_I8X16_S: u32 = 124;
-        pub const I16X8_EXTADD_PAIRWISE_I8X16_U: u32 = 125;
-        pub const I16X8_ABS: u32 = 128;
-        pub const I16X8_NEG: u32 = 129;
-        pub const I16X8_Q15MULR_SAT_S: u32 = 130;
-        pub const I16X8_ALL_TRUE: u32 = 131;
-        pub const I16X8_BITMASK: u32 = 132;
-        pub const I16X8_NARROW_I32X4_S: u32 = 133;
-        pub const I16X8_NARROW_I32X4_U: u32 = 134;
-        pub const I16X8_EXTEND_LOW_I8X16_S: u32 = 135;
-        pub const I16X8_EXTEND_HIGH_I8X16_S: u32 = 136;
-        pub const I16X8_EXTEND_LOW_I8X16_U: u32 = 137;
-        pub const I16X8_EXTEND_HIGH_I8X16_U: u32 = 138;
-        pub const I16X8_SHL: u32 = 139;
-        pub const I16X8_SHR_S: u32 = 140;
-        pub const I16X8_SHR_U: u32 = 141;
-        pub const I16X8_ADD: u32 = 142;
-        pub const I16X8_ADD_SAT_S: u32 = 143;
-        pub const I16X8_ADD_SAT_U: u32 = 144;
-        pub const I16X8_SUB: u32 = 145;
-        pub const I16X8_SUB_SAT_S: u32 = 146;
-        pub const I16X8_SUB_SAT_U: u32 = 147;
-        pub const I16X8_MUL: u32 = 149;
-        pub const I16X8_MIN_S: u32 = 150;
-        pub const I16X8_MIN_U: u32 = 151;
-        pub const I16X8_MAX_S: u32 = 152;
-        pub const I16X8_MAX_U: u32 = 153;
-        pub const I16X8_AVGR_U: u32 = 155;
-        pub const I16X8_EXTMUL_LOW_I8X16_S: u32 = 156;
-        pub const I16X8_EXTMUL_HIGH_I8X16_S: u32 = 157;
-        pub const I16X8_EXTMUL_LOW_I8X16_U: u32 = 158;
-        pub const I16X8_EXTMUL_HIGH_I8X16_U: u32 = 159;
+    pub const I16X8_EXTADD_PAIRWISE_I8X16_S: u32 = 124;
+    pub const I16X8_EXTADD_PAIRWISE_I8X16_U: u32 = 125;
+    pub const I16X8_ABS: u32 = 128;
+    pub const I16X8_NEG: u32 = 129;
+    pub const I16X8_Q15MULR_SAT_S: u32 = 130;
+    pub const I16X8_ALL_TRUE: u32 = 131;
+    pub const I16X8_BITMASK: u32 = 132;
+    pub const I16X8_NARROW_I32X4_S: u32 = 133;
+    pub const I16X8_NARROW_I32X4_U: u32 = 134;
+    pub const I16X8_EXTEND_LOW_I8X16_S: u32 = 135;
+    pub const I16X8_EXTEND_HIGH_I8X16_S: u32 = 136;
+    pub const I16X8_EXTEND_LOW_I8X16_U: u32 = 137;
+    pub const I16X8_EXTEND_HIGH_I8X16_U: u32 = 138;
+    pub const I16X8_SHL: u32 = 139;
+    pub const I16X8_SHR_S: u32 = 140;
+    pub const I16X8_SHR_U: u32 = 141;
+    pub const I16X8_ADD: u32 = 142;
+    pub const I16X8_ADD_SAT_S: u32 = 143;
+    pub const I16X8_ADD_SAT_U: u32 = 144;
+    pub const I16X8_SUB: u32 = 145;
+    pub const I16X8_SUB_SAT_S: u32 = 146;
+    pub const I16X8_SUB_SAT_U: u32 = 147;
+    pub const I16X8_MUL: u32 = 149;
+    pub const I16X8_MIN_S: u32 = 150;
+    pub const I16X8_MIN_U: u32 = 151;
+    pub const I16X8_MAX_S: u32 = 152;
+    pub const I16X8_MAX_U: u32 = 153;
+    pub const I16X8_AVGR_U: u32 = 155;
+    pub const I16X8_EXTMUL_LOW_I8X16_S: u32 = 156;
+    pub const I16X8_EXTMUL_HIGH_I8X16_S: u32 = 157;
+    pub const I16X8_EXTMUL_LOW_I8X16_U: u32 = 158;
+    pub const I16X8_EXTMUL_HIGH_I8X16_U: u32 = 159;
 
-        pub const I32X4_EXTADD_PAIRWISE_I16X8_S: u32 = 126;
-        pub const I32X4_EXTADD_PAIRWISE_I16X8_U: u32 = 127;
-        pub const I32X4_ABS: u32 = 160;
-        pub const I32X4_NEG: u32 = 161;
-        pub const I32X4_ALL_TRUE: u32 = 163;
-        pub const I32X4_BITMASK: u32 = 164;
-        pub const I32X4_EXTEND_LOW_I16X8_S: u32 = 167;
-        pub const I32X4_EXTEND_HIGH_I16X8_S: u32 = 168;
-        pub const I32X4_EXTEND_LOW_I16X8_U: u32 = 169;
-        pub const I32X4_EXTEND_HIGH_I16X8_U: u32 = 170;
-        pub const I32X4_SHL: u32 = 171;
-        pub const I32X4_SHR_S: u32 = 172;
-        pub const I32X4_SHR_U: u32 = 173;
-        pub const I32X4_ADD: u32 = 174;
-        pub const I32X4_SUB: u32 = 177;
-        pub const I32X4_MUL: u32 = 181;
-        pub const I32X4_MIN_S: u32 = 182;
-        pub const I32X4_MIN_U: u32 = 183;
-        pub const I32X4_MAX_S: u32 = 184;
-        pub const I32X4_MAX_U: u32 = 185;
-        pub const I32X4_DOT_I16X8_S: u32 = 186;
-        pub const I32X4_EXTMUL_LOW_I16X8_S: u32 = 188;
-        pub const I32X4_EXTMUL_HIGH_I16X8_S: u32 = 189;
-        pub const I32X4_EXTMUL_LOW_I16X8_U: u32 = 190;
-        pub const I32X4_EXTMUL_HIGH_I16X8_U: u32 = 191;
+    pub const I32X4_EXTADD_PAIRWISE_I16X8_S: u32 = 126;
+    pub const I32X4_EXTADD_PAIRWISE_I16X8_U: u32 = 127;
+    pub const I32X4_ABS: u32 = 160;
+    pub const I32X4_NEG: u32 = 161;
+    pub const I32X4_ALL_TRUE: u32 = 163;
+    pub const I32X4_BITMASK: u32 = 164;
+    pub const I32X4_EXTEND_LOW_I16X8_S: u32 = 167;
+    pub const I32X4_EXTEND_HIGH_I16X8_S: u32 = 168;
+    pub const I32X4_EXTEND_LOW_I16X8_U: u32 = 169;
+    pub const I32X4_EXTEND_HIGH_I16X8_U: u32 = 170;
+    pub const I32X4_SHL: u32 = 171;
+    pub const I32X4_SHR_S: u32 = 172;
+    pub const I32X4_SHR_U: u32 = 173;
+    pub const I32X4_ADD: u32 = 174;
+    pub const I32X4_SUB: u32 = 177;
+    pub const I32X4_MUL: u32 = 181;
+    pub const I32X4_MIN_S: u32 = 182;
+    pub const I32X4_MIN_U: u32 = 183;
+    pub const I32X4_MAX_S: u32 = 184;
+    pub const I32X4_MAX_U: u32 = 185;
+    pub const I32X4_DOT_I16X8_S: u32 = 186;
+    pub const I32X4_EXTMUL_LOW_I16X8_S: u32 = 188;
+    pub const I32X4_EXTMUL_HIGH_I16X8_S: u32 = 189;
+    pub const I32X4_EXTMUL_LOW_I16X8_U: u32 = 190;
+    pub const I32X4_EXTMUL_HIGH_I16X8_U: u32 = 191;
 
-        pub const I64X2_ABS: u32 = 192;
-        pub const I64X2_NEG: u32 = 193;
-        pub const I64X2_ALL_TRUE: u32 = 195;
-        pub const I64X2_BITMASK: u32 = 196;
-        pub const I64X2_EXTEND_LOW_I32X4_S: u32 = 199;
-        pub const I64X2_EXTEND_HIGH_I32X4_S: u32 = 200;
-        pub const I64X2_EXTEND_LOW_I32X4_U: u32 = 201;
-        pub const I64X2_EXTEND_HIGH_I32X4_U: u32 = 202;
-        pub const I64X2_SHL: u32 = 203;
-        pub const I64X2_SHR_S: u32 = 204;
-        pub const I64X2_SHR_U: u32 = 205;
-        pub const I64X2_ADD: u32 = 206;
-        pub const I64X2_SUB: u32 = 209;
-        pub const I64X2_MUL: u32 = 213;
-        pub const I64X2_EXTMUL_LOW_I32X4_S: u32 = 220;
-        pub const I64X2_EXTMUL_HIGH_I32X4_S: u32 = 221;
-        pub const I64X2_EXTMUL_LOW_I32X4_U: u32 = 222;
-        pub const I64X2_EXTMUL_HIGH_I32X4_U: u32 = 223;
+    pub const I64X2_ABS: u32 = 192;
+    pub const I64X2_NEG: u32 = 193;
+    pub const I64X2_ALL_TRUE: u32 = 195;
+    pub const I64X2_BITMASK: u32 = 196;
+    pub const I64X2_EXTEND_LOW_I32X4_S: u32 = 199;
+    pub const I64X2_EXTEND_HIGH_I32X4_S: u32 = 200;
+    pub const I64X2_EXTEND_LOW_I32X4_U: u32 = 201;
+    pub const I64X2_EXTEND_HIGH_I32X4_U: u32 = 202;
+    pub const I64X2_SHL: u32 = 203;
+    pub const I64X2_SHR_S: u32 = 204;
+    pub const I64X2_SHR_U: u32 = 205;
+    pub const I64X2_ADD: u32 = 206;
+    pub const I64X2_SUB: u32 = 209;
+    pub const I64X2_MUL: u32 = 213;
+    pub const I64X2_EXTMUL_LOW_I32X4_S: u32 = 220;
+    pub const I64X2_EXTMUL_HIGH_I32X4_S: u32 = 221;
+    pub const I64X2_EXTMUL_LOW_I32X4_U: u32 = 222;
+    pub const I64X2_EXTMUL_HIGH_I32X4_U: u32 = 223;
 
-        pub const F32X4_CEIL: u32 = 103;
-        pub const F32X4_FLOOR: u32 = 104;
-        pub const F32X4_TRUNC: u32 = 105;
-        pub const F32X4_NEAREST: u32 = 106;
-        pub const F32X4_ABS: u32 = 224;
-        pub const F32X4_NEG: u32 = 225;
-        pub const F32X4_SQRT: u32 = 227;
-        pub const F32X4_ADD: u32 = 228;
-        pub const F32X4_SUB: u32 = 229;
-        pub const F32X4_MUL: u32 = 230;
-        pub const F32X4_DIV: u32 = 231;
-        pub const F32X4_MIN: u32 = 232;
-        pub const F32X4_MAX: u32 = 233;
-        pub const F32X4_PMIN: u32 = 234;
-        pub const F32X4_PMAX: u32 = 235;
+    pub const F32X4_CEIL: u32 = 103;
+    pub const F32X4_FLOOR: u32 = 104;
+    pub const F32X4_TRUNC: u32 = 105;
+    pub const F32X4_NEAREST: u32 = 106;
+    pub const F32X4_ABS: u32 = 224;
+    pub const F32X4_NEG: u32 = 225;
+    pub const F32X4_SQRT: u32 = 227;
+    pub const F32X4_ADD: u32 = 228;
+    pub const F32X4_SUB: u32 = 229;
+    pub const F32X4_MUL: u32 = 230;
+    pub const F32X4_DIV: u32 = 231;
+    pub const F32X4_MIN: u32 = 232;
+    pub const F32X4_MAX: u32 = 233;
+    pub const F32X4_PMIN: u32 = 234;
+    pub const F32X4_PMAX: u32 = 235;
 
-        pub const F64X2_CEIL: u32 = 116;
-        pub const F64X2_FLOOR: u32 = 117;
-        pub const F64X2_TRUNC: u32 = 122;
-        pub const F64X2_NEAREST: u32 = 148;
-        pub const F64X2_ABS: u32 = 236;
-        pub const F64X2_NEG: u32 = 237;
-        pub const F64X2_SQRT: u32 = 239;
-        pub const F64X2_ADD: u32 = 240;
-        pub const F64X2_SUB: u32 = 241;
-        pub const F64X2_MUL: u32 = 242;
-        pub const F64X2_DIV: u32 = 243;
-        pub const F64X2_MIN: u32 = 244;
-        pub const F64X2_MAX: u32 = 245;
-        pub const F64X2_PMIN: u32 = 246;
-        pub const F64X2_PMAX: u32 = 247;
+    pub const F64X2_CEIL: u32 = 116;
+    pub const F64X2_FLOOR: u32 = 117;
+    pub const F64X2_TRUNC: u32 = 122;
+    pub const F64X2_NEAREST: u32 = 148;
+    pub const F64X2_ABS: u32 = 236;
+    pub const F64X2_NEG: u32 = 237;
+    pub const F64X2_SQRT: u32 = 239;
+    pub const F64X2_ADD: u32 = 240;
+    pub const F64X2_SUB: u32 = 241;
+    pub const F64X2_MUL: u32 = 242;
+    pub const F64X2_DIV: u32 = 243;
+    pub const F64X2_MIN: u32 = 244;
+    pub const F64X2_MAX: u32 = 245;
+    pub const F64X2_PMIN: u32 = 246;
+    pub const F64X2_PMAX: u32 = 247;
 
-        pub const I32X4_TRUNC_SAT_F32X4_S: u32 = 248;
-        pub const I32X4_TRUNC_SAT_F32X4_U: u32 = 249;
-        pub const F32X4_CONVERT_I32X4_S: u32 = 250;
-        pub const F32X4_CONVERT_I32X4_U: u32 = 251;
-        pub const I32X4_TRUNC_SAT_F64X2_S_ZERO: u32 = 252;
-        pub const I32X4_TRUNC_SAT_F64X2_U_ZERO: u32 = 253;
-        pub const F64X2_CONVERT_LOW_I32X4_S: u32 = 254;
-        pub const F64X2_CONVERT_LOW_I32X4_U: u32 = 255;
-        pub const F32X4_DEMOTE_F64X2_ZERO: u32 = 94;
-        pub const F64X2_PROMOTE_LOW_F32X4: u32 = 95;
-    }
+    pub const I32X4_TRUNC_SAT_F32X4_S: u32 = 248;
+    pub const I32X4_TRUNC_SAT_F32X4_U: u32 = 249;
+    pub const F32X4_CONVERT_I32X4_S: u32 = 250;
+    pub const F32X4_CONVERT_I32X4_U: u32 = 251;
+    pub const I32X4_TRUNC_SAT_F64X2_S_ZERO: u32 = 252;
+    pub const I32X4_TRUNC_SAT_F64X2_U_ZERO: u32 = 253;
+    pub const F64X2_CONVERT_LOW_I32X4_S: u32 = 254;
+    pub const F64X2_CONVERT_LOW_I32X4_U: u32 = 255;
+    pub const F32X4_DEMOTE_F64X2_ZERO: u32 = 94;
+    pub const F64X2_PROMOTE_LOW_F32X4: u32 = 95;
 
     pub const BULK_PREFIX: u8 = 0xfc;
     pub const MEMORY_INIT: u32 = 8; // BULK_PREFIX
@@ -1269,6 +1270,9 @@ mod opcodes {
     pub const REF_NULL: u8 = 0xD0;
     pub const REF_IS_NULL: u8 = 0xD1;
     pub const REF_FUNC: u8 = 0xD2;
+    pub const REF_AS_NON_NULL: u8 = 0xD3;
+    pub const BR_ON_NULL: u8 = 0xD4;
+    pub const BR_ON_NON_NULL: u8 = 0xD6;
 
     pub const TRY: u8 = 0x06;
     pub const CATCH: u8 = 0x07;
@@ -1281,8 +1285,6 @@ mod opcodes {
 impl Deserialize for Instruction {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         use self::{opcodes::*, Instruction::*};
-
-        use self::opcodes::sign_ext::*;
 
         let val: u8 = Uint8::deserialize(reader)?.into();
 
@@ -1322,6 +1324,8 @@ impl Deserialize for Instruction {
                 let table_ref: u8 = Uint8::deserialize(reader)?.into();
                 ReturnCallIndirect(signature, table_ref)
             }
+            CALL_REF => CallRef(VarUint32::deserialize(reader)?.into()),
+            RETURN_CALL_REF => ReturnCallRef(VarUint32::deserialize(reader)?.into()),
             DROP => Drop,
             SELECT_1 => Select(None),
             SELECT_2 => {
@@ -1612,9 +1616,9 @@ impl Deserialize for Instruction {
                 }
             }
 
-            atomics::ATOMIC_PREFIX => return deserialize_atomic(reader),
+            ATOMIC_PREFIX => return deserialize_atomic(reader),
 
-            simd::SIMD_PREFIX => return deserialize_simd(reader),
+            SIMD_PREFIX => return deserialize_simd(reader),
 
             // TODO (osa): Parses saturating ops as well
             BULK_PREFIX => return deserialize_bulk(reader),
@@ -1625,6 +1629,9 @@ impl Deserialize for Instruction {
             REF_NULL => RefNull(ReferenceType::deserialize(reader)?),
             REF_IS_NULL => RefIsNull,
             REF_FUNC => RefFunc(VarUint32::deserialize(reader)?.into()),
+            REF_AS_NON_NULL => RefAsNonNull,
+            BR_ON_NULL => BrOnNull(VarUint32::deserialize(reader)?.into()),
+            BR_ON_NON_NULL => BrOnNonNull(VarUint32::deserialize(reader)?.into()),
 
             TRY => Try(BlockType::deserialize(reader)?),
             CATCH => Catch(VarUint32::deserialize(reader)?.into()),
@@ -1639,7 +1646,7 @@ impl Deserialize for Instruction {
 }
 
 fn deserialize_atomic<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
-    use self::{opcodes::atomics::*, AtomicsInstruction::*};
+    use self::{opcodes::*, AtomicsInstruction::*};
 
     let val: u8 = Uint8::deserialize(reader)?.into();
     let mem = MemArg::deserialize(reader)?;
@@ -1724,7 +1731,7 @@ fn deserialize_atomic<R: io::Read>(reader: &mut R) -> Result<Instruction, Error>
 }
 
 fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
-    use self::{opcodes::simd::*, SimdInstruction::*};
+    use self::{opcodes::*, SimdInstruction::*};
 
     let val = VarUint32::deserialize(reader)?.into();
     Ok(Instruction::Simd(match val {
@@ -2119,6 +2126,8 @@ impl fmt::Display for Instruction {
             CallIndirect(index, _) => fmt_op!(f, "call_indirect", index),
             ReturnCall(index) => fmt_op!(f, "return_call", index),
             ReturnCallIndirect(index, _) => fmt_op!(f, "return_call_indirect", index),
+            CallRef(_type_idx) => fmt_op!(f, "call_ref"),
+            ReturnCallRef(_type_idx) => fmt_op!(f, "return_call_ref"),
             Drop => fmt_op!(f, "drop"),
             Select(None) => fmt_op!(f, "select"),
             Select(Some(tys)) => write!(f, "select {:?}", tys),
@@ -2383,6 +2392,9 @@ impl fmt::Display for Instruction {
             RefNull(ty) => write!(f, "ref.null {}", ty),
             RefIsNull => write!(f, "ref.is_null"),
             RefFunc(func_idx) => fmt_op!(f, "ref.func", func_idx),
+            RefAsNonNull => fmt_op!(f, "ref.as_non_null"),
+            BrOnNull(_) => fmt_op!(f, "br_on_null"),
+            BrOnNonNull(_) => fmt_op!(f, "br_on_non_null"),
 
             Try(BlockType::Empty) => fmt_op!(f, "try"),
             Try(BlockType::Value(value_type)) => fmt_op!(f, "try", value_type),

@@ -2344,6 +2344,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::ReturnCallIndirect(_sig, _table_ref) => exec_panic!("return_call_indirect"),
 
+        Instruction::CallRef(_type_idx) => exec_panic!("call_ref"),
+
+        Instruction::ReturnCallRef(_type_idx) => exec_panic!("return_call_ref"),
+
         Instruction::Drop => {
             let _ = rt.stack.pop_value();
             rt.ip += 1;
@@ -2670,6 +2674,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.stack.push_ref(Ref::Func(fun_addr))?;
             rt.ip += 1;
         }
+
+        Instruction::RefAsNonNull => exec_panic!("ref.as_non_null"),
+
+        Instruction::BrOnNull(_n_blocks) => exec_panic!("br_on_null"),
+
+        Instruction::BrOnNonNull(_n_blocks) => exec_panic!("br_on_non_null"),
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Exception handling instructions
