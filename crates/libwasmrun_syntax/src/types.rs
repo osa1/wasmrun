@@ -5,7 +5,6 @@ use std::fmt;
 /// Type definition in types section. Currently can be only of the function type.
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Type {
-    /// Function type.
     Function(FunctionType),
 }
 
@@ -15,21 +14,26 @@ impl Deserialize for Type {
     }
 }
 
-/// Value type.
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 pub enum ValueType {
     /// 32-bit signed integer
     I32,
+
     /// 64-bit signed integer
     I64,
+
     /// 32-bit float
     F32,
+
     /// 64-bit float
     F64,
+
     /// 128-bit SIMD register
     V128,
+
     /// Reference to an embedder object
     ExternRef,
+
     /// Reference to a function
     FuncRef,
 }
@@ -65,7 +69,6 @@ impl fmt::Display for ValueType {
     }
 }
 
-/// A block type
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BlockType {
     /// Shorthand for `[] -> []`
@@ -111,7 +114,6 @@ impl Deserialize for BlockType {
     }
 }
 
-/// A function type
 #[derive(Debug, Default, Clone, PartialEq, Hash, Eq)]
 pub struct FunctionType {
     params: Vec<ValueType>,
@@ -165,6 +167,8 @@ impl Deserialize for FunctionType {
 pub enum ReferenceType {
     FuncRef,
     ExternRef,
+    RefNull(HeapType),
+    RefNonNull(HeapType),
 }
 
 impl Deserialize for ReferenceType {
@@ -174,6 +178,8 @@ impl Deserialize for ReferenceType {
         match val.into() {
             0x70 => Ok(ReferenceType::FuncRef),
             0x6F => Ok(ReferenceType::ExternRef),
+            0x6B => Ok(ReferenceType::RefNonNull(HeapType::deserialize(reader)?)),
+            0x6C => Ok(ReferenceType::RefNull(HeapType::deserialize(reader)?)),
             other => Err(Error::UnknownReferenceType(other)),
         }
     }
@@ -184,6 +190,39 @@ impl fmt::Display for ReferenceType {
         match self {
             ReferenceType::FuncRef => write!(f, "funcref"),
             ReferenceType::ExternRef => write!(f, "externref"),
+            ReferenceType::RefNull(heap_ty) => write!(f, "ref null {}", heap_ty),
+            ReferenceType::RefNonNull(heap_ty) => write!(f, "ref {}", heap_ty),
+        }
+    }
+}
+
+/// <https://webassembly.github.io/function-references/core/binary/types.html#heap-types>
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum HeapType {
+    Extern,
+    Func,
+    TypeIdx(u32),
+}
+
+impl Deserialize for HeapType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        // TODO: This should be signed 33-bit to allow entire type index range
+        let val = VarInt32::deserialize(reader)?.into();
+
+        Ok(match val {
+            -0x11 => HeapType::Extern,
+            -0x10 => HeapType::Func,
+            other => HeapType::TypeIdx(other as u32),
+        })
+    }
+}
+
+impl fmt::Display for HeapType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            HeapType::Extern => write!(f, "extern"),
+            HeapType::Func => write!(f, "func"),
+            HeapType::TypeIdx(idx) => <u32 as fmt::Display>::fmt(idx, f),
         }
     }
 }
