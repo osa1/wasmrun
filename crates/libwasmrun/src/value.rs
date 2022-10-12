@@ -19,23 +19,23 @@ pub enum Value {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ref {
     Null(wasm::ReferenceType),
-    Ref(FunAddr),
-    RefExtern(ExternAddr),
+    Func(FunAddr),
+    Extern(ExternAddr),
 }
 
 impl Ref {
     pub fn ty(&self) -> wasm::ReferenceType {
         match self {
             Ref::Null(ty) => *ty,
-            Ref::Ref(_) => wasm::ReferenceType::FuncRef,
-            Ref::RefExtern(_) => wasm::ReferenceType::ExternRef,
+            Ref::Func(_) => wasm::ReferenceType::FuncRef,
+            Ref::Extern(_) => wasm::ReferenceType::ExternRef,
         }
     }
 
     pub fn is_null(&self) -> bool {
         match self {
             Ref::Null(_) => true,
-            Ref::Ref(_) | Ref::RefExtern(_) => false,
+            Ref::Func(_) | Ref::Extern(_) => false,
         }
     }
 }

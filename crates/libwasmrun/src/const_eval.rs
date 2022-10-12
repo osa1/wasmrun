@@ -33,7 +33,9 @@ where
 
             Instruction::RefNull(ref_ty) => stack.push_ref(Ref::Null(*ref_ty))?,
 
-            Instruction::RefFunc(fun_idx) => stack.push_ref(Ref::Ref(get_fun(FunIdx(*fun_idx))))?,
+            Instruction::RefFunc(fun_idx) => {
+                stack.push_ref(Ref::Func(get_fun(FunIdx(*fun_idx))))?
+            }
 
             Instruction::GetGlobal(idx) => stack.push_value(get_global(GlobalIdx(*idx)))?,
 

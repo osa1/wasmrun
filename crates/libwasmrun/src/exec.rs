@@ -514,9 +514,9 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                             return Err(ExecError::Trap(Trap::ElementOOB));
                         }
                         let elem = match elem.code() {
-                            &[Instruction::RefFunc(func_idx), Instruction::End] => {
-                                Ref::Ref(rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)))
-                            }
+                            &[Instruction::RefFunc(func_idx), Instruction::End] => Ref::Func(
+                                rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)),
+                            ),
                             &[Instruction::RefNull(ref_ty), Instruction::End] => Ref::Null(ref_ty),
                             other => exec_panic!("Unhandled element expression: {:?}", other),
                         };
@@ -2311,11 +2311,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .get_table(TableIdx(u32::from(table_ref)));
 
             let fun_addr = match rt.store.get_table(table_addr).get(elem_idx as usize) {
-                Some(Ref::Ref(fun_addr)) => *fun_addr,
+                Some(Ref::Func(fun_addr)) => *fun_addr,
                 Some(Ref::Null(_ref_ty)) => {
                     return Err(ExecError::Trap(Trap::UninitializedElement));
                 }
-                Some(Ref::RefExtern(_extern_addr)) => {
+                Some(Ref::Extern(_extern_addr)) => {
                     // TODO: Check table type to help with debugging
                     return Err(ExecError::Trap(Trap::CallIndirectOnExternRef));
                 }
@@ -2629,7 +2629,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 match elem.code() {
                     &[Instruction::RefFunc(fun_idx), Instruction::End] => {
                         let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
-                        fun_addrs.push(Ref::Ref(fun_addr));
+                        fun_addrs.push(Ref::Func(fun_addr));
                     }
                     _ => todo!(),
                 }
@@ -2667,7 +2667,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::RefFunc(fun_idx) => {
             let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
-            rt.stack.push_ref(Ref::Ref(fun_addr))?;
+            rt.stack.push_ref(Ref::Func(fun_addr))?;
             rt.ip += 1;
         }
 

@@ -148,11 +148,11 @@ fn test_val(
 
         (Value::Ref(Ref::Null(ref_ty1)), spec::Value::NullRef(ref_ty2)) => ref_ty1 == ref_ty2,
 
-        (Value::Ref(Ref::Ref(fun_ref1)), spec::Value::FuncRef(fun_ref2)) => {
+        (Value::Ref(Ref::Func(fun_ref1)), spec::Value::FuncRef(fun_ref2)) => {
             fun_ref1 == rt.get_module_fun_addr(module_addr, fun_ref2)
         }
 
-        (Value::Ref(Ref::RefExtern(extern1)), spec::Value::ExternRef(extern2)) => {
+        (Value::Ref(Ref::Extern(extern1)), spec::Value::ExternRef(extern2)) => {
             extern1 == ExternAddr(extern2)
         }
 
@@ -732,10 +732,10 @@ fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Val
         spec::Value::FuncRef(fun_idx) => {
             // I can't find the spec for this, but for references the only sensible thing is to
             // resolve the indices using the last registered module.
-            Value::Ref(Ref::Ref(rt.get_module_fun_addr(module_addr, *fun_idx)))
+            Value::Ref(Ref::Func(rt.get_module_fun_addr(module_addr, *fun_idx)))
         }
 
-        spec::Value::ExternRef(extern_addr) => Value::Ref(Ref::RefExtern(ExternAddr(*extern_addr))),
+        spec::Value::ExternRef(extern_addr) => Value::Ref(Ref::Extern(ExternAddr(*extern_addr))),
     }
 }
 
