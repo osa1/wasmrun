@@ -8,7 +8,6 @@ license = "MIT"
 [dependencies]
 clap = "2.33"
 fxhash = "0.2"
-ieee754 = "0.2"
 libwasmrun = { path = "../libwasmrun" }
 libwasmrun_syntax = { path = "../libwasmrun_syntax" }
 serde = { version = "1.0", features = ["derive"] }

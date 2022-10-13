@@ -11,7 +11,6 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 use fxhash::FxHashMap;
-use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 
 static TEST_DIRS: [&str; 3] = [
@@ -740,11 +739,11 @@ fn eval_value(value: &spec::Value, rt: &Runtime, module_addr: ModuleAddr) -> Val
 }
 
 fn is_f32_canonical_nan(f: f32) -> bool {
-    if !f.is_nan() {
-        return false;
-    }
-    let (_sign, _exp, payload) = f.decompose();
-    payload == 0b10000000000000000000000
+    let payload_bits = 23;
+    let payload_mask = (1 << payload_bits) - 1;
+    let canonical_nan_payload = 1 << (payload_bits - 1);
+    let f_payload = f.to_bits() & payload_mask;
+    f.is_nan() && f_payload == canonical_nan_payload
 }
 
 fn is_f32_arithmetic_nan(f: f32) -> bool {
@@ -753,11 +752,11 @@ fn is_f32_arithmetic_nan(f: f32) -> bool {
 }
 
 fn is_f64_canonical_nan(f: f64) -> bool {
-    if !f.is_nan() {
-        return false;
-    }
-    let (_sign, _exp, payload) = f.decompose();
-    payload == 0b1000000000000000000000000000000000000000000000000000
+    let payload_bits = 52;
+    let payload_mask = (1 << payload_bits) - 1;
+    let canonical_nan_payload = 1 << (payload_bits - 1);
+    let f_payload = f.to_bits() & payload_mask;
+    f.is_nan() && f_payload == canonical_nan_payload
 }
 
 fn is_f64_arithmetic_nan(f: f64) -> bool {
