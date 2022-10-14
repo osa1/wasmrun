@@ -1548,11 +1548,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32Popcnt => {
-            op1::<i32, i32, _>(rt, |i| unsafe { ::core::arch::x86_64::_popcnt32(i) })?;
+            op1::<i32, i32, _>(rt, |i| i.count_ones() as i32)?;
         }
 
         Instruction::I64Popcnt => {
-            op1::<i64, i64, _>(rt, |i| unsafe { ::core::arch::x86_64::_popcnt64(i) as i64 })?;
+            op1::<i64, i64, _>(rt, |i| i.count_ones() as i64)?;
         }
 
         Instruction::I32Or => {
