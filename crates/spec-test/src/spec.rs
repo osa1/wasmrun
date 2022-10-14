@@ -1,478 +1,584 @@
-use std::fmt::Display;
-use std::fs::read_to_string;
-use std::num::ParseIntError;
-use std::str::FromStr;
-
+use libwasmrun::exec::{self, Runtime, Trap};
+use libwasmrun::store::{ExternAddr, ModuleAddr};
+use libwasmrun::{ExecError, Ref, Value};
 use libwasmrun_syntax as wasm;
 
-use serde::Deserialize;
+use fxhash::FxHashMap;
+use wast::core::{HeapType, WastArgCore, WastRetCore};
+use wast::token::{Id, Index, Span};
+use wast::{QuoteWat, WastArg, WastDirective, WastExecute, WastInvoke, Wat};
 
-#[derive(Debug)]
-pub struct TestSpec {
-    pub source_filename: String,
-    pub commands: Vec<Command>,
+pub struct TestFileRunner<'a> {
+    pub file_contents: &'a str,
+    pub rt: Runtime,
+    pub module_addr: Option<ModuleAddr>,
+    pub modules: FxHashMap<String, ModuleAddr>,
+    pub failing_lines: Vec<usize>,
+
+    /// Line number of the current test
+    line_num: usize,
 }
 
 #[derive(Debug)]
-pub enum Command {
-    Module {
-        line: usize,
-        name: Option<String>,
-        filename: String,
-    },
+enum Error {
+    /// A wasmrun execution error
+    Exec(ExecError),
 
-    AssertReturn {
-        line: usize,
-        kind: ActionKind,
-        module: Option<String>,
-        func: String,
-        args: Vec<Value>,
-        expected: Vec<Value>,
-        /// Expected error message. Only available when kind is `ActionKind::Trap`.
-        err_msg: Option<String>,
-    },
+    /// Deserialization of a module failed
+    Deserialize(wasm::Error),
 
-    AssertUninstantiable {
-        line: usize,
-        filename: String,
-        text: String,
-    },
+    /// A used was missing. This probably means that a module registration before the test failed.
+    MissingModule,
 
-    Register {
-        line: usize,
-        name: Option<String>,
-        register_as: String,
-    },
+    /// A global was missing
+    MissingGlobal,
+
+    /// An "assert trap" test succeeded without trapping
+    AssertTrapWorked,
+
+    /// An "assert trap" test failed with unexpected error
+    AssertTrapUnexpectedError(Box<Error>),
+
+    /// Test used stuff from Wasm component proposal. We skip these for now.
+    ComponentStuff,
+
+    /// Can't pop return value of an invocation. Execution probably pushed less number of values
+    /// than expected.
+    CantPopReturnValue,
+
+    /// Execution returned incorrect result
+    IncorrectResult,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ActionKind {
-    /// Call a function
-    Invoke,
+type Result<A> = std::result::Result<A, Error>;
 
-    /// Call a function, expect it to trap
-    Trap,
-
-    /// Get a global
-    GetGlobal,
-
-    /// Call a function, expect it to throw an exception. Currently the tests do not check tag of
-    /// the exceptions.
-    Exception,
+impl From<ExecError> for Error {
+    fn from(err: ExecError) -> Self {
+        Error::Exec(err)
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Value {
-    I32(u32),
-    I64(u64),
-    V128(V128),
-    F32(F32),
-    F64(F64),
-    NullRef(wasm::ReferenceType),
-    FuncRef(u32),
-    ExternRef(u32),
+impl From<wasm::Error> for Error {
+    fn from(err: wasm::Error) -> Self {
+        Error::Deserialize(err)
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum V128 {
-    I8x16([u8; 16]),
-    I16x8([u16; 8]),
-    I32x4([u32; 4]),
-    I64x2([u64; 2]),
-    F32x4([F32; 4]),
-    F64x2([F64; 2]),
-}
+impl<'a> TestFileRunner<'a> {
+    pub fn new(file_contents: &'a str) -> TestFileRunner<'a> {
+        Self {
+            file_contents,
+            rt: Runtime::new_test(),
+            module_addr: None,
+            modules: Default::default(),
+            failing_lines: Default::default(),
+            line_num: 0,
+        }
+    }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum F32 {
-    /// Matches positive and negative canonical NaNs
-    CanonicalNan,
+    /// Run a single test directive. Reports failures to stdout.
+    pub fn run_directive(&mut self, directive: WastDirective) {
+        self.line_num = directive_line_number(&directive, self.file_contents);
+        if let Err(err) = self.run_directive_(directive) {
+            println!("{}: {:?}", self.line_num, err);
+            self.failing_lines.push(self.line_num);
+        }
+    }
 
-    /// Matches positive and negative NaNs
-    ArithmeticNan,
+    fn run_directive_(&mut self, directive: WastDirective) -> Result<()> {
+        match directive {
+            WastDirective::AssertMalformed { .. }
+            | WastDirective::AssertInvalid { .. }
+            | WastDirective::AssertExhaustion { .. }
+            | WastDirective::AssertUnlinkable { .. } => {
+                // We don't test these yet, skip
+                Ok(())
+            }
 
-    /// A specific bit pattern representing a 32-bit float. Can be NaN.
-    Value(u32),
-}
+            WastDirective::Wat(mut module) => self.run_quote_wat_directive(&mut module),
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum F64 {
-    /// Matches positive and negative canonical NaNs
-    CanonicalNan,
+            WastDirective::Register {
+                span: _,
+                name,
+                module,
+            } => {
+                let module_addr = self.get_module_addr(&module)?;
+                self.rt.register_module(name.to_owned(), module_addr);
+                Ok(())
+            }
 
-    /// Matches positive and negative NaNs
-    ArithmeticNan,
+            WastDirective::Invoke(invoke) => self.run_invoke_directive(&invoke),
 
-    /// A specific bit pattern representing a 64-bit float. Can be NaN.
-    Value(u64),
-}
-
-pub fn parse_test_spec(file: &str) -> Result<TestSpec, Vec<usize>> {
-    let mut failing_lines: Vec<usize> = vec![];
-
-    let file_contents = read_to_string(file).unwrap();
-    let TestSpecDe {
-        source_filename,
-        commands,
-    } = serde_json::from_str(&file_contents).unwrap();
-
-    let mut commands_ = vec![];
-    'command_loop: for command_de in commands {
-        match command_de.typ.as_ref() {
-            "module" => commands_.push(Command::Module {
-                line: command_de.line,
-                name: command_de.name,
-                filename: command_de.filename.unwrap(),
-            }),
-            "assert_return" | "assert_trap" | "assert_exception" => {
-                let action = command_de.action.unwrap();
-                let action_kind = match action.typ.as_str() {
-                    "invoke" => {
-                        if command_de.typ == "assert_return" {
-                            ActionKind::Invoke
-                        } else if command_de.typ == "assert_trap" {
-                            ActionKind::Trap
-                        } else if command_de.typ == "assert_exception" {
-                            ActionKind::Exception
-                        } else {
-                            panic!("Unknown invoke action type: {}", command_de.typ)
-                        }
+            WastDirective::AssertTrap {
+                span: _,
+                exec,
+                message,
+            } => {
+                let ret = match exec {
+                    WastExecute::Invoke(invoke) => self.run_invoke_directive(&invoke),
+                    WastExecute::Wat(mut wat) => self.run_wat_directive(&mut wat),
+                    WastExecute::Get { module, global } => {
+                        self.run_global_get_directive(&module, global).map(|_| ())
                     }
-                    "get" => ActionKind::GetGlobal,
-                    other => panic!("Unknown action type: {}", other),
                 };
-                let mut args = Vec::with_capacity(action.args.len());
-                for value in action.args.into_iter() {
-                    match parse_value(value) {
-                        Ok(value) => {
-                            args.push(value);
-                        }
-                        Err(err) => {
-                            println!("{}", err);
-                            failing_lines.push(command_de.line);
-                            continue 'command_loop;
-                        }
-                    }
-                }
-                commands_.push(Command::AssertReturn {
-                    line: command_de.line,
-                    kind: action_kind,
-                    module: action.module,
-                    func: action.field,
-                    args,
-                    expected: match action_kind {
-                        ActionKind::Trap => vec![],
-                        ActionKind::Exception => {
-                            // TODO: not sure what the expected types are for
-                            vec![]
-                        }
-                        ActionKind::Invoke | ActionKind::GetGlobal => {
-                            let expected = command_de.expected.unwrap();
-                            let mut values = Vec::with_capacity(expected.len());
-                            for value in expected {
-                                match parse_value(value) {
-                                    Ok(value) => values.push(value),
-                                    Err(err) => {
-                                        println!("{}", err);
-                                        failing_lines.push(command_de.line);
-                                        continue 'command_loop;
-                                    }
-                                }
+
+                match ret {
+                    Ok(()) => Err(Error::AssertTrapWorked),
+                    Err(err) => {
+                        if let Error::Exec(ExecError::Trap(trap)) = err {
+                            let trap_msg = trap_expected_msg(trap);
+                            if message.starts_with(trap_msg) {
+                                Ok(())
+                            } else {
+                                Err(Error::AssertTrapUnexpectedError(Box::new(Error::Exec(
+                                    ExecError::Trap(trap),
+                                ))))
                             }
-                            values
-                        }
-                    },
-                    err_msg: command_de.text,
-                });
-            }
-            "assert_uninstantiable" => {
-                commands_.push(Command::AssertUninstantiable {
-                    line: command_de.line,
-                    filename: command_de.filename.unwrap(),
-                    text: command_de.text.unwrap(),
-                });
-            }
-            "action" => {
-                let action = command_de.action.unwrap();
-                if action.typ != "invoke" {
-                    todo!("Unknown action type: {}", action.typ);
-                }
-                // Basically assert_return, we the function doesn't return anything
-                let mut args = Vec::with_capacity(action.args.len());
-                for arg in action.args {
-                    match parse_value(arg) {
-                        Ok(value) => args.push(value),
-                        Err(err) => {
-                            println!("{}", err);
-                            failing_lines.push(command_de.line);
-                            continue 'command_loop;
+                        } else {
+                            Err(Error::AssertTrapUnexpectedError(Box::new(err)))
                         }
                     }
                 }
-                commands_.push(Command::AssertReturn {
-                    line: command_de.line,
-                    kind: ActionKind::Invoke,
-                    module: action.module,
-                    func: action.field,
-                    args,
-                    expected: vec![],
-                    err_msg: command_de.text,
-                });
             }
-            "register" => {
-                commands_.push(Command::Register {
-                    line: command_de.line,
-                    name: command_de.name,
-                    register_as: command_de.as_.unwrap(),
-                });
-            }
-            "assert_exhaustion" | "assert_unlinkable" => {
-                // TODO We probably want to test this
-            }
-            "assert_invalid" | "assert_malformed" => {
-                // We don't want to test this stuff, skip
-            }
-            other => {
-                println!("Unknown command type: {}", other);
-                failing_lines.push(command_de.line);
+
+            WastDirective::AssertReturn {
+                span: _,
+                exec,
+                results,
+            } => match exec {
+                WastExecute::Invoke(invoke) => {
+                    self.run_invoke_directive(&invoke)?;
+
+                    let mut expected_vals: Vec<WastRetCore> = Vec::with_capacity(results.len());
+
+                    for result in results {
+                        match result {
+                            wast::WastRet::Core(value) => expected_vals.push(value),
+                            wast::WastRet::Component(_) => return Err(Error::ComponentStuff),
+                        }
+                    }
+
+                    let mut found_vals: Vec<Value> = Vec::with_capacity(expected_vals.len());
+
+                    for _ in 0..expected_vals.len() {
+                        match self.rt.pop_value() {
+                            Some(value) => found_vals.push(value),
+                            None => return Err(Error::CantPopReturnValue),
+                        }
+                    }
+
+                    expected_vals.reverse();
+
+                    if found_vals.len() != expected_vals.len() {
+                        return Err(Error::IncorrectResult);
+                    }
+
+                    let module_addr = self.get_module_addr(&None)?;
+                    if !test_vals(&self.rt, module_addr, &expected_vals, &found_vals) {
+                        return Err(Error::IncorrectResult);
+                    }
+
+                    Ok(())
+                }
+                WastExecute::Wat(_) => panic!("Module in assert_return test"),
+
+                WastExecute::Get { module, global } => {
+                    let module_addr = self.get_module_addr(&module)?;
+                    let expected_val = match &results[0] {
+                        wast::WastRet::Core(val) => val,
+                        wast::WastRet::Component(_) => return Err(Error::ComponentStuff),
+                    };
+                    match self.rt.get_global(module_addr, global) {
+                        Some(value) => {
+                            if !test_val(&self.rt, module_addr, expected_val, &value) {
+                                return Err(Error::IncorrectResult);
+                            }
+                        }
+                        None => return Err(Error::IncorrectResult),
+                    }
+                    Ok(())
+                }
+            },
+
+            WastDirective::AssertException { span: _, exec } => {
+                match exec {
+                    WastExecute::Invoke(invoke) => {
+                        self.run_invoke_directive(&invoke)?;
+                        if self.rt.pop_exception().is_none() {
+                            return Err(Error::IncorrectResult);
+                        }
+                    }
+
+                    WastExecute::Wat(_) => todo!(),
+
+                    WastExecute::Get {
+                        module: _,
+                        global: _,
+                    } => todo!(),
+                }
+
+                Ok(())
             }
         }
     }
 
-    if failing_lines.is_empty() {
-        Ok(TestSpec {
-            source_filename,
-            commands: commands_,
+    fn run_quote_wat_directive(&mut self, module: &mut QuoteWat) -> Result<()> {
+        let (_span, name, module): (Span, Option<String>, Vec<u8>) = match module {
+            QuoteWat::Wat(Wat::Module(m)) => (
+                m.span,
+                m.id.map(|id| id.name().to_owned()),
+                m.encode().unwrap(),
+            ),
+            QuoteWat::QuoteModule(span, _) => (*span, None, module.encode().unwrap()),
+            QuoteWat::QuoteComponent(_, _) | QuoteWat::Wat(Wat::Component(_)) => {
+                return Err(Error::ComponentStuff);
+            }
+        };
+
+        let module = wasm::deserialize_buffer(&module).map_err(Error::from)?;
+        let module_addr = exec::instantiate(&mut self.rt, module)?;
+        self.module_addr = Some(module_addr);
+        if let Some(name) = name {
+            self.modules.insert(name, module_addr);
+        }
+        Ok(())
+    }
+
+    fn run_wat_directive(&mut self, module: &mut Wat) -> Result<()> {
+        let module = match module {
+            Wat::Module(module) => module,
+            Wat::Component(_) => return Err(Error::ComponentStuff),
+        };
+
+        let _span = module.span;
+        let name = module.id.map(|id| id.name().to_owned());
+        let module = module.encode().unwrap();
+
+        let module = wasm::deserialize_buffer(&module).map_err(Error::from)?;
+        let module_addr = exec::instantiate(&mut self.rt, module)?;
+        self.module_addr = Some(module_addr);
+        if let Some(name) = name {
+            self.modules.insert(name, module_addr);
+        }
+        Ok(())
+    }
+
+    fn run_global_get_directive(&mut self, module: &Option<Id>, global: &str) -> Result<Value> {
+        let module_addr = self.get_module_addr(module)?;
+        self.rt
+            .get_global(module_addr, global)
+            .ok_or(Error::MissingGlobal)
+    }
+
+    fn run_invoke_directive(&mut self, invoke: &WastInvoke) -> Result<()> {
+        let WastInvoke {
+            span: _,
+            module,
+            name,
+            args,
+        } = invoke;
+
+        let module_addr = self.get_module_addr(module)?;
+
+        let args = self.eval_values(args)?;
+
+        self.rt.clear_stack();
+        for arg in args {
+            self.rt.push_value(arg);
+        }
+
+        exec::invoke_by_name(&mut self.rt, module_addr, name)?;
+
+        Ok(exec::finish(&mut self.rt)?)
+    }
+
+    fn get_module_addr(&mut self, module_name: &Option<Id>) -> Result<ModuleAddr> {
+        match module_name {
+            Some(module_name) => match self.modules.get(module_name.name()) {
+                Some(module_addr) => Ok(*module_addr),
+                None => Err(Error::MissingModule),
+            },
+            None => match &self.module_addr {
+                Some(module_addr) => Ok(*module_addr),
+                None => Err(Error::MissingModule),
+            },
+        }
+    }
+
+    fn eval_values(&mut self, values: &[WastArg]) -> Result<Vec<Value>> {
+        let mut wasm_values = Vec::with_capacity(values.len());
+        for value in values {
+            wasm_values.push(self.eval_value(value)?);
+        }
+        Ok(wasm_values)
+    }
+
+    fn eval_value(&mut self, value: &WastArg) -> Result<Value> {
+        match value {
+            WastArg::Core(value) => self.eval_value_(value),
+            WastArg::Component(_) => Err(Error::ComponentStuff),
+        }
+    }
+
+    fn eval_value_(&mut self, value: &WastArgCore) -> Result<Value> {
+        Ok(match value {
+            WastArgCore::I32(i) => Value::I32(*i),
+
+            WastArgCore::I64(i) => Value::I64(*i),
+
+            WastArgCore::F32(f) => Value::F32(f32::from_bits(f.bits)),
+
+            WastArgCore::F64(f) => Value::F64(f64::from_bits(f.bits)),
+
+            WastArgCore::V128(i) => {
+                let mut bytes = [0u8; 16];
+                match i {
+                    wast::core::V128Const::I8x16(lanes) => {
+                        for i in 0..16 {
+                            bytes[i] = lanes[i] as u8;
+                        }
+                    }
+
+                    wast::core::V128Const::I16x8(lanes) => {
+                        for i in 0..8 {
+                            bytes[i * 2..i * 2 + 2].copy_from_slice(&lanes[i].to_le_bytes());
+                        }
+                    }
+
+                    wast::core::V128Const::I32x4(lanes) => {
+                        for i in 0..4 {
+                            bytes[i * 4..i * 4 + 4].copy_from_slice(&lanes[i].to_le_bytes());
+                        }
+                    }
+
+                    wast::core::V128Const::I64x2(lanes) => {
+                        for i in 0..2 {
+                            bytes[i * 8..i * 8 + 8].copy_from_slice(&lanes[i].to_le_bytes());
+                        }
+                    }
+
+                    wast::core::V128Const::F32x4(lanes) => {
+                        for i in 0..4 {
+                            bytes[i * 4..i * 4 + 4].copy_from_slice(&lanes[i].bits.to_le_bytes());
+                        }
+                    }
+
+                    wast::core::V128Const::F64x2(lanes) => {
+                        for i in 0..2 {
+                            bytes[i * 8..i * 8 + 8].copy_from_slice(&lanes[i].bits.to_le_bytes());
+                        }
+                    }
+                }
+                Value::I128(i128::from_le_bytes(bytes))
+            }
+
+            WastArgCore::RefNull(ty) => match ty {
+                wast::core::HeapType::Func => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
+                wast::core::HeapType::Extern => {
+                    Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef))
+                }
+                wast::core::HeapType::Any
+                | wast::core::HeapType::Eq
+                | wast::core::HeapType::Data
+                | wast::core::HeapType::Array
+                | wast::core::HeapType::I31
+                | wast::core::HeapType::Index(_) => todo!(),
+            },
+
+            WastArgCore::RefExtern(addr) => Value::Ref(Ref::Extern(ExternAddr(*addr))),
         })
-    } else {
-        Err(failing_lines)
     }
 }
 
-fn parse_value(value_de: ValueDe) -> Result<Value, String> {
-    Ok(match value_de.typ.as_ref() {
-        "i32" => Value::I32(parse_str::<ParseIntError, u32>(value_de.expect_value()?)),
-        "i64" => Value::I64(parse_str::<ParseIntError, u64>(value_de.expect_value()?)),
-        "f32" => {
-            // f32::NAN = 0b0_11111111_10000000000000000000000
-            // If I'm reading the spec right, nan:canonical and nan:arithmetic can be the same
-            let str = value_de.expect_value()?;
-            if str == "nan:canonical" {
-                Value::F32(F32::CanonicalNan)
-            } else if str == "nan:arithmetic" {
-                Value::F32(F32::ArithmeticNan)
-            } else {
-                Value::F32(F32::Value(parse_str::<ParseIntError, u32>(str)))
-            }
-        }
-        "f64" => {
-            let str = value_de.expect_value()?;
-            if str == "nan:canonical" {
-                Value::F64(F64::CanonicalNan)
-            } else if str == "nan:arithmetic" {
-                Value::F64(F64::ArithmeticNan)
-            } else {
-                Value::F64(F64::Value(parse_str::<ParseIntError, u64>(str)))
-            }
-        }
-        "externref" => {
-            let str = value_de.expect_value()?;
-            if str == "null" {
-                Value::NullRef(wasm::ReferenceType::ExternRef)
-            } else {
-                let idx = parse_str::<ParseIntError, u32>(str);
-                Value::ExternRef(idx)
-            }
-        }
-        "funcref" => {
-            let str = value_de.expect_value()?;
-            if str == "null" {
-                Value::NullRef(wasm::ReferenceType::FuncRef)
-            } else {
-                let idx = parse_str::<ParseIntError, u32>(str);
-                Value::FuncRef(idx)
-            }
-        }
-        "v128" => {
-            let vec = value_de.expect_vector()?;
-            let lane_type = match &value_de.lane_type {
-                Some(lane_type) => lane_type,
-                None => return Err("Vector value with no lane type".to_string()),
-            };
-            match lane_type.as_str() {
-                "i64" => {
-                    let mut v128 = [0u64; 2];
-                    for i in 0..2 {
-                        v128[i] = parse_str::<ParseIntError, u64>(&vec[i]);
-                    }
-                    Value::V128(V128::I64x2(v128))
-                }
+/// Check whether a list of wasmrun values match the expected spec test values
+fn test_vals(
+    rt: &Runtime,
+    module_addr: ModuleAddr,
+    expected_vals: &[WastRetCore],
+    found_vals: &[Value],
+) -> bool {
+    expected_vals.len() == found_vals.len()
+        && expected_vals
+            .iter()
+            .zip(found_vals.iter())
+            .all(|(a, b)| test_val(rt, module_addr, a, b))
+}
 
-                "i32" => {
-                    let mut v128 = [0u32; 4];
-                    for i in 0..4 {
-                        v128[i] = parse_str::<ParseIntError, u32>(&vec[i]);
-                    }
-                    Value::V128(V128::I32x4(v128))
-                }
+/// Check whether a wasmrun value matches the expected spec test value
+fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found: &Value) -> bool {
+    match (expected, found) {
+        (WastRetCore::I32(i1), Value::I32(i2)) => i1 == i2,
 
-                "i16" => {
-                    let mut v128 = [0u16; 8];
-                    for i in 0..8 {
-                        v128[i] = parse_str::<ParseIntError, u16>(&vec[i]);
-                    }
-                    Value::V128(V128::I16x8(v128))
-                }
+        (WastRetCore::I64(i1), Value::I64(i2)) => i1 == i2,
 
-                "i8" => {
-                    let mut v128 = [0u8; 16];
+        (WastRetCore::F32(pat), Value::F32(f2)) => match pat {
+            wast::core::NanPattern::CanonicalNan => is_f32_canonical_nan(*f2),
+            wast::core::NanPattern::ArithmeticNan => is_f32_arithmetic_nan(*f2),
+            wast::core::NanPattern::Value(f1) => f1.bits == f2.to_bits(),
+        },
+
+        (WastRetCore::F64(pat), Value::F64(f2)) => match pat {
+            wast::core::NanPattern::CanonicalNan => is_f64_canonical_nan(*f2),
+            wast::core::NanPattern::ArithmeticNan => is_f64_arithmetic_nan(*f2),
+            wast::core::NanPattern::Value(f1) => f1.bits == f2.to_bits(),
+        },
+
+        (WastRetCore::V128(v1), Value::I128(v2)) => {
+            let v2 = v2.to_le_bytes();
+            match v1 {
+                wast::core::V128Pattern::I8x16(lanes) => {
                     for i in 0..16 {
-                        v128[i] = parse_str::<ParseIntError, u8>(&vec[i]);
+                        if v2[i] != lanes[i] as u8 {
+                            return false;
+                        }
                     }
-                    Value::V128(V128::I8x16(v128))
                 }
 
-                "f64" => {
-                    let mut v128 = [F64::Value(0); 2];
-                    for i in 0..2 {
-                        v128[i] = if vec[i] == "nan:canonical" {
-                            F64::CanonicalNan
-                        } else if vec[i] == "nan:arithmetic" {
-                            F64::ArithmeticNan
-                        } else {
-                            F64::Value(parse_str::<ParseIntError, u64>(&vec[i]))
-                        };
+                wast::core::V128Pattern::I16x8(lanes) => {
+                    for i in 0..8 {
+                        if v2[i * 2..i * 2 + 2] != lanes[i].to_le_bytes() {
+                            return false;
+                        }
                     }
-                    Value::V128(V128::F64x2(v128))
                 }
 
-                "f32" => {
-                    let mut v128 = [F32::Value(0); 4];
+                wast::core::V128Pattern::I32x4(lanes) => {
                     for i in 0..4 {
-                        v128[i] = if vec[i] == "nan:canonical" {
-                            F32::CanonicalNan
-                        } else if vec[i] == "nan:arithmetic" {
-                            F32::ArithmeticNan
-                        } else {
-                            F32::Value(parse_str::<ParseIntError, u32>(&vec[i]))
+                        if v2[i * 4..i * 4 + 4] != lanes[i].to_le_bytes() {
+                            return false;
+                        }
+                    }
+                }
+
+                wast::core::V128Pattern::I64x2(lanes) => {
+                    for i in 0..2 {
+                        if v2[i * 8..i * 8 + 8] != lanes[i].to_le_bytes() {
+                            return false;
+                        }
+                    }
+                }
+
+                wast::core::V128Pattern::F32x4(lanes) => {
+                    for i in 0..4 {
+                        let value = u32::from_le_bytes(v2[i * 4..i * 4 + 4].try_into().unwrap());
+                        let value_matches = match lanes[i] {
+                            wast::core::NanPattern::CanonicalNan => {
+                                is_f32_canonical_nan(f32::from_bits(value))
+                            }
+                            wast::core::NanPattern::ArithmeticNan => {
+                                is_f32_arithmetic_nan(f32::from_bits(value))
+                            }
+                            wast::core::NanPattern::Value(f1) => f1.bits == value,
                         };
-                    }
-                    Value::V128(V128::F32x4(v128))
-                }
-
-                _ => {
-                    return Err(format!(
-                        "Vector type not supported: {:?} lane type = {}",
-                        vec, lane_type
-                    ))
-                }
-            }
-        }
-        other => return Err(format!("Unknown value type: {}", other)),
-    })
-}
-
-fn parse_str<E: Display, A: FromStr<Err = E>>(s: &str) -> A {
-    match s.parse() {
-        Ok(val) => val,
-        Err(err) => panic!("Error while parsing {:?}: {}", s, err),
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct TestSpecDe {
-    source_filename: String,
-    commands: Vec<CommandDe>,
-}
-
-#[derive(Debug, Deserialize)]
-struct CommandDe {
-    #[serde(rename = "type")]
-    typ: String,
-    line: usize,
-    filename: Option<String>,
-    action: Option<ActionDe>,
-    expected: Option<Vec<ValueDe>>,
-    name: Option<String>,
-    #[serde(rename = "as")]
-    as_: Option<String>,
-    text: Option<String>, // error message in assert_trap
-}
-
-#[derive(Debug, Deserialize)]
-struct ActionDe {
-    #[serde(rename = "type")]
-    typ: String,
-    module: Option<String>,
-    field: String,
-    #[serde(default)]
-    args: Vec<ValueDe>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ValueDe {
-    #[serde(rename = "type")]
-    typ: String,
-    lane_type: Option<String>,
-    value: Option<ValueDe_>,
-}
-
-impl ValueDe {
-    fn expect_vector(&self) -> Result<&[String], String> {
-        match &self.value {
-            Some(ValueDe_::Value(val)) => Err(format!("Expected vector, found {:?}", val)),
-            Some(ValueDe_::SimdValue(vec)) => Ok(vec),
-            None => Err("Missing value in spec, expected vector".to_string()),
-        }
-    }
-
-    fn expect_value(&self) -> Result<&String, String> {
-        match &self.value {
-            Some(ValueDe_::Value(value)) => Ok(value),
-            Some(ValueDe_::SimdValue(vec)) => Err(format!("Expected value, found {:?}", vec)),
-            None => Err("Missing value in spec, expected scalar".to_string()),
-        }
-    }
-}
-
-#[derive(Debug)]
-enum ValueDe_ {
-    Value(String),
-    SimdValue(Vec<String>),
-}
-
-use serde::de::{Deserializer, Error, Unexpected};
-use serde_json as json;
-
-impl<'de> Deserialize<'de> for ValueDe_ {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let json = json::Value::deserialize(deserializer)?;
-        match json {
-            json::Value::String(str) => Ok(ValueDe_::Value(str)),
-
-            json::Value::Array(arr) => {
-                let mut strs: Vec<String> = Vec::with_capacity(4);
-                for value in arr.into_iter() {
-                    if let json::Value::String(str) = value {
-                        strs.push(str);
-                    } else {
-                        // TODO: error message
-                        return Err(Error::invalid_type(
-                            Unexpected::Other("not string"),
-                            &"string",
-                        ));
+                        if !value_matches {
+                            return false;
+                        }
                     }
                 }
-                Ok(ValueDe_::SimdValue(strs))
-            }
 
-            json::Value::Null => todo!(),
-            json::Value::Bool(_) => todo!(),
-            json::Value::Number(_) => todo!(),
-            json::Value::Object(_) => todo!(),
+                wast::core::V128Pattern::F64x2(lanes) => {
+                    for i in 0..2 {
+                        let value = u64::from_le_bytes(v2[i * 8..i * 8 + 8].try_into().unwrap());
+                        let value_matches = match lanes[i] {
+                            wast::core::NanPattern::CanonicalNan => {
+                                is_f64_canonical_nan(f64::from_bits(value))
+                            }
+                            wast::core::NanPattern::ArithmeticNan => {
+                                is_f64_arithmetic_nan(f64::from_bits(value))
+                            }
+                            wast::core::NanPattern::Value(f1) => f1.bits == value,
+                        };
+                        if !value_matches {
+                            return false;
+                        }
+                    }
+                }
+            }
+            true
         }
+
+        (WastRetCore::RefNull(heap_ty), Value::Ref(Ref::Null(ref_ty))) => match (heap_ty, ref_ty) {
+            (None, _) => panic!(), // Not sure why type is not available here
+            (Some(HeapType::Func), wasm::ReferenceType::FuncRef) => true,
+            (Some(HeapType::Extern), wasm::ReferenceType::ExternRef) => true,
+            (_, _) => todo!(),
+        },
+
+        (WastRetCore::RefFunc(Some(Index::Num(idx, _span))), Value::Ref(Ref::Func(addr))) => {
+            *addr == rt.get_module_fun_addr(module_addr, *idx)
+        }
+
+        (WastRetCore::RefExtern(extern1), Value::Ref(Ref::Extern(extern2))) => {
+            ExternAddr(*extern1) == *extern2
+        }
+
+        (_, _) => false,
+    }
+}
+
+fn is_f32_canonical_nan(f: f32) -> bool {
+    let payload_bits = 23;
+    let payload_mask = (1 << payload_bits) - 1;
+    let canonical_nan_payload = 1 << (payload_bits - 1);
+    let f_payload = f.to_bits() & payload_mask;
+    f.is_nan() && f_payload == canonical_nan_payload
+}
+
+fn is_f32_arithmetic_nan(f: f32) -> bool {
+    // Positive or negative nan
+    f.is_nan()
+}
+
+fn is_f64_canonical_nan(f: f64) -> bool {
+    let payload_bits = 52;
+    let payload_mask = (1 << payload_bits) - 1;
+    let canonical_nan_payload = 1 << (payload_bits - 1);
+    let f_payload = f.to_bits() & payload_mask;
+    f.is_nan() && f_payload == canonical_nan_payload
+}
+
+fn is_f64_arithmetic_nan(f: f64) -> bool {
+    // Positive or negative nan
+    f.is_nan()
+}
+
+/// Convert a wasmrun trap to the error message for that trap used in Wasm test suite
+fn trap_expected_msg(trap: Trap) -> &'static str {
+    match trap {
+        Trap::UndefinedElement => "undefined",
+        Trap::UninitializedElement => "uninitialized",
+        Trap::IndirectCallTypeMismatch => "indirect call",
+        Trap::ElementOOB => "element out of bounds",
+        Trap::OOBMemoryAccess => "out of bounds memory access",
+        Trap::OOBTableAccess => "out of bounds table access",
+        Trap::IntDivideByZero => "integer divide by zero",
+        Trap::IntOverflow => "integer overflow",
+        Trap::InvalidConvToInt => "invalid conversion to integer",
+        Trap::Unreachable => "unreachable",
+        Trap::CallIndirectOnExternRef => "TODO", // TODO
+    }
+}
+
+fn directive_line_number(directive: &WastDirective, file_contents: &str) -> usize {
+    directive_span(directive).linecol_in(file_contents).0
+}
+
+fn directive_span(directive: &WastDirective) -> Span {
+    match directive {
+        WastDirective::Wat(module) => match module {
+            QuoteWat::Wat(Wat::Module(m)) => m.span,
+            QuoteWat::Wat(Wat::Component(c)) => c.span,
+            QuoteWat::QuoteModule(span, _) => *span,
+            QuoteWat::QuoteComponent(span, _) => *span,
+        },
+        WastDirective::AssertMalformed { span, .. } => *span,
+        WastDirective::AssertInvalid { span, .. } => *span,
+        WastDirective::Register { span, .. } => *span,
+        WastDirective::Invoke(i) => i.span,
+        WastDirective::AssertTrap { span, .. } => *span,
+        WastDirective::AssertReturn { span, .. } => *span,
+        WastDirective::AssertExhaustion { span, .. } => *span,
+        WastDirective::AssertUnlinkable { span, .. } => *span,
+        WastDirective::AssertException { span, .. } => *span,
     }
 }

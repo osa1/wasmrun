@@ -2,4 +2,3 @@ target
 *.wasm
 *.wat
 specs/
-test_output

@@ -30,12 +30,6 @@ jobs:
             toolchain: stable
             override: true
 
-      - name: Build wast2json
-        run: |
-            sudo apt-get update
-            sudo apt-get install cmake
-            bash ci/build_wabt.sh
-
       - name: Run spec tests
         run: |
             export PATH=`pwd`:$PATH

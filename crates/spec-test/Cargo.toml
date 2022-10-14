@@ -12,6 +12,7 @@ libwasmrun = { path = "../libwasmrun" }
 libwasmrun_syntax = { path = "../libwasmrun_syntax" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+wast = "47.0.1"
 
 [build-dependencies]
 rustc_tools_util = "0.2"
