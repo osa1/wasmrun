@@ -8,6 +8,8 @@ static TEST_DIRS: [&str; 3] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
+    // Tail call tests take a long time to run, disabled for now
+    // "tests/spec/proposals/tail-call",
 ];
 
 fn main() {

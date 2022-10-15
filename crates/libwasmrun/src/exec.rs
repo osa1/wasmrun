@@ -748,6 +748,51 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     }
 }
 
+/// Same as `invoke_direct`, but does a tail call.
+fn tail_call(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
+    let callee_fun = rt.store.get_fun(fun_addr);
+    let callee_fun_ty = rt
+        .store
+        .get_module(callee_fun.module_addr())
+        .get_type(callee_fun.ty_idx());
+    let callee_n_args = callee_fun_ty.params().len();
+    let callee_n_rets = callee_fun_ty.results().len();
+
+    // Pop the arguments
+    let mut args: Vec<Value> = Vec::with_capacity(callee_n_args);
+    for _ in 0..callee_n_args {
+        args.push(rt.stack.pop_value()?);
+    }
+
+    // Pop the current frame
+    let caller_frame = rt.stack.pop_fun_block()?;
+    rt.frames.pop();
+    debug_assert_eq!(callee_n_rets, caller_frame.n_rets as usize);
+
+    // Push the new frame
+    rt.frames.push(callee_fun, callee_fun_ty.params());
+
+    // Set locals for args
+    for local_idx in 0..callee_n_args {
+        let arg_val = args.pop().unwrap();
+        rt.frames
+            .current_mut()?
+            .set_local(local_idx as u32, arg_val)?;
+    }
+
+    rt.stack.push_fun_block(
+        caller_frame.cont,
+        callee_n_args as u32,
+        callee_n_rets as u32,
+    );
+
+    debug_assert_eq!(args.len(), 0);
+
+    rt.ip = 0;
+
+    Ok(())
+}
+
 pub fn finish(rt: &mut Runtime) -> Result<()> {
     while !rt.frames.is_empty() {
         single_step(rt)?;
@@ -2300,40 +2345,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::Call(fun_idx) => {
             // NB. invoke updates the ip
-            invoke(rt, module_addr, FunIdx(fun_idx))?;
+            let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
+            invoke_direct(rt, fun_addr)?;
         }
 
         Instruction::CallIndirect(sig, table_ref) => {
             let elem_idx = rt.stack.pop_i32()?;
+            let fun_addr = get_fun_addr_from_table(rt, module_addr, elem_idx, table_ref)?;
 
-            let table_addr = rt
-                .get_module(module_addr)
-                .get_table(TableIdx(u32::from(table_ref)));
-
-            let fun_addr = match rt.store.get_table(table_addr).get(elem_idx as usize) {
-                Some(Ref::Func(fun_addr)) => *fun_addr,
-                Some(Ref::Null(_ref_ty)) => {
-                    return Err(ExecError::Trap(Trap::UninitializedElement));
-                }
-                Some(Ref::Extern(_extern_addr)) => {
-                    // TODO: Check table type to help with debugging
-                    return Err(ExecError::Trap(Trap::CallIndirectOnExternRef));
-                }
-                None => {
-                    return Err(ExecError::Trap(Trap::UndefinedElement));
-                }
-            };
-
-            // Check function type
-            let call_instr_ty = rt.store.get_module(module_addr).get_type(TypeIdx(sig));
-            let fun_module_addr = rt.store.get_fun(fun_addr).module_addr();
-            let actual_fun_ty_idx = rt.store.get_fun(fun_addr).ty_idx();
-            let actual_ty = &rt
-                .store
-                .get_module(fun_module_addr)
-                .get_type(actual_fun_ty_idx);
-
-            if call_instr_ty != *actual_ty {
+            if !check_fun_type(rt, sig, module_addr, fun_addr) {
                 return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
             }
 
@@ -2341,49 +2361,20 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::ReturnCall(fun_idx) => {
-            let callee_fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
-            let callee_fun = rt.store.get_fun(callee_fun_addr);
-            let callee_fun_ty = rt
-                .store
-                .get_module(callee_fun.module_addr())
-                .get_type(callee_fun.ty_idx());
-            let callee_n_args = callee_fun_ty.params().len();
-            let callee_n_rets = callee_fun_ty.results().len();
-
-            // Pop the arguments
-            let mut args: Vec<Value> = Vec::with_capacity(callee_n_args);
-            for _ in 0..callee_n_args {
-                args.push(rt.stack.pop_value()?);
-            }
-
-            // Pop the current frame
-            let caller_frame = rt.stack.pop_fun_block()?;
-            rt.frames.pop();
-            debug_assert_eq!(callee_n_rets, caller_frame.n_rets as usize);
-
-            // Push the new frame
-            rt.frames.push(callee_fun, callee_fun_ty.params());
-
-            // Set locals for args
-            for local_idx in 0..callee_n_args {
-                let arg_val = args.pop().unwrap();
-                rt.frames
-                    .current_mut()?
-                    .set_local(local_idx as u32, arg_val)?;
-            }
-
-            rt.stack.push_fun_block(
-                caller_frame.cont,
-                callee_n_args as u32,
-                callee_n_rets as u32,
-            );
-
-            debug_assert_eq!(args.len(), 0);
-
-            rt.ip = 0;
+            let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
+            tail_call(rt, fun_addr)?;
         }
 
-        Instruction::ReturnCallIndirect(_sig, _table_ref) => exec_panic!("return_call_indirect"),
+        Instruction::ReturnCallIndirect(sig, table_ref) => {
+            let elem_idx = rt.stack.pop_i32()?;
+            let fun_addr = get_fun_addr_from_table(rt, module_addr, elem_idx, table_ref)?;
+
+            if !check_fun_type(rt, sig, module_addr, fun_addr) {
+                return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
+            }
+
+            tail_call(rt, fun_addr)?;
+        }
 
         Instruction::CallRef(_type_idx) => exec_panic!("call_ref"),
 
@@ -2943,6 +2934,39 @@ fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_fun_addr_from_table(
+    rt: &Runtime,
+    module_addr: ModuleAddr,
+    elem_idx: i32,
+    table_ref: u8,
+) -> Result<FunAddr> {
+    let table_addr = rt
+        .get_module(module_addr)
+        .get_table(TableIdx(u32::from(table_ref)));
+
+    match rt.store.get_table(table_addr).get(elem_idx as usize) {
+        Some(Ref::Func(fun_addr)) => Ok(*fun_addr),
+        Some(Ref::Null(_ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
+        Some(Ref::Extern(_extern_addr)) => {
+            // TODO: Check table type to help with debugging
+            Err(ExecError::Trap(Trap::CallIndirectOnExternRef))
+        }
+        None => Err(ExecError::Trap(Trap::UndefinedElement)),
+    }
+}
+
+fn check_fun_type(rt: &Runtime, sig: u32, module_addr: ModuleAddr, fun_addr: FunAddr) -> bool {
+    let call_instr_ty = rt.store.get_module(module_addr).get_type(TypeIdx(sig));
+    let fun_module_addr = rt.store.get_fun(fun_addr).module_addr();
+    let actual_fun_ty_idx = rt.store.get_fun(fun_addr).ty_idx();
+    let actual_ty = &rt
+        .store
+        .get_module(fun_module_addr)
+        .get_type(actual_fun_ty_idx);
+
+    call_instr_ty == *actual_ty
 }
 
 fn trapping_add(a: u32, b: u32) -> Result<u32> {
