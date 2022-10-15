@@ -15,7 +15,7 @@ pub struct TestFileRunner<'a> {
     pub modules: FxHashMap<String, ModuleAddr>,
     pub failing_lines: Vec<usize>,
 
-    /// Line number of the current test
+    /// Line number of the current test. First line is 0.
     line_num: usize,
 }
 
@@ -80,8 +80,8 @@ impl<'a> TestFileRunner<'a> {
     pub fn run_directive(&mut self, directive: WastDirective) {
         self.line_num = directive_line_number(&directive, self.file_contents);
         if let Err(err) = self.run_directive_(directive) {
-            println!("{}: {:?}", self.line_num, err);
-            self.failing_lines.push(self.line_num);
+            println!("{}: {:?}", self.line_num + 1, err);
+            self.failing_lines.push(self.line_num + 1);
         }
     }
 

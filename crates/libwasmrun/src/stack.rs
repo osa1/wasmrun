@@ -15,7 +15,7 @@ pub(crate) struct Block {
     pub(crate) cont: u32,
 
     /// Number of arguments of this block
-    n_args: u32,
+    pub(crate) n_args: u32,
 
     /// Number of return values of this block
     pub(crate) n_rets: u32,

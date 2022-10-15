@@ -100,7 +100,7 @@ pub struct Runtime {
     /// Maps registered modules to their module addresses
     module_names: Map<String, ModuleAddr>,
 
-    /// Instruction pointer
+    /// Instruction pointer in the current function
     ip: u32,
 
     /// Stack of exceptions that can be re-thrown with a `rethrow` instruction in `catch` blocks.
@@ -2340,7 +2340,48 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             invoke_direct(rt, fun_addr)?;
         }
 
-        Instruction::ReturnCall(_fun_idx) => exec_panic!("return_call"),
+        Instruction::ReturnCall(fun_idx) => {
+            let callee_fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
+            let callee_fun = rt.store.get_fun(callee_fun_addr);
+            let callee_fun_ty = rt
+                .store
+                .get_module(callee_fun.module_addr())
+                .get_type(callee_fun.ty_idx());
+            let callee_n_args = callee_fun_ty.params().len();
+            let callee_n_rets = callee_fun_ty.results().len();
+
+            // Pop the arguments
+            let mut args: Vec<Value> = Vec::with_capacity(callee_n_args);
+            for _ in 0..callee_n_args {
+                args.push(rt.stack.pop_value()?);
+            }
+
+            // Pop the current frame
+            let caller_frame = rt.stack.pop_fun_block()?;
+            rt.frames.pop();
+            debug_assert_eq!(callee_n_rets, caller_frame.n_rets as usize);
+
+            // Push the new frame
+            rt.frames.push(callee_fun, callee_fun_ty.params());
+
+            // Set locals for args
+            for local_idx in 0..callee_n_args {
+                let arg_val = args.pop().unwrap();
+                rt.frames
+                    .current_mut()?
+                    .set_local(local_idx as u32, arg_val)?;
+            }
+
+            rt.stack.push_fun_block(
+                caller_frame.cont,
+                callee_n_args as u32,
+                callee_n_rets as u32,
+            );
+
+            debug_assert_eq!(args.len(), 0);
+
+            rt.ip = 0;
+        }
 
         Instruction::ReturnCallIndirect(_sig, _table_ref) => exec_panic!("return_call_indirect"),
 
@@ -2485,7 +2526,36 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::Return => {
-            ret(rt)?;
+            let current_fun_addr = rt.frames.current()?.fun_addr;
+            let current_fun = match rt.store.get_fun(current_fun_addr) {
+                Fun::Wasm(fun) => fun,
+                Fun::Host { .. } => {
+                    return Err(ExecError::Panic("ret: host function".to_string()));
+                }
+            };
+            let module_addr = current_fun.module_addr;
+            let ty_idx = current_fun.ty_idx;
+
+            let fun_return_arity = rt
+                .store
+                .get_module(module_addr)
+                .get_type(ty_idx)
+                .results()
+                .len();
+
+            let mut vals = Vec::with_capacity(fun_return_arity);
+            for _ in 0..fun_return_arity {
+                vals.push(rt.stack.pop_value()?);
+            }
+
+            let Block { cont, .. } = rt.stack.pop_fun_block()?;
+
+            for val in vals.into_iter().rev() {
+                rt.stack.push_value(val)?;
+            }
+
+            rt.frames.pop();
+            rt.ip = cont;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -3126,41 +3196,6 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
             rt.ip = cont;
         }
     }
-
-    Ok(())
-}
-
-fn ret(rt: &mut Runtime) -> Result<()> {
-    let current_fun_addr = rt.frames.current()?.fun_addr;
-    let current_fun = match rt.store.get_fun(current_fun_addr) {
-        Fun::Wasm(fun) => fun,
-        Fun::Host { .. } => {
-            return Err(ExecError::Panic("ret: host function".to_string()));
-        }
-    };
-    let module_addr = current_fun.module_addr;
-    let ty_idx = current_fun.ty_idx;
-
-    let fun_return_arity = rt
-        .store
-        .get_module(module_addr)
-        .get_type(ty_idx)
-        .results()
-        .len();
-
-    let mut vals = Vec::with_capacity(fun_return_arity);
-    for _ in 0..fun_return_arity {
-        vals.push(rt.stack.pop_value()?);
-    }
-
-    let Block { cont, .. } = rt.stack.pop_fun_block()?;
-
-    for val in vals.into_iter().rev() {
-        rt.stack.push_value(val)?;
-    }
-
-    rt.frames.pop();
-    rt.ip = cont;
 
     Ok(())
 }
