@@ -21,7 +21,7 @@ then run `cargo run --bin spec-test`.
 
 ## Releated projects
 
-- [wain][5] is another Wasm interpreter implemented in Rust.
+- [wain][5] and [wasmi][7] are Wasm interpreters written in Rust
 - [wasm-spec-interpreter][6] provides Rust bindings for the Wasm reference
   interpreter (written in OCaml).
 
@@ -31,3 +31,4 @@ then run `cargo run --bin spec-test`.
 [4]: https://github.com/WebAssembly/tail-call
 [5]: https://github.com/rhysd/wain
 [6]: https://github.com/bytecodealliance/wasm-spec-interpreter
+[7]: https://github.com/paritytech/wasmi
