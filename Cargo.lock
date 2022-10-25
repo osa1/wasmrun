@@ -239,6 +239,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
+name = "lexgen"
+version = "0.12.0"
+source = "git+https://github.com/osa1/lexgen?rev=271ba43#271ba43edecacc2d20155d293a1354b8fd9159d3"
+dependencies = [
+ "fxhash",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "lexgen_util"
+version = "0.12.0"
+source = "git+https://github.com/osa1/lexgen?rev=271ba43#271ba43edecacc2d20155d293a1354b8fd9159d3"
+dependencies = [
+ "unicode-width",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.134"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -261,6 +280,14 @@ dependencies = [
 [[package]]
 name = "libwasmrun_syntax"
 version = "0.1.0"
+
+[[package]]
+name = "libwasmrun_wast"
+version = "0.1.0"
+dependencies = [
+ "lexgen",
+ "lexgen_util",
+]
 
 [[package]]
 name = "log"
