@@ -436,25 +436,25 @@ pub fn exec_simd_instr(
         SimdInstruction::I8x16AllTrue => {
             let v = rt.stack.pop_i128()?.to_le_bytes();
             let res = v.iter().all(|b| *b != 0);
-            rt.stack.push_i32(if res { 1 } else { 0 })?;
+            rt.stack.push_i32(i32::from(res))?;
         }
 
         SimdInstruction::I16x8AllTrue => {
             let v = vec_to_i16x8(rt.stack.pop_i128()?);
             let res = v.iter().all(|b| *b != 0);
-            rt.stack.push_i32(if res { 1 } else { 0 })?;
+            rt.stack.push_i32(i32::from(res))?;
         }
 
         SimdInstruction::I32x4AllTrue => {
             let v = vec_to_i32x4(rt.stack.pop_i128()?);
             let res = v.iter().all(|b| *b != 0);
-            rt.stack.push_i32(if res { 1 } else { 0 })?;
+            rt.stack.push_i32(i32::from(res))?;
         }
 
         SimdInstruction::I64x2AllTrue => {
             let v = vec_to_i64x2(rt.stack.pop_i128()?);
             let res = v.iter().all(|b| *b != 0);
-            rt.stack.push_i32(if res { 1 } else { 0 })?;
+            rt.stack.push_i32(i32::from(res))?;
         }
 
         SimdInstruction::V128Bitselect => {

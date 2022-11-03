@@ -2726,7 +2726,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         Instruction::RefIsNull => {
             let val = rt.stack.pop_ref()?;
-            rt.stack.push_i32(if val.is_null() { 1 } else { 0 })?;
+            rt.stack.push_i32(i32::from(val.is_null()))?;
             rt.ip += 1;
         }
 

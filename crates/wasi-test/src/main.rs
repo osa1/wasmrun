@@ -112,10 +112,10 @@ fn report(
     let mut fail = false;
 
     let out_ref = wasm_out.read().unwrap();
-    let out = String::from_utf8_lossy(&*out_ref);
+    let out = String::from_utf8_lossy(&out_ref);
 
     let err_ref = wasm_err.read().unwrap();
-    let err = String::from_utf8_lossy(&*err_ref);
+    let err = String::from_utf8_lossy(&err_ref);
 
     if out != expected_out {
         println!("\tExpected and actual stdsout outputs don't match");
@@ -201,7 +201,7 @@ fn run_file(file: &Path) -> bool {
     let err_path = format!("tests/wasi/src/{}.err", file_stem);
     let err = fs::read_to_string(err_path).unwrap_or_else(|_| "".to_owned());
 
-    let module = match wasm::deserialize_file(&file) {
+    let module = match wasm::deserialize_file(file) {
         Ok(module) => module,
         Err(err) => {
             println!("\tUnable to parse Wasm: {}", err);

@@ -348,6 +348,6 @@ impl StackValue for bool {
     }
 
     fn push(&self, stack: &mut Stack) {
-        stack.push_i32(if *self { 1 } else { 0 }).unwrap();
+        stack.push_i32(i32::from(*self)).unwrap();
     }
 }
