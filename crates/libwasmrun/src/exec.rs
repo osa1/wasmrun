@@ -1835,11 +1835,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::F32Copysign => {
-            op2::<f32, f32, _>(rt, Ieee754::copy_sign)?;
+            op2::<f32, f32, _>(rt, f32::copysign)?;
         }
 
         Instruction::F64Copysign => {
-            op2::<f64, f64, _>(rt, Ieee754::copy_sign)?;
+            op2::<f64, f64, _>(rt, f64::copysign)?;
         }
 
         Instruction::I64ExtendUI32 => {
