@@ -311,6 +311,13 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
+    let print_i64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I64], vec![]));
+    let print_i64_addr =
+        rt.store
+            .allocate_host_fun(module_addr, print_i64_ty, Rc::new(|_, _| Ok(vec![])));
+    let print_i64_idx = module.add_fun(print_i64_addr);
+    module.add_export(Export::new_fun("print_i64".to_owned(), print_i64_idx));
+
     let print_i32_f32_ty = module.add_type(wasm::FunctionType::new(
         vec![wasm::ValueType::I32, wasm::ValueType::F32],
         vec![],
