@@ -5,6 +5,14 @@ pub enum Token<'input> {
     Keyword(&'input str),
     Id(&'input str),
     String(Vec<u8>),
+
+    /// Decimal integer. Includes sign prefix.
+    DecInt(&'input str),
+
+    /// Hexadecimal integer. Includes sign prefix.
+    HexInt(&'input str),
+
+    Float(&'input str),
 }
 
 #[derive(Debug, Default)]
@@ -22,10 +30,17 @@ lexgen::lexer! {
 
     let hexdigit = ['0'-'9' 'a'-'f' 'A'-'F'];
 
+    let num = $$ascii_digit ('_'? $$ascii_digit)*;
+    let hexnum = $hexdigit ('_'? $hexdigit)*;
+    let frac = $num;
+    let hexfrac = $hexnum;
+
+    let sign = '+' | '-';
+
     rule Init {
         $$whitespace,
 
-        ";;" _* '\n',
+        ";;" (_ # '\n')* '\n',
 
         "(;" => |lexer| {
             lexer.state().block_comment_nesting = 1;
@@ -49,6 +64,89 @@ lexgen::lexer! {
         '"' => |lexer| {
             lexer.state().string_buf.clear();
             lexer.switch(LexerRule::String)
+        },
+
+        //
+        // Integers
+        //
+
+        $sign? $num => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::DecInt(match_))
+        },
+
+        $sign? "0x" $hexnum => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::HexInt(match_))
+        },
+
+        //
+        // Floats
+        //
+
+        $sign? "inf" = Token::Float("inf"),
+
+        $sign? "nan" = Token::Float("nan"),
+
+        $sign? "nan:0x" $hexnum => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        // Decimal syntax
+
+        // Note: ambiguous with integer syntax
+        $sign? $num '.'? => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? $num '.'? => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? $num '.' $frac => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? $num '.'? ('E' | 'e') $sign? $num => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? $num '.' $frac ('E' | 'e') $sign? $num => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        // Hexadecimal syntax. Same as above, just with "0x" prefix and hex digits.
+
+        // Note: ambiguous with integer syntax
+        $sign? "0x" $hexnum '.'? => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? "0x" $hexnum '.'? => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? "0x" $hexnum '.' $hexfrac => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? "0x" $hexnum '.'? ('P' | 'p') $sign? $num => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
+        },
+
+        $sign? "0x" $hexnum '.' $hexfrac ('P' | 'p') $sign? $num => |lexer| {
+            let match_ = lexer.match_();
+            lexer.return_(Token::Float(match_))
         },
     }
 
