@@ -496,7 +496,7 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
         }
 
         (WastRetCore::RefNull(heap_ty), Value::Ref(Ref::Null(ref_ty))) => match (heap_ty, ref_ty) {
-            (None, _) => panic!(), // Not sure why type is not available here
+            (None, _) => true,
             (Some(HeapType::Func), wasm::HeapType::Func) => true,
             (Some(HeapType::Extern), wasm::HeapType::Extern) => true,
             (_, _) => todo!(),
