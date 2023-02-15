@@ -2773,9 +2773,25 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::BrOnNull(_n_blocks) => exec_panic!("br_on_null"),
+        Instruction::BrOnNull(n_blocks) => {
+            let ref_ = rt.stack.pop_ref()?;
+            if ref_.is_null() {
+                br(rt, n_blocks)?;
+            } else {
+                rt.stack.push_ref(ref_)?;
+                rt.ip += 1;
+            }
+        }
 
-        Instruction::BrOnNonNull(_n_blocks) => exec_panic!("br_on_non_null"),
+        Instruction::BrOnNonNull(n_blocks) => {
+            let ref_ = rt.stack.pop_ref()?;
+            if ref_.is_null() {
+                rt.ip += 1;
+            } else {
+                rt.stack.push_ref(ref_)?;
+                br(rt, n_blocks)?;
+            }
+        }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Exception handling instructions
