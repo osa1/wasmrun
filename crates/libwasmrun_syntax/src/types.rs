@@ -31,25 +31,27 @@ pub enum ValueType {
     /// 128-bit SIMD register
     V128,
 
-    /// Reference to an embedder object
-    ExternRef,
-
-    /// Reference to a function
-    FuncRef,
+    /// Reference
+    Reference(ReferenceType),
 }
 
 impl Deserialize for ValueType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = VarUint7::deserialize(reader)?;
-
         match val.into() {
             0x7f => Ok(ValueType::I32),
             0x7e => Ok(ValueType::I64),
             0x7d => Ok(ValueType::F32),
             0x7c => Ok(ValueType::F64),
             0x7b => Ok(ValueType::V128),
-            0x70 => Ok(ValueType::FuncRef),
-            0x6f => Ok(ValueType::ExternRef),
+            0x70 => Ok(ValueType::Reference(ReferenceType::FuncRef)),
+            0x6f => Ok(ValueType::Reference(ReferenceType::ExternRef)),
+            0x6b => Ok(ValueType::Reference(ReferenceType::RefNonNull(
+                HeapType::deserialize(reader)?,
+            ))),
+            0x6c => Ok(ValueType::Reference(ReferenceType::RefNull(
+                HeapType::deserialize(reader)?,
+            ))),
             _ => Err(Error::UnknownValueType(val.into())),
         }
     }
@@ -63,8 +65,7 @@ impl fmt::Display for ValueType {
             ValueType::F32 => write!(f, "f32"),
             ValueType::F64 => write!(f, "f64"),
             ValueType::V128 => write!(f, "v128"),
-            ValueType::ExternRef => write!(f, "externref"),
-            ValueType::FuncRef => write!(f, "funcref"),
+            ValueType::Reference(ref_ty) => ref_ty.fmt(f),
         }
     }
 }
@@ -99,13 +100,25 @@ impl Deserialize for BlockType {
         // for value type `i32` is -1 when interpreted as signed LEB128.
         match val.into() {
             -0x40 => Ok(BlockType::Empty),
+            // TODO: Duplicate valtype parsing
             -0x01 => Ok(BlockType::Value(ValueType::I32)),
             -0x02 => Ok(BlockType::Value(ValueType::I64)),
             -0x03 => Ok(BlockType::Value(ValueType::F32)),
             -0x04 => Ok(BlockType::Value(ValueType::F64)),
             -0x05 => Ok(BlockType::Value(ValueType::V128)),
-            -0x10 => Ok(BlockType::Value(ValueType::FuncRef)),
-            -0x11 => Ok(BlockType::Value(ValueType::ExternRef)),
+            // TODO: duplicate reftype parsing
+            -0x10 => Ok(BlockType::Value(ValueType::Reference(
+                ReferenceType::FuncRef,
+            ))),
+            -0x11 => Ok(BlockType::Value(ValueType::Reference(
+                ReferenceType::ExternRef,
+            ))),
+            -0x14 => Ok(BlockType::Value(ValueType::Reference(
+                ReferenceType::RefNonNull(HeapType::deserialize(reader)?),
+            ))),
+            -0x15 => Ok(BlockType::Value(ValueType::Reference(
+                ReferenceType::ExternRef,
+            ))),
             idx => {
                 let idx = u32::try_from(idx).map_err(|_| Error::UnknownBlockType(idx))?;
                 Ok(BlockType::TypeIndex(idx))
@@ -174,11 +187,14 @@ pub enum ReferenceType {
 impl Deserialize for ReferenceType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = Uint8::deserialize(reader)?;
-
         match val.into() {
+            // -0x10
             0x70 => Ok(ReferenceType::FuncRef),
+            // -0x11
             0x6F => Ok(ReferenceType::ExternRef),
+            // -0x14
             0x6B => Ok(ReferenceType::RefNonNull(HeapType::deserialize(reader)?)),
+            // -0x15
             0x6C => Ok(ReferenceType::RefNull(HeapType::deserialize(reader)?)),
             other => Err(Error::UnknownReferenceType(other)),
         }

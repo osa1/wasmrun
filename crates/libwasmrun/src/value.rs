@@ -92,9 +92,15 @@ impl Value {
             wasm::ValueType::I64 => Value::default_i64(),
             wasm::ValueType::F32 => Value::default_f32(),
             wasm::ValueType::F64 => Value::default_f64(),
-            wasm::ValueType::FuncRef => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
-            wasm::ValueType::ExternRef => Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef)),
             wasm::ValueType::V128 => Value::default_i128(),
+            wasm::ValueType::Reference(ref_ty) => match ref_ty {
+                wasm::ReferenceType::FuncRef => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
+                wasm::ReferenceType::ExternRef => {
+                    Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef))
+                }
+                wasm::ReferenceType::RefNull(_heap_ty) => todo!(),
+                wasm::ReferenceType::RefNonNull(_heap_ty) => todo!(),
+            },
         }
     }
 
