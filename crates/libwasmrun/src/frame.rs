@@ -3,8 +3,6 @@ use crate::store::FunAddr;
 use crate::value::Value;
 use crate::{ExecError, Result};
 
-use libwasmrun_syntax as wasm;
-
 use std::iter::repeat;
 
 #[derive(Default, Debug)]
@@ -43,15 +41,11 @@ impl FrameStack {
         }
     }
 
-    pub(crate) fn push(&mut self, fun: &Fun, arg_tys: &[wasm::ValueType]) {
+    pub(crate) fn push(&mut self, fun: &Fun, args: Vec<Value>) {
         self.frames.push(Frame {
             fun_addr: fun.fun_addr(),
-            locals: arg_tys
-                .iter()
-                .map(|ty| {
-                    Value::default(*ty)
-                        .unwrap_or_else(|| todo!("Argument type without default value"))
-                })
+            locals: args
+                .into_iter()
                 .chain(fun.locals().iter().flat_map(|local| {
                     repeat(
                         Value::default(local.value_type())

@@ -713,19 +713,17 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
         .get_module(fun.module_addr())
         .get_type(fun.ty_idx());
 
-    let arg_tys = fun_ty.params();
-
     let n_args = fun_ty.params().len();
     let n_rets = fun_ty.results().len();
 
-    rt.frames.push(fun, arg_tys);
-
-    for local_idx in (0..n_args).rev() {
-        let arg_val = rt.stack.pop_value()?;
-        rt.frames
-            .current_mut()?
-            .set_local(local_idx as u32, arg_val)?;
+    // Pop the arguments
+    let mut args: Vec<Value> = Vec::with_capacity(n_args);
+    for _ in 0..n_args {
+        args.push(rt.stack.pop_value()?);
     }
+
+    args.reverse();
+    rt.frames.push(fun, args);
 
     rt.stack
         .push_fun_block(rt.ip + 1, n_args as u32, n_rets as u32);
@@ -787,23 +785,14 @@ fn tail_call(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     debug_assert_eq!(callee_n_rets, caller_frame.n_rets as usize);
 
     // Push the new frame
-    rt.frames.push(callee_fun, callee_fun_ty.params());
-
-    // Set locals for args
-    for local_idx in 0..callee_n_args {
-        let arg_val = args.pop().unwrap();
-        rt.frames
-            .current_mut()?
-            .set_local(local_idx as u32, arg_val)?;
-    }
+    args.reverse();
+    rt.frames.push(callee_fun, args);
 
     rt.stack.push_fun_block(
         caller_frame.cont,
         callee_n_args as u32,
         callee_n_rets as u32,
     );
-
-    debug_assert_eq!(args.len(), 0);
 
     rt.ip = 0;
 
