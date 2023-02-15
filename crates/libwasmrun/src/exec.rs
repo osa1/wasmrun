@@ -64,6 +64,9 @@ pub enum Trap {
 
     /// `call_indirect` called with an extern reference table
     CallIndirectOnExternRef,
+
+    /// Null reference in `call_ref` or `return_call_ref`
+    NullFunction,
 }
 
 impl fmt::Display for Trap {
@@ -80,6 +83,7 @@ impl fmt::Display for Trap {
             Trap::InvalidConvToInt => "invalid conversion to integer".fmt(f),
             Trap::Unreachable => "unreachable executed".fmt(f),
             Trap::CallIndirectOnExternRef => "`call_indirect` with an extern ref table".fmt(f),
+            Trap::NullFunction => "null reference in call_ref or return_call_ref".fmt(f),
         }
     }
 }
@@ -2358,11 +2362,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             invoke_direct(rt, fun_addr)?;
         }
 
-        Instruction::CallIndirect(sig, table_ref) => {
+        Instruction::CallIndirect(type_idx, table_ref) => {
             let elem_idx = rt.stack.pop_i32()?;
             let fun_addr = get_fun_addr_from_table(rt, module_addr, elem_idx, table_ref)?;
 
-            if !check_fun_type(rt, sig, module_addr, fun_addr) {
+            if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
                 return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
             }
 
@@ -2374,20 +2378,42 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             tail_call(rt, fun_addr)?;
         }
 
-        Instruction::ReturnCallIndirect(sig, table_ref) => {
+        Instruction::ReturnCallIndirect(type_idx, table_ref) => {
             let elem_idx = rt.stack.pop_i32()?;
             let fun_addr = get_fun_addr_from_table(rt, module_addr, elem_idx, table_ref)?;
 
-            if !check_fun_type(rt, sig, module_addr, fun_addr) {
+            if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
                 return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
             }
 
             tail_call(rt, fun_addr)?;
         }
 
-        Instruction::CallRef(_type_idx) => exec_panic!("call_ref"),
+        Instruction::CallRef(type_idx) => {
+            let ref_ = rt.stack.pop_ref()?;
+            let fun_addr = match ref_ {
+                Ref::Extern(_) => exec_panic!("call_ref: extern ref"),
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
+                Ref::Func(fun_addr) => fun_addr,
+            };
+            if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
+                return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
+            }
+            invoke_direct(rt, fun_addr)?;
+        }
 
-        Instruction::ReturnCallRef(_type_idx) => exec_panic!("return_call_ref"),
+        Instruction::ReturnCallRef(type_idx) => {
+            let ref_ = rt.stack.pop_ref()?;
+            let fun_addr = match ref_ {
+                Ref::Extern(_) => exec_panic!("call_ref: extern ref"),
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
+                Ref::Func(fun_addr) => fun_addr,
+            };
+            if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
+                return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
+            }
+            tail_call(rt, fun_addr)?;
+        }
 
         Instruction::Drop => {
             let _ = rt.stack.pop_value();

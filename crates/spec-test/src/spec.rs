@@ -554,6 +554,7 @@ fn trap_expected_msg(trap: Trap) -> &'static str {
         Trap::InvalidConvToInt => "invalid conversion to integer",
         Trap::Unreachable => "unreachable",
         Trap::CallIndirectOnExternRef => "TODO", // TODO
+        Trap::NullFunction => "null function",
     }
 }
 
