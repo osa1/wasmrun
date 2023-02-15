@@ -2629,7 +2629,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             {
                 let oob = match src_idx.checked_add(amt) {
-                    Some(src_idx_) => src_idx_ as usize > src.len(),
+                    Some(src_idx_) => src_idx_ > src.len(),
                     None => true,
                 };
 
@@ -2649,7 +2649,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             {
                 let oob = match dst_idx.checked_add(amt) {
-                    Some(dst_idx_) => dst_idx_ as usize > dst.len(),
+                    Some(dst_idx_) => dst_idx_ > dst.len(),
                     None => true,
                 };
 

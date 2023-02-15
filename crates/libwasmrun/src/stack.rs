@@ -318,7 +318,7 @@ impl StackValue for i128 {
     }
 
     fn push(&self, stack: &mut Stack) {
-        stack.push_i128(*self as i128).unwrap();
+        stack.push_i128(*self).unwrap();
     }
 }
 

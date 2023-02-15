@@ -193,7 +193,7 @@ impl Deserialize for CustomSection {
         let buf = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(section_length, reader)?;
         let mut cursor = io::Cursor::new(&buf[..]);
         let name = String::deserialize(&mut cursor)?;
-        let payload = buf[cursor.position() as usize..].to_vec();
+        let payload = buf[cursor.position()..].to_vec();
         Ok(CustomSection { name, payload })
     }
 }

@@ -379,7 +379,7 @@ impl<'a> TestFileRunner<'a> {
                 }
                 wast::core::HeapType::Any
                 | wast::core::HeapType::Eq
-                | wast::core::HeapType::Data
+                | wast::core::HeapType::Struct
                 | wast::core::HeapType::Array
                 | wast::core::HeapType::I31
                 | wast::core::HeapType::Index(_) => todo!(),

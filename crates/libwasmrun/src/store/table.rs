@@ -64,7 +64,7 @@ impl Table {
     pub fn fill(&mut self, idx: usize, amt: usize, elem: Ref) -> bool {
         debug_assert_eq!(self.ty.elem_type(), elem.ty());
 
-        if (amt + idx) as usize > self.len() {
+        if amt + idx > self.len() {
             return false;
         }
 
