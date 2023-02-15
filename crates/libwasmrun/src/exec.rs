@@ -67,6 +67,9 @@ pub enum Trap {
 
     /// Null reference in `call_ref` or `return_call_ref`
     NullFunction,
+
+    /// Null reference in `ref_as_non_null`
+    NullReference,
 }
 
 impl fmt::Display for Trap {
@@ -83,7 +86,8 @@ impl fmt::Display for Trap {
             Trap::InvalidConvToInt => "invalid conversion to integer".fmt(f),
             Trap::Unreachable => "unreachable executed".fmt(f),
             Trap::CallIndirectOnExternRef => "`call_indirect` with an extern ref table".fmt(f),
-            Trap::NullFunction => "null reference in call_ref or return_call_ref".fmt(f),
+            Trap::NullFunction => "null reference in `call_ref` or `return_call_ref`".fmt(f),
+            Trap::NullReference => "null reference in `ref_as_non_null`".fmt(f),
         }
     }
 }
@@ -2771,7 +2775,14 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::RefAsNonNull => exec_panic!("ref.as_non_null"),
+        Instruction::RefAsNonNull => {
+            let ref_ = rt.stack.pop_ref()?;
+            if ref_.is_null() {
+                return Err(ExecError::Trap(Trap::NullReference));
+            }
+            rt.stack.push_ref(ref_)?;
+            rt.ip += 1;
+        }
 
         Instruction::BrOnNull(_n_blocks) => exec_panic!("br_on_null"),
 

@@ -48,7 +48,10 @@ impl FrameStack {
             fun_addr: fun.fun_addr(),
             locals: arg_tys
                 .iter()
-                .map(|ty| Value::default(*ty).unwrap_or_else(|| todo!("Uninitialized local")))
+                .map(|ty| {
+                    Value::default(*ty)
+                        .unwrap_or_else(|| todo!("Argument type without default value"))
+                })
                 .chain(fun.locals().iter().flat_map(|local| {
                     repeat(
                         Value::default(local.value_type())
