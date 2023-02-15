@@ -86,23 +86,6 @@ impl Value {
         Value::I128(0i128)
     }
 
-    pub(crate) fn default(ty: wasm::ValueType) -> Option<Self> {
-        match ty {
-            wasm::ValueType::I32 => Some(Value::default_i32()),
-            wasm::ValueType::I64 => Some(Value::default_i64()),
-            wasm::ValueType::F32 => Some(Value::default_f32()),
-            wasm::ValueType::F64 => Some(Value::default_f64()),
-            wasm::ValueType::V128 => Some(Value::default_i128()),
-            wasm::ValueType::Reference(wasm::ReferenceType {
-                nullable: true,
-                heap_ty,
-            }) => Some(Value::Ref(Ref::Null(heap_ty))),
-            wasm::ValueType::Reference(wasm::ReferenceType {
-                nullable: false, ..
-            }) => None,
-        }
-    }
-
     pub fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
