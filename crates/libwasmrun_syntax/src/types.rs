@@ -44,14 +44,16 @@ impl Deserialize for ValueType {
             0x7d => Ok(ValueType::F32),
             0x7c => Ok(ValueType::F64),
             0x7b => Ok(ValueType::V128),
-            0x70 => Ok(ValueType::Reference(ReferenceType::FuncRef)),
-            0x6f => Ok(ValueType::Reference(ReferenceType::ExternRef)),
-            0x6b => Ok(ValueType::Reference(ReferenceType::RefNonNull(
-                HeapType::deserialize(reader)?,
-            ))),
-            0x6c => Ok(ValueType::Reference(ReferenceType::RefNull(
-                HeapType::deserialize(reader)?,
-            ))),
+            0x70 => Ok(ValueType::Reference(ReferenceType::funcref())),
+            0x6f => Ok(ValueType::Reference(ReferenceType::externref())),
+            0x6b => Ok(ValueType::Reference(ReferenceType {
+                nullable: false,
+                heap_ty: HeapType::deserialize(reader)?,
+            })),
+            0x6c => Ok(ValueType::Reference(ReferenceType {
+                nullable: true,
+                heap_ty: HeapType::deserialize(reader)?,
+            })),
             _ => Err(Error::UnknownValueType(val.into())),
         }
     }
@@ -108,17 +110,19 @@ impl Deserialize for BlockType {
             -0x05 => Ok(BlockType::Value(ValueType::V128)),
             // TODO: duplicate reftype parsing
             -0x10 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::FuncRef,
+                ReferenceType::funcref(),
             ))),
             -0x11 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::ExternRef,
+                ReferenceType::externref(),
             ))),
-            -0x14 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::RefNonNull(HeapType::deserialize(reader)?),
-            ))),
-            -0x15 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::ExternRef,
-            ))),
+            -0x14 => Ok(BlockType::Value(ValueType::Reference(ReferenceType {
+                nullable: false,
+                heap_ty: HeapType::deserialize(reader)?,
+            }))),
+            -0x15 => Ok(BlockType::Value(ValueType::Reference(ReferenceType {
+                nullable: true,
+                heap_ty: HeapType::deserialize(reader)?,
+            }))),
             idx => {
                 let idx = u32::try_from(idx).map_err(|_| Error::UnknownBlockType(idx))?;
                 Ok(BlockType::TypeIndex(idx))
@@ -177,11 +181,25 @@ impl Deserialize for FunctionType {
 
 /// <https://webassembly.github.io/spec/core/syntax/types.html#syntax-reftype>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum ReferenceType {
-    FuncRef,
-    ExternRef,
-    RefNull(HeapType),
-    RefNonNull(HeapType),
+pub struct ReferenceType {
+    pub nullable: bool,
+    pub heap_ty: HeapType,
+}
+
+impl ReferenceType {
+    pub fn funcref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Func,
+        }
+    }
+
+    pub fn externref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Extern,
+        }
+    }
 }
 
 impl Deserialize for ReferenceType {
@@ -189,13 +207,25 @@ impl Deserialize for ReferenceType {
         let val = Uint8::deserialize(reader)?;
         match val.into() {
             // -0x10
-            0x70 => Ok(ReferenceType::FuncRef),
+            0x70 => Ok(ReferenceType {
+                nullable: true,
+                heap_ty: HeapType::Func,
+            }),
             // -0x11
-            0x6F => Ok(ReferenceType::ExternRef),
+            0x6F => Ok(ReferenceType {
+                nullable: true,
+                heap_ty: HeapType::Extern,
+            }),
             // -0x14
-            0x6B => Ok(ReferenceType::RefNonNull(HeapType::deserialize(reader)?)),
+            0x6B => Ok(ReferenceType {
+                nullable: false,
+                heap_ty: HeapType::deserialize(reader)?,
+            }),
             // -0x15
-            0x6C => Ok(ReferenceType::RefNull(HeapType::deserialize(reader)?)),
+            0x6C => Ok(ReferenceType {
+                nullable: true,
+                heap_ty: HeapType::deserialize(reader)?,
+            }),
             other => Err(Error::UnknownReferenceType(other)),
         }
     }
@@ -203,11 +233,10 @@ impl Deserialize for ReferenceType {
 
 impl fmt::Display for ReferenceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ReferenceType::FuncRef => write!(f, "funcref"),
-            ReferenceType::ExternRef => write!(f, "externref"),
-            ReferenceType::RefNull(heap_ty) => write!(f, "ref null {}", heap_ty),
-            ReferenceType::RefNonNull(heap_ty) => write!(f, "ref {}", heap_ty),
+        if self.nullable {
+            write!(f, "ref null {}", self.heap_ty)
+        } else {
+            write!(f, "ref {}", self.heap_ty)
         }
     }
 }

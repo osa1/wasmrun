@@ -259,8 +259,8 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let mut module: Module = Default::default();
 
     let table_addr = rt.store.allocate_table(Table::new(
-        Ref::Null(wasm::ReferenceType::FuncRef),
-        wasm::TableType::new(wasm::ReferenceType::FuncRef, 10, None),
+        Ref::Null(wasm::HeapType::Func),
+        wasm::TableType::new(wasm::ReferenceType::funcref(), 10, None),
     ));
     let table_idx = module.add_table(table_addr);
     module.add_export(Export::new_table("table".to_owned(), table_idx));
@@ -473,7 +473,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     // Allocate tables
     if let Some(table_section) = parsed_module.table_section_mut() {
         for ty @ wasm::TableType { elem_type, .. } in table_section.entries_mut().drain(..) {
-            let table = Table::new(Ref::Null(elem_type), ty);
+            let table = Table::new(Ref::Null(elem_type.heap_ty), ty);
             let table_addr = rt.store.allocate_table(table);
             rt.store.get_module_mut(module_addr).add_table(table_addr);
         }
@@ -524,7 +524,9 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                             &[Instruction::RefFunc(func_idx), Instruction::End] => Ref::Func(
                                 rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)),
                             ),
-                            &[Instruction::RefNull(ref_ty), Instruction::End] => Ref::Null(ref_ty),
+                            &[Instruction::RefNull(heap_ty), Instruction::End] => {
+                                Ref::Null(heap_ty)
+                            }
                             other => exec_panic!("Unhandled element expression: {:?}", other),
                         };
                         rt.store.get_table_mut(table_addr).set(elem_idx, elem)?;
@@ -2726,8 +2728,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Ref instructions
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::RefNull(ref_ty) => {
-            rt.stack.push_ref(Ref::Null(ref_ty))?;
+        Instruction::RefNull(heap_ty) => {
+            rt.stack.push_ref(Ref::Null(heap_ty))?;
             rt.ip += 1;
         }
 

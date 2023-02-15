@@ -27,7 +27,7 @@ pub enum ElementKind {
 impl ElementKind {
     fn to_ref_type(self) -> ReferenceType {
         match self {
-            ElementKind::FuncRef => ReferenceType::FuncRef,
+            ElementKind::FuncRef => ReferenceType::funcref(),
         }
     }
 }
@@ -57,7 +57,7 @@ impl Deserialize for ElementSegment {
                     .collect();
 
                 ElementSegment {
-                    ref_type: ReferenceType::FuncRef,
+                    ref_type: ReferenceType::funcref(),
                     init: func_idx_vec_to_init(&fun_idxs),
                     mode: ElementSegmentMode::Active {
                         table_idx: 0,
@@ -121,7 +121,7 @@ impl Deserialize for ElementSegment {
                 let init: Vec<InitExpr> = CountedList::deserialize(reader)?.into_inner();
 
                 ElementSegment {
-                    ref_type: ReferenceType::FuncRef,
+                    ref_type: ReferenceType::funcref(),
                     init,
                     mode: ElementSegmentMode::Active {
                         table_idx: 0,
@@ -243,7 +243,7 @@ fn element_segment_flags_000() {
     assert_eq!(
         ElementSegment::deserialize(&mut buffer).unwrap(),
         ElementSegment {
-            ref_type: ReferenceType::FuncRef,
+            ref_type: ReferenceType::funcref(),
             init: vec![],
             mode: ElementSegmentMode::Active {
                 table_idx: 0,

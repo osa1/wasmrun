@@ -31,7 +31,7 @@ where
                 stack.push_i128(i128::from_le_bytes(*value))?
             }
 
-            Instruction::RefNull(ref_ty) => stack.push_ref(Ref::Null(*ref_ty))?,
+            Instruction::RefNull(heap_ty) => stack.push_ref(Ref::Null(*heap_ty))?,
 
             Instruction::RefFunc(fun_idx) => {
                 stack.push_ref(Ref::Func(get_fun(FunIdx(*fun_idx))))?

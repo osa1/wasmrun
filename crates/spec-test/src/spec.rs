@@ -373,10 +373,8 @@ impl<'a> TestFileRunner<'a> {
             }
 
             WastArgCore::RefNull(ty) => match ty {
-                wast::core::HeapType::Func => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
-                wast::core::HeapType::Extern => {
-                    Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef))
-                }
+                wast::core::HeapType::Func => Value::Ref(Ref::Null(wasm::HeapType::Func)),
+                wast::core::HeapType::Extern => Value::Ref(Ref::Null(wasm::HeapType::Extern)),
                 wast::core::HeapType::Any
                 | wast::core::HeapType::Eq
                 | wast::core::HeapType::Struct
@@ -499,8 +497,8 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefNull(heap_ty), Value::Ref(Ref::Null(ref_ty))) => match (heap_ty, ref_ty) {
             (None, _) => panic!(), // Not sure why type is not available here
-            (Some(HeapType::Func), wasm::ReferenceType::FuncRef) => true,
-            (Some(HeapType::Extern), wasm::ReferenceType::ExternRef) => true,
+            (Some(HeapType::Func), wasm::HeapType::Func) => true,
+            (Some(HeapType::Extern), wasm::HeapType::Extern) => true,
             (_, _) => todo!(),
         },
 

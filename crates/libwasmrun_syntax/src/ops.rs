@@ -1,6 +1,6 @@
 use crate::{
-    io, BlockType, CountedList, Deserialize, Error, ReferenceType, Uint32, Uint64, Uint8,
-    ValueType, VarInt32, VarInt64, VarUint32,
+    io, BlockType, CountedList, Deserialize, Error, HeapType, Uint32, Uint64, Uint8, ValueType,
+    VarInt32, VarInt64, VarUint32,
 };
 
 use std::fmt;
@@ -347,7 +347,7 @@ pub enum Instruction {
     ElemDrop(u32),
 
     // Reference instructions
-    RefNull(ReferenceType),
+    RefNull(HeapType),
     RefIsNull,
     RefFunc(u32), // func idx
     RefAsNonNull,
@@ -1626,7 +1626,7 @@ impl Deserialize for Instruction {
             TABLE_GET => TableGet(VarUint32::deserialize(reader)?.into()),
             TABLE_SET => TableSet(VarUint32::deserialize(reader)?.into()),
 
-            REF_NULL => RefNull(ReferenceType::deserialize(reader)?),
+            REF_NULL => RefNull(HeapType::deserialize(reader)?),
             REF_IS_NULL => RefIsNull,
             REF_FUNC => RefFunc(VarUint32::deserialize(reader)?.into()),
             REF_AS_NON_NULL => RefAsNonNull,

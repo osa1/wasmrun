@@ -18,17 +18,17 @@ pub enum Value {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ref {
-    Null(wasm::ReferenceType),
+    Null(wasm::HeapType),
     Func(FunAddr),
     Extern(ExternAddr),
 }
 
 impl Ref {
-    pub fn ty(&self) -> wasm::ReferenceType {
+    pub fn heap_ty(&self) -> wasm::HeapType {
         match self {
-            Ref::Null(ty) => *ty,
-            Ref::Func(_) => wasm::ReferenceType::FuncRef,
-            Ref::Extern(_) => wasm::ReferenceType::ExternRef,
+            Ref::Null(heap_ty) => *heap_ty,
+            Ref::Func(_) => wasm::HeapType::Func,
+            Ref::Extern(_) => wasm::HeapType::Extern,
         }
     }
 
@@ -86,21 +86,20 @@ impl Value {
         Value::I128(0i128)
     }
 
-    pub(crate) fn default(ty: wasm::ValueType) -> Self {
+    pub(crate) fn default(ty: wasm::ValueType) -> Option<Self> {
         match ty {
-            wasm::ValueType::I32 => Value::default_i32(),
-            wasm::ValueType::I64 => Value::default_i64(),
-            wasm::ValueType::F32 => Value::default_f32(),
-            wasm::ValueType::F64 => Value::default_f64(),
-            wasm::ValueType::V128 => Value::default_i128(),
-            wasm::ValueType::Reference(ref_ty) => match ref_ty {
-                wasm::ReferenceType::FuncRef => Value::Ref(Ref::Null(wasm::ReferenceType::FuncRef)),
-                wasm::ReferenceType::ExternRef => {
-                    Value::Ref(Ref::Null(wasm::ReferenceType::ExternRef))
-                }
-                wasm::ReferenceType::RefNull(_heap_ty) => todo!(),
-                wasm::ReferenceType::RefNonNull(_heap_ty) => todo!(),
-            },
+            wasm::ValueType::I32 => Some(Value::default_i32()),
+            wasm::ValueType::I64 => Some(Value::default_i64()),
+            wasm::ValueType::F32 => Some(Value::default_f32()),
+            wasm::ValueType::F64 => Some(Value::default_f64()),
+            wasm::ValueType::V128 => Some(Value::default_i128()),
+            wasm::ValueType::Reference(wasm::ReferenceType {
+                nullable: true,
+                heap_ty,
+            }) => Some(Value::Ref(Ref::Null(heap_ty))),
+            wasm::ValueType::Reference(wasm::ReferenceType {
+                nullable: false, ..
+            }) => None,
         }
     }
 

@@ -37,7 +37,7 @@ pub use self::{
         GlobalSection, ImportSection, MemorySection, Section, TableSection, TagType, TypeSection,
     },
     segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
-    types::{BlockType, FunctionType, ReferenceType, Type, ValueType},
+    types::{BlockType, FunctionType, HeapType, ReferenceType, Type, ValueType},
 };
 
 use core::fmt;

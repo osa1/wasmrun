@@ -32,7 +32,7 @@ impl Table {
     }
 
     pub fn set(&mut self, idx: usize, elem: Ref) -> Result<()> {
-        debug_assert_eq!(self.ty.elem_type(), elem.ty());
+        debug_assert_eq!(self.ty.elem_type().heap_ty, elem.heap_ty());
         match self.elems.get_mut(idx) {
             Some(elem_ref) => {
                 *elem_ref = elem;
@@ -44,7 +44,7 @@ impl Table {
 
     /// Returns old size of the table
     pub fn grow(&mut self, amt: usize, elem: Ref) -> Option<usize> {
-        debug_assert_eq!(self.ty.elem_type(), elem.ty());
+        debug_assert_eq!(self.ty.elem_type().heap_ty, elem.heap_ty());
         let old_size = self.elems.len();
         let new_size = match old_size.checked_add(amt) {
             Some(new_size) => new_size,
@@ -62,7 +62,7 @@ impl Table {
 
     /// Returns whether `idx + amt` is in range and fill is successful
     pub fn fill(&mut self, idx: usize, amt: usize, elem: Ref) -> bool {
-        debug_assert_eq!(self.ty.elem_type(), elem.ty());
+        debug_assert_eq!(self.ty.elem_type().heap_ty, elem.heap_ty());
 
         if amt + idx > self.len() {
             return false;

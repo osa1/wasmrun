@@ -48,9 +48,13 @@ impl FrameStack {
             fun_addr: fun.fun_addr(),
             locals: arg_tys
                 .iter()
-                .map(|ty| Value::default(*ty))
+                .map(|ty| Value::default(*ty).unwrap_or_else(|| todo!("Uninitialized local")))
                 .chain(fun.locals().iter().flat_map(|local| {
-                    repeat(Value::default(local.value_type())).take(local.count() as usize)
+                    repeat(
+                        Value::default(local.value_type())
+                            .unwrap_or_else(|| todo!("Uninitialized local")),
+                    )
+                    .take(local.count() as usize)
                 }))
                 .collect(),
         });
