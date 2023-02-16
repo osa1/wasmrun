@@ -239,9 +239,10 @@ fn element_segment_flags_000() {
         0x00, // vec(funcidx) size = 0
     ];
 
-    let mut buffer = io::Cursor::new(section);
+    let mut section_slice: &[u8] = &section;
+
     assert_eq!(
-        ElementSegment::deserialize(&mut buffer).unwrap(),
+        ElementSegment::deserialize(&mut section_slice).unwrap(),
         ElementSegment {
             ref_type: ReferenceType::funcref(),
             init: vec![],
@@ -251,4 +252,5 @@ fn element_segment_flags_000() {
             },
         }
     );
+    assert_eq!(section_slice, &[]);
 }

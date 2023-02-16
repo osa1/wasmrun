@@ -109,28 +109,20 @@ impl Section {
 }
 
 pub(crate) struct SectionReader {
-    cursor: io::Cursor<Vec<u8>>,
-    declared_length: usize,
+    buffer: Vec<u8>,
+    cursor: usize,
 }
 
 impl SectionReader {
     pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let length = u32::from(VarUint32::deserialize(reader)?) as usize;
-        let inner_buffer = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(length, reader)?;
-        let declared_length = inner_buffer.len();
-        let cursor = io::Cursor::new(inner_buffer);
+        let buffer = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(length, reader)?;
 
-        Ok(SectionReader {
-            cursor,
-            declared_length,
-        })
+        Ok(SectionReader { buffer, cursor: 0 })
     }
 
     pub fn close(self) -> Result<(), io::Error> {
-        let cursor = self.cursor;
-        let buf_length = self.declared_length;
-
-        if cursor.position() != buf_length {
+        if self.cursor != self.buffer.len() {
             Err(io::Error::InvalidData)
         } else {
             Ok(())
@@ -140,7 +132,10 @@ impl SectionReader {
 
 impl io::Read for SectionReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        self.cursor.read(buf)?;
+        let mut slice = &self.buffer[self.cursor..];
+        let slice_len = slice.len();
+        slice.read(buf)?;
+        self.cursor += slice_len - slice.len();
         Ok(())
     }
 }
@@ -191,9 +186,11 @@ impl Deserialize for CustomSection {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let section_length: usize = u32::from(VarUint32::deserialize(reader)?) as usize;
         let buf = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(section_length, reader)?;
-        let mut cursor = io::Cursor::new(&buf[..]);
-        let name = String::deserialize(&mut cursor)?;
-        let payload = buf[cursor.position()..].to_vec();
+        let mut buf_slice = &buf[..];
+        let buf_len = buf_slice.len();
+        let name = String::deserialize(&mut buf_slice)?;
+        let read_bytes = buf_slice.len();
+        let payload = buf[buf_len - read_bytes..].to_vec();
         Ok(CustomSection { name, payload })
     }
 }

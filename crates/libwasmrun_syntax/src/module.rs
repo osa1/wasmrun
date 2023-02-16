@@ -458,7 +458,7 @@ impl Module {
                     .expect("cannot fail because i in range 0..len; qed");
                 if let Section::Custom(custom) = section {
                     if custom.name() == "name" {
-                        let mut rdr = io::Cursor::new(custom.payload());
+                        let mut rdr = custom.payload();
                         let name_section = match NameSection::deserialize(&self, &mut rdr) {
                             Ok(ns) => ns,
                             Err(e) => {
@@ -466,6 +466,10 @@ impl Module {
                                 continue;
                             }
                         };
+                        if !rdr.is_empty() {
+                            parse_errors.push((i, io::Error::InvalidData.into()));
+                            continue;
+                        }
                         Some(name_section)
                     } else {
                         None
@@ -502,7 +506,7 @@ impl Module {
             if let Some(relocation_section) = {
                 if let Section::Custom(custom) = section {
                     if custom.name().starts_with("reloc.") {
-                        let mut rdr = io::Cursor::new(custom.payload());
+                        let mut rdr = custom.payload();
                         let reloc_section =
                             match RelocSection::deserialize(custom.name().to_owned(), &mut rdr) {
                                 Ok(reloc_section) => reloc_section,
@@ -511,7 +515,7 @@ impl Module {
                                     continue;
                                 }
                             };
-                        if rdr.position() != custom.payload().len() {
+                        if !rdr.is_empty() {
                             parse_errors.push((i, io::Error::InvalidData.into()));
                             continue;
                         }

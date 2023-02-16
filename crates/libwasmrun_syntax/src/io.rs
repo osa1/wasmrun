@@ -50,64 +50,8 @@ pub trait Read {
     fn read(&mut self, buf: &mut [u8]) -> Result<()>;
 }
 
-/// Reader that saves the last position.
-pub struct Cursor<T> {
-    inner: T,
-    pos: usize,
-}
-
-impl<T> Cursor<T> {
-    pub fn new(inner: T) -> Cursor<T> {
-        Cursor { inner, pos: 0 }
-    }
-
-    pub fn position(&self) -> usize {
-        self.pos
-    }
-}
-
-impl<T: AsRef<[u8]>> Read for Cursor<T> {
-    fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-        let slice = self.inner.as_ref();
-        let remainder = slice.len() - self.pos;
-        let requested = buf.len();
-        if requested > remainder {
-            return Err(Error::UnexpectedEof);
-        }
-        buf.copy_from_slice(&slice[self.pos..(self.pos + requested)]);
-        self.pos += requested;
-        Ok(())
-    }
-}
-
 impl<T: io::Read> Read for T {
     fn read(&mut self, buf: &mut [u8]) -> Result<()> {
         self.read_exact(buf).map_err(Error::Io)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cursor() {
-        let mut cursor = Cursor::new(vec![0xFFu8, 0x7Fu8]);
-        assert_eq!(cursor.position(), 0);
-
-        let mut buf = [0u8];
-        assert!(cursor.read(&mut buf[..]).is_ok());
-        assert_eq!(cursor.position(), 1);
-        assert_eq!(buf[0], 0xFFu8);
-        assert!(cursor.read(&mut buf[..]).is_ok());
-        assert_eq!(buf[0], 0x7Fu8);
-        assert_eq!(cursor.position(), 2);
-    }
-
-    #[test]
-    fn overflow_in_cursor() {
-        let mut cursor = Cursor::new(vec![0u8]);
-        let mut buf = [0, 1, 2];
-        assert!(cursor.read(&mut buf[..]).is_err());
     }
 }

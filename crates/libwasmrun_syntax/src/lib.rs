@@ -292,12 +292,9 @@ impl From<Unparsed> for Vec<u8> {
 }
 
 /// Deserialize deserializable type from buffer.
-pub fn deserialize_buffer<T: Deserialize>(contents: &[u8]) -> Result<T, Error> {
-    let mut reader = io::Cursor::new(contents);
-    let result = T::deserialize(&mut reader)?;
-    if reader.position() != contents.len() {
-        // It's a TrailingData, since if there is not enough data then
-        // UnexpectedEof must have been returned earlier in T::deserialize.
+pub fn deserialize_buffer<T: Deserialize>(mut contents: &[u8]) -> Result<T, Error> {
+    let result = T::deserialize(&mut contents)?;
+    if !contents.is_empty() {
         return Err(io::Error::TrailingData.into());
     }
     Ok(result)
