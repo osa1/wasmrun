@@ -13,6 +13,7 @@ proposals:
 - [Exception handling][2]
 - [Extended constant expressions][3]
 - [Tail calls][4]
+- [Function references][8]
 
 ## Development
 
@@ -32,3 +33,4 @@ then run `cargo run --bin spec-test`.
 [5]: https://github.com/rhysd/wain
 [6]: https://github.com/bytecodealliance/wasm-spec-interpreter
 [7]: https://github.com/paritytech/wasmi
+[8]: https://github.com/WebAssembly/function-references
