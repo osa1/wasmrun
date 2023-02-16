@@ -205,6 +205,12 @@ impl ReferenceType {
 impl Deserialize for ReferenceType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = Uint8::deserialize(reader)?;
+        ReferenceType::deserialize_val(reader, val)
+    }
+}
+
+impl ReferenceType {
+    pub(crate) fn deserialize_val<R: io::Read>(reader: &mut R, val: Uint8) -> Result<Self, Error> {
         match val.into() {
             // -0x10
             0x70 => Ok(ReferenceType {

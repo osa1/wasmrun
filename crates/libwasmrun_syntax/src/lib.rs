@@ -11,6 +11,7 @@ mod primitives;
 mod reloc_section;
 mod section;
 mod segment;
+mod table;
 mod types;
 
 pub use self::{
@@ -37,6 +38,7 @@ pub use self::{
         GlobalSection, ImportSection, MemorySection, Section, TableSection, TagType, TypeSection,
     },
     segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
+    table::Table,
     types::{BlockType, FunctionType, HeapType, ReferenceType, Type, ValueType},
 };
 

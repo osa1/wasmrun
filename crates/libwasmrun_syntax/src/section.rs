@@ -1,7 +1,7 @@
 use crate::{
     io, name_section::NameSection, primitives::Uint8, reloc_section::RelocSection, types::Type,
     CountedList, DataSegment, Deserialize, ElementSegment, Error, ExportEntry, Func, FuncBody,
-    GlobalEntry, ImportEntry, MemoryType, TableType, VarUint32, VarUint7,
+    GlobalEntry, ImportEntry, MemoryType, Table, VarUint32, VarUint7,
 };
 
 const ENTRIES_BUFFER_LENGTH: usize = 16384;
@@ -269,18 +269,18 @@ impl Deserialize for FunctionSection {
 
 /// Section with table definition (currently only one is allowed).
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct TableSection(Vec<TableType>);
+pub struct TableSection(Vec<Table>);
 
 impl TableSection {
-    pub fn with_entries(entries: Vec<TableType>) -> Self {
+    pub fn with_entries(entries: Vec<Table>) -> Self {
         TableSection(entries)
     }
 
-    pub fn entries(&self) -> &[TableType] {
+    pub fn entries(&self) -> &[Table] {
         &self.0
     }
 
-    pub fn entries_mut(&mut self) -> &mut Vec<TableType> {
+    pub fn entries_mut(&mut self) -> &mut Vec<Table> {
         &mut self.0
     }
 }
