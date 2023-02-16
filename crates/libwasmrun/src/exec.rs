@@ -3017,7 +3017,64 @@ fn check_fun_type(rt: &Runtime, sig: u32, module_addr: ModuleAddr, fun_addr: Fun
         .get_module(fun_module_addr)
         .get_type(actual_fun_ty_idx);
 
-    call_instr_ty == *actual_ty
+    use wasm::{FunctionType, HeapType, ReferenceType, ValueType};
+
+    fn ref_eq(
+        rt: &Runtime,
+        module_addr: ModuleAddr,
+        ref1: &ReferenceType,
+        ref2: &ReferenceType,
+    ) -> bool {
+        if ref1.nullable != ref2.nullable {
+            return false;
+        }
+
+        match (ref1.heap_ty, ref2.heap_ty) {
+            (HeapType::Extern, HeapType::Extern) => true,
+            (HeapType::Func, HeapType::Func) => true,
+            (HeapType::TypeIdx(_), HeapType::Func) | (HeapType::Func, HeapType::TypeIdx(_)) => true,
+            (HeapType::TypeIdx(i1), HeapType::TypeIdx(i2)) => {
+                let i1_t = rt.store.get_module(module_addr).get_type(TypeIdx(i1));
+                let i2_t = rt.store.get_module(module_addr).get_type(TypeIdx(i2));
+                compare_fun_tys(rt, module_addr, i1_t, i2_t)
+            }
+            (_, _) => false,
+        }
+    }
+
+    fn type_eq(rt: &Runtime, module_addr: ModuleAddr, ty1: &ValueType, ty2: &ValueType) -> bool {
+        match (ty1, ty2) {
+            (ValueType::I32, ValueType::I32) => true,
+            (ValueType::I64, ValueType::I64) => true,
+            (ValueType::F32, ValueType::F32) => true,
+            (ValueType::F64, ValueType::F64) => true,
+            (ValueType::V128, ValueType::V128) => true,
+            (ValueType::Reference(ref1), ValueType::Reference(ref2)) => {
+                ref_eq(rt, module_addr, ref1, ref2)
+            }
+            (_, _) => false,
+        }
+    }
+
+    fn compare_fun_tys(
+        rt: &Runtime,
+        module_addr: ModuleAddr,
+        ty1: &FunctionType,
+        ty2: &FunctionType,
+    ) -> bool {
+        if ty1.params().len() != ty2.params().len() || ty1.results().len() != ty2.results().len() {
+            return false;
+        }
+
+        // No subtyping until GC proposal
+        ty1.params()
+            .iter()
+            .zip(ty2.params().iter())
+            .chain(ty1.results().iter().zip(ty2.results().iter()))
+            .all(|(t1, t2)| type_eq(rt, module_addr, t1, t2))
+    }
+
+    compare_fun_tys(rt, module_addr, call_instr_ty, actual_ty)
 }
 
 fn trapping_add(a: u32, b: u32) -> Result<u32> {
