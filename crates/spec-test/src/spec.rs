@@ -506,6 +506,8 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
             *addr == rt.get_module_fun_addr(module_addr, *idx)
         }
 
+        (WastRetCore::RefFunc(None), Value::Ref(Ref::Func(_))) => true,
+
         (WastRetCore::RefExtern(extern1), Value::Ref(Ref::Extern(extern2))) => {
             ExternAddr(*extern1) == *extern2
         }
