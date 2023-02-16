@@ -636,14 +636,8 @@ impl Deserialize for Module {
             }
         }
 
-        if module
-            .code_section()
-            .map(|cs| cs.entries().len())
-            .unwrap_or(0)
-            != module
-                .function_section()
-                .map(|fs| fs.entries().len())
-                .unwrap_or(0)
+        if module.code_section().map(|cs| cs.entries().len())
+            != module.function_section().map(|fs| fs.entries().len())
         {
             return Err(Error::InconsistentCode);
         }
