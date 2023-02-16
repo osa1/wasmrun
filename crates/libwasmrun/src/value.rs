@@ -103,6 +103,13 @@ impl Value {
             }
         }
     }
+
+    pub fn expect_ref(&self) -> Ref {
+        match self {
+            Value::Ref(ref_) => *ref_,
+            _ => panic!(),
+        }
+    }
 }
 
 impl fmt::Debug for Value {

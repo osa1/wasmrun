@@ -481,8 +481,13 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     // Allocate tables
     if let Some(table_section) = parsed_module.table_section_mut() {
         for wasm::Table { ty, init } in table_section.entries_mut().drain(..) {
-            // TODO: init
-            let table = Table::new(Ref::Null(ty.elem_type.heap_ty), ty);
+            let elem = match init {
+                Some(init) => {
+                    eval_const_expr(rt, rt.store.get_module(module_addr), init.code())?.expect_ref()
+                }
+                None => Ref::Null(ty.elem_type.heap_ty),
+            };
+            let table = Table::new(elem, ty);
             let table_addr = rt.store.allocate_table(table);
             rt.store.get_module_mut(module_addr).add_table(table_addr);
         }
