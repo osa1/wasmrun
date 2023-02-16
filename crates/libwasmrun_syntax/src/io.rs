@@ -72,7 +72,6 @@ impl<T: AsRef<[u8]>> Read for Cursor<T> {
         let remainder = slice.len() - self.pos;
         let requested = buf.len();
         if requested > remainder {
-            // println!("{}", std::backtrace::Backtrace::capture());
             return Err(Error::UnexpectedEof);
         }
         buf.copy_from_slice(&slice[self.pos..(self.pos + requested)]);

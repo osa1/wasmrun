@@ -1,7 +1,5 @@
-use crate::io;
-
-use super::{
-    deserialize_buffer,
+use crate::{
+    deserialize_buffer, io,
     name_section::NameSection,
     reloc_section::RelocSection,
     section::{

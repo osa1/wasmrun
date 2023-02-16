@@ -1,5 +1,4 @@
-use super::{Deserialize, Error, VarUint32, VarUint7};
-use crate::io;
+use crate::{io, Deserialize, Error, VarUint32, VarUint7};
 
 /// Internal reference of the exported entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

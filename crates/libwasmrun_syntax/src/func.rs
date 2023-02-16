@@ -1,5 +1,6 @@
-use super::{CountedList, Deserialize, Error, Instructions, ValueType, VarUint32};
-use crate::{io, section::SectionReader};
+use crate::{
+    io, section::SectionReader, CountedList, Deserialize, Error, Instructions, ValueType, VarUint32,
+};
 
 /// Function signature (type reference)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

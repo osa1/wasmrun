@@ -1,8 +1,6 @@
-use crate::io;
+use crate::{io, Deserialize, Error, VarUint32};
 
-use super::{Deserialize, Error, VarUint32};
-
-use core::{
+use std::{
     cmp::min,
     iter::{FromIterator, IntoIterator},
     mem, slice,

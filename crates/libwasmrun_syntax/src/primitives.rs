@@ -1,5 +1,4 @@
-use super::{Deserialize, Error};
-use crate::io;
+use crate::{io, Deserialize, Error};
 
 const PRIMITIVES_BUFFER_LENGTH: usize = 1024;
 
@@ -402,14 +401,12 @@ impl<T: Deserialize> Deserialize for CountedList<T> {
 
 #[cfg(test)]
 mod tests {
-
-    use super::{
-        super::deserialize_buffer, CountedList, VarInt32, VarInt64, VarInt7, VarUint32, VarUint64,
+    use crate::{
+        deserialize_buffer, CountedList, Error, VarInt32, VarInt64, VarInt7, VarUint32, VarUint64,
     };
-    use crate::Error;
 
     fn varuint32_de_test(dt: Vec<u8>, expected: u32) {
-        let val: VarUint32 = super::super::deserialize_buffer(&dt).expect("buf to be serialized");
+        let val: VarUint32 = deserialize_buffer(&dt).expect("buf to be serialized");
         assert_eq!(expected, val.into());
     }
 
@@ -418,7 +415,7 @@ mod tests {
     }
 
     fn varint32_de_test(dt: Vec<u8>, expected: i32) {
-        let val: VarInt32 = super::super::deserialize_buffer(&dt).expect("buf to be serialized");
+        let val: VarInt32 = deserialize_buffer(&dt).expect("buf to be serialized");
         assert_eq!(expected, val.into());
     }
 
@@ -427,7 +424,7 @@ mod tests {
     }
 
     fn varuint64_de_test(dt: Vec<u8>, expected: u64) {
-        let val: VarUint64 = super::super::deserialize_buffer(&dt).expect("buf to be serialized");
+        let val: VarUint64 = deserialize_buffer(&dt).expect("buf to be serialized");
         assert_eq!(expected, val.into());
     }
 
@@ -436,7 +433,7 @@ mod tests {
     }
 
     fn varint64_de_test(dt: Vec<u8>, expected: i64) {
-        let val: VarInt64 = super::super::deserialize_buffer(&dt).expect("buf to be serialized");
+        let val: VarInt64 = deserialize_buffer(&dt).expect("buf to be serialized");
         assert_eq!(expected, val.into());
     }
 

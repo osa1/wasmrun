@@ -1,6 +1,4 @@
-use crate::io;
-
-use super::{CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
+use crate::{io, CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
 
 const FUNCTION_INDEX_LEB: u8 = 0;
 const TABLE_INDEX_SLEB: u8 = 1;

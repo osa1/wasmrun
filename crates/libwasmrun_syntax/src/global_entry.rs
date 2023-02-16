@@ -1,5 +1,4 @@
-use super::{Deserialize, Error, GlobalType, InitExpr};
-use crate::io;
+use crate::{io, Deserialize, Error, GlobalType, InitExpr};
 
 /// Global entry in the module.
 #[derive(Clone, Debug, PartialEq, Eq)]

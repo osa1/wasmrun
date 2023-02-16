@@ -1,7 +1,6 @@
-use super::{
-    Deserialize, Error, ReferenceType, TagType, Uint8, ValueType, VarUint1, VarUint32, VarUint7,
+use crate::{
+    io, Deserialize, Error, ReferenceType, TagType, Uint8, ValueType, VarUint1, VarUint32, VarUint7,
 };
-use crate::io;
 
 const FLAG_HAS_MAX: u8 = 0x01;
 const FLAG_SHARED: u8 = 0x02;

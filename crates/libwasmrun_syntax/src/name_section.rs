@@ -1,6 +1,4 @@
-use crate::io;
-
-use super::{index_map::IndexMap, Deserialize, Error, Module, Type, VarUint32, VarUint7};
+use crate::{index_map::IndexMap, io, Deserialize, Error, Module, Type, VarUint32, VarUint7};
 
 const NAME_TYPE_MODULE: u8 = 0;
 const NAME_TYPE_FUNCTION: u8 = 1;
