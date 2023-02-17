@@ -568,7 +568,6 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
     // Allocate memories
     if let Some(memory_section) = parsed_module.memory_section_mut() {
-        assert!(memory_section.entries().len() <= 1); // No more than 1 currently
         for mem in memory_section.entries_mut().drain(..) {
             let mem_addr = rt
                 .store
@@ -618,12 +617,13 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
             match mode {
                 wasm::DataSegmentMode::Passive => {}
                 wasm::DataSegmentMode::Active { mem_idx, offset } => {
-                    // TODO: Is this a validation error? Should this be a trap?
-                    assert_eq!(*mem_idx, 0);
                     let offset =
                         eval_const_expr(rt, rt.store.get_module(module_addr), offset.code())?
                             .expect_i32() as u32;
-                    let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+                    let mem_addr = rt
+                        .store
+                        .get_module(module_addr)
+                        .get_mem(MemIdx(*mem_idx as u32));
                     let mem = &mut rt.store.get_mem_mut(mem_addr);
 
                     // memory.init amt=`data.len()` src=0 dst=`offset`
@@ -840,10 +840,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Memory instructions
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::MemoryGrow(mem_ref) => {
-            assert_eq!(mem_ref, 0);
-
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+        Instruction::MemoryGrow(mem_idx) => {
+            let mem_addr = rt
+                .store
+                .get_module(module_addr)
+                .get_mem(MemIdx(u32::from(mem_idx)));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             let current_pages = mem.size_pages();
@@ -860,16 +861,21 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::MemorySize(mem_ref) => {
-            assert_eq!(mem_ref, 0);
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+        Instruction::MemorySize(mem_idx) => {
+            let mem_addr = rt
+                .store
+                .get_module(module_addr)
+                .get_mem(MemIdx(u32::from(mem_idx)));
             let mem = rt.store.get_mem(mem_addr);
             rt.stack.push_i32(mem.size_pages() as i32)?;
             rt.ip += 1;
         }
 
-        Instruction::MemoryInit(data_idx) => {
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+        Instruction::MemoryInit(mem_idx, data_idx) => {
+            let mem_addr = rt
+                .store
+                .get_module(module_addr)
+                .get_mem(MemIdx(u32::from(mem_idx)));
             let mem = rt.store.get_mem(mem_addr);
 
             let amt = rt.stack.pop_i32()? as usize;
@@ -911,35 +917,49 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::MemoryCopy => {
+        Instruction::MemoryCopy(src_mem_idx, dst_mem_idx) => {
             let amt = rt.stack.pop_i32()? as usize;
             let src = rt.stack.pop_i32()? as usize;
             let dst = rt.stack.pop_i32()? as usize;
 
-            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
-            let mem = rt.store.get_mem_mut(mem_addr);
+            let src_mem_addr = rt
+                .get_module(module_addr)
+                .get_mem(MemIdx(u32::from(src_mem_idx)));
+
+            let dst_mem_addr = rt
+                .get_module(module_addr)
+                .get_mem(MemIdx(u32::from(dst_mem_idx)));
+
+            // let src_mem = rt.store.get_mem_mut(src_mem_addr);
 
             let oob = match (src.checked_add(amt), dst.checked_add(amt)) {
                 (None, _) | (_, None) => true,
-                (Some(src_end), Some(dst_end)) => src_end > mem.len() || dst_end > mem.len(),
+                (Some(src_end), Some(dst_end)) => {
+                    src_end > rt.store.get_mem_mut(src_mem_addr).len()
+                        || dst_end > rt.store.get_mem_mut(dst_mem_addr).len()
+                }
             };
 
             if oob {
                 return Err(ExecError::Trap(Trap::OOBMemoryAccess));
             }
 
-            let src_data = mem.mem[src..src + amt].to_vec();
-            mem.set_range(dst as u32, &src_data)?;
+            let src_mem = rt.store.get_mem_mut(src_mem_addr);
+            let src_data = src_mem.mem[src..src + amt].to_vec();
+            let dst_mem = rt.store.get_mem_mut(dst_mem_addr);
+            dst_mem.set_range(dst as u32, &src_data)?;
 
             rt.ip += 1;
         }
 
-        Instruction::MemoryFill => {
+        Instruction::MemoryFill(mem_idx) => {
             let amt = rt.stack.pop_i32()? as usize;
             let val = rt.stack.pop_i32()? as u8;
             let dst = rt.stack.pop_i32()? as usize;
 
-            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt
+                .get_module(module_addr)
+                .get_mem(MemIdx(u32::from(mem_idx)));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             let oob = match dst.checked_add(amt) {

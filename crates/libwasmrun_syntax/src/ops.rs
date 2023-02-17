@@ -331,10 +331,10 @@ pub enum Instruction {
     Simd(SimdInstruction),
     SignExt(SignExtInstruction),
 
-    MemoryInit(u32),
+    MemoryInit(u8, u32),
     DataDrop(u32),
-    MemoryCopy,
-    MemoryFill,
+    MemoryCopy(u8, u8),
+    MemoryFill(u8),
 
     // Table instructions
     TableGet(u32),
@@ -1455,20 +1455,8 @@ impl Deserialize for Instruction {
                 VarUint32::deserialize(reader)?.into(),
             ),
 
-            MEMORY_SIZE => {
-                let mem_ref: u8 = Uint8::deserialize(reader)?.into();
-                if mem_ref != 0 {
-                    return Err(Error::InvalidMemoryReference(mem_ref));
-                }
-                MemorySize(mem_ref)
-            }
-            MEMORY_GROW => {
-                let mem_ref: u8 = Uint8::deserialize(reader)?.into();
-                if mem_ref != 0 {
-                    return Err(Error::InvalidMemoryReference(mem_ref));
-                }
-                MemoryGrow(mem_ref)
-            }
+            MEMORY_SIZE => MemorySize(Uint8::deserialize(reader)?.into()),
+            MEMORY_GROW => MemoryGrow(Uint8::deserialize(reader)?.into()),
 
             I32CONST => I32Const(VarInt32::deserialize(reader)?.into()),
             I64CONST => I64Const(VarInt64::deserialize(reader)?.into()),
@@ -2032,30 +2020,15 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         MEMORY_INIT => {
             let data_idx = VarUint32::deserialize(reader)?.into();
             let mem_idx = Uint8::deserialize(reader)?.into();
-            if mem_idx != 0 {
-                return Err(Error::InvalidMemoryReference(mem_idx));
-            }
-            MemoryInit(data_idx)
+            MemoryInit(mem_idx, data_idx)
         }
         DATA_DROP => DataDrop(VarUint32::deserialize(reader)?.into()),
         MEMORY_COPY => {
             let src_mem_idx = Uint8::deserialize(reader)?.into();
-            if src_mem_idx != 0 {
-                return Err(Error::InvalidMemoryReference(src_mem_idx));
-            }
             let dst_mem_idx = Uint8::deserialize(reader)?.into();
-            if dst_mem_idx != 0 {
-                return Err(Error::InvalidMemoryReference(dst_mem_idx));
-            }
-            MemoryCopy
+            MemoryCopy(src_mem_idx, dst_mem_idx)
         }
-        MEMORY_FILL => {
-            let mem_idx = Uint8::deserialize(reader)?.into();
-            if mem_idx != 0 {
-                return Err(Error::InvalidMemoryReference(mem_idx));
-            }
-            MemoryFill
-        }
+        MEMORY_FILL => MemoryFill(Uint8::deserialize(reader)?.into()),
         TABLE_INIT => {
             let elem_idx = VarUint32::deserialize(reader)?.into();
             let table_idx = VarUint32::deserialize(reader)?.into();
@@ -2372,10 +2345,12 @@ impl fmt::Display for Instruction {
 
             Simd(i) => i.fmt(f),
 
-            MemoryInit(mem_idx) => fmt_op!(f, "memory.init", mem_idx),
+            MemoryInit(mem_idx, data_idx) => fmt_op!(f, "memory.init", mem_idx, data_idx),
             DataDrop(data_idx) => fmt_op!(f, "data.drop", data_idx),
-            MemoryFill => write!(f, "memory.fill"),
-            MemoryCopy => write!(f, "memory.copy"),
+            MemoryFill(mem_idx) => fmt_op!(f, "memory.fill", mem_idx),
+            MemoryCopy(src_mem_idx, dst_mem_idx) => {
+                fmt_op!(f, "memory.copy", src_mem_idx, dst_mem_idx)
+            }
 
             TableGet(table_idx) => fmt_op!(f, "table.get", table_idx),
             TableSet(table_idx) => fmt_op!(f, "table.set", table_idx),
