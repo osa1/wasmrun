@@ -153,31 +153,29 @@ pub enum Instruction {
     GetGlobal(u32),
     SetGlobal(u32),
 
-    // All store/load instructions operate with 'memory immediates' which represented here as
-    // (flag, offset) tuple
-    I32Load(u32, u32),
-    I64Load(u32, u32),
-    F32Load(u32, u32),
-    F64Load(u32, u32),
-    I32Load8S(u32, u32),
-    I32Load8U(u32, u32),
-    I32Load16S(u32, u32),
-    I32Load16U(u32, u32),
-    I64Load8S(u32, u32),
-    I64Load8U(u32, u32),
-    I64Load16S(u32, u32),
-    I64Load16U(u32, u32),
-    I64Load32S(u32, u32),
-    I64Load32U(u32, u32),
-    I32Store(u32, u32),
-    I64Store(u32, u32),
-    F32Store(u32, u32),
-    F64Store(u32, u32),
-    I32Store8(u32, u32),
-    I32Store16(u32, u32),
-    I64Store8(u32, u32),
-    I64Store16(u32, u32),
-    I64Store32(u32, u32),
+    I32Load(MemArg),
+    I64Load(MemArg),
+    F32Load(MemArg),
+    F64Load(MemArg),
+    I32Load8S(MemArg),
+    I32Load8U(MemArg),
+    I32Load16S(MemArg),
+    I32Load16U(MemArg),
+    I64Load8S(MemArg),
+    I64Load8U(MemArg),
+    I64Load16S(MemArg),
+    I64Load16U(MemArg),
+    I64Load32S(MemArg),
+    I64Load32U(MemArg),
+    I32Store(MemArg),
+    I64Store(MemArg),
+    F32Store(MemArg),
+    F64Store(MemArg),
+    I32Store8(MemArg),
+    I32Store16(MemArg),
+    I64Store8(MemArg),
+    I64Store16(MemArg),
+    I64Store32(MemArg),
 
     MemorySize(u8),
     MemoryGrow(u8),
@@ -692,7 +690,8 @@ pub enum SignExtInstruction {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MemArg {
-    pub align: u8,
+    pub align: u32,
+    pub mem_idx: u32,
     pub offset: u32,
 }
 
@@ -1340,120 +1339,29 @@ impl Deserialize for Instruction {
             GETGLOBAL => GetGlobal(VarUint32::deserialize(reader)?.into()),
             SETGLOBAL => SetGlobal(VarUint32::deserialize(reader)?.into()),
 
-            I32LOAD => I32Load(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD => I64Load(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            F32LOAD => F32Load(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            F64LOAD => F64Load(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32LOAD8S => I32Load8S(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32LOAD8U => I32Load8U(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32LOAD16S => I32Load16S(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32LOAD16U => I32Load16U(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD8S => I64Load8S(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD8U => I64Load8U(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD16S => I64Load16S(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD16U => I64Load16U(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD32S => I64Load32S(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64LOAD32U => I64Load32U(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32STORE => I32Store(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64STORE => I64Store(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            F32STORE => F32Store(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            F64STORE => F64Store(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32STORE8 => I32Store8(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I32STORE16 => I32Store16(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64STORE8 => I64Store8(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64STORE16 => I64Store16(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
-
-            I64STORE32 => I64Store32(
-                VarUint32::deserialize(reader)?.into(),
-                VarUint32::deserialize(reader)?.into(),
-            ),
+            I32LOAD => I32Load(MemArg::deserialize(reader)?),
+            I64LOAD => I64Load(MemArg::deserialize(reader)?),
+            F32LOAD => F32Load(MemArg::deserialize(reader)?),
+            F64LOAD => F64Load(MemArg::deserialize(reader)?),
+            I32LOAD8S => I32Load8S(MemArg::deserialize(reader)?),
+            I32LOAD8U => I32Load8U(MemArg::deserialize(reader)?),
+            I32LOAD16S => I32Load16S(MemArg::deserialize(reader)?),
+            I32LOAD16U => I32Load16U(MemArg::deserialize(reader)?),
+            I64LOAD8S => I64Load8S(MemArg::deserialize(reader)?),
+            I64LOAD8U => I64Load8U(MemArg::deserialize(reader)?),
+            I64LOAD16S => I64Load16S(MemArg::deserialize(reader)?),
+            I64LOAD16U => I64Load16U(MemArg::deserialize(reader)?),
+            I64LOAD32S => I64Load32S(MemArg::deserialize(reader)?),
+            I64LOAD32U => I64Load32U(MemArg::deserialize(reader)?),
+            I32STORE => I32Store(MemArg::deserialize(reader)?),
+            I64STORE => I64Store(MemArg::deserialize(reader)?),
+            F32STORE => F32Store(MemArg::deserialize(reader)?),
+            F64STORE => F64Store(MemArg::deserialize(reader)?),
+            I32STORE8 => I32Store8(MemArg::deserialize(reader)?),
+            I32STORE16 => I32Store16(MemArg::deserialize(reader)?),
+            I64STORE8 => I64Store8(MemArg::deserialize(reader)?),
+            I64STORE16 => I64Store16(MemArg::deserialize(reader)?),
+            I64STORE32 => I64Store32(MemArg::deserialize(reader)?),
 
             MEMORY_SIZE => MemorySize(Uint8::deserialize(reader)?.into()),
             MEMORY_GROW => MemoryGrow(Uint8::deserialize(reader)?.into()),
@@ -2052,10 +1960,16 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
 
 impl Deserialize for MemArg {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let align = Uint8::deserialize(reader)?;
+        let align: u32 = VarUint32::deserialize(reader)?.into();
+        let mem_idx: u32 = if align & 0b01000000 != 0 {
+            VarUint32::deserialize(reader)?.into()
+        } else {
+            0
+        };
         let offset = VarUint32::deserialize(reader)?;
         Ok(MemArg {
-            align: align.into(),
+            align,
+            mem_idx,
             offset: offset.into(),
         })
     }
@@ -2110,74 +2024,29 @@ impl fmt::Display for Instruction {
             GetGlobal(index) => fmt_op!(f, "get_global", index),
             SetGlobal(index) => fmt_op!(f, "set_global", index),
 
-            I32Load(_, 0) => write!(f, "i32.load"),
-            I32Load(_, offset) => write!(f, "i32.load offset={}", offset),
-
-            I64Load(_, 0) => write!(f, "i64.load"),
-            I64Load(_, offset) => write!(f, "i64.load offset={}", offset),
-
-            F32Load(_, 0) => write!(f, "f32.load"),
-            F32Load(_, offset) => write!(f, "f32.load offset={}", offset),
-
-            F64Load(_, 0) => write!(f, "f64.load"),
-            F64Load(_, offset) => write!(f, "f64.load offset={}", offset),
-
-            I32Load8S(_, 0) => write!(f, "i32.load8_s"),
-            I32Load8S(_, offset) => write!(f, "i32.load8_s offset={}", offset),
-
-            I32Load8U(_, 0) => write!(f, "i32.load8_u"),
-            I32Load8U(_, offset) => write!(f, "i32.load8_u offset={}", offset),
-
-            I32Load16S(_, 0) => write!(f, "i32.load16_s"),
-            I32Load16S(_, offset) => write!(f, "i32.load16_s offset={}", offset),
-
-            I32Load16U(_, 0) => write!(f, "i32.load16_u"),
-            I32Load16U(_, offset) => write!(f, "i32.load16_u offset={}", offset),
-
-            I64Load8S(_, 0) => write!(f, "i64.load8_s"),
-            I64Load8S(_, offset) => write!(f, "i64.load8_s offset={}", offset),
-
-            I64Load8U(_, 0) => write!(f, "i64.load8_u"),
-            I64Load8U(_, offset) => write!(f, "i64.load8_u offset={}", offset),
-
-            I64Load16S(_, 0) => write!(f, "i64.load16_s"),
-            I64Load16S(_, offset) => write!(f, "i64.load16_s offset={}", offset),
-
-            I64Load16U(_, 0) => write!(f, "i64.load16_u"),
-            I64Load16U(_, offset) => write!(f, "i64.load16_u offset={}", offset),
-
-            I64Load32S(_, 0) => write!(f, "i64.load32_s"),
-            I64Load32S(_, offset) => write!(f, "i64.load32_s offset={}", offset),
-
-            I64Load32U(_, 0) => write!(f, "i64.load32_u"),
-            I64Load32U(_, offset) => write!(f, "i64.load32_u offset={}", offset),
-
-            I32Store(_, 0) => write!(f, "i32.store"),
-            I32Store(_, offset) => write!(f, "i32.store offset={}", offset),
-
-            I64Store(_, 0) => write!(f, "i64.store"),
-            I64Store(_, offset) => write!(f, "i64.store offset={}", offset),
-
-            F32Store(_, 0) => write!(f, "f32.store"),
-            F32Store(_, offset) => write!(f, "f32.store offset={}", offset),
-
-            F64Store(_, 0) => write!(f, "f64.store"),
-            F64Store(_, offset) => write!(f, "f64.store offset={}", offset),
-
-            I32Store8(_, 0) => write!(f, "i32.store8"),
-            I32Store8(_, offset) => write!(f, "i32.store8 offset={}", offset),
-
-            I32Store16(_, 0) => write!(f, "i32.store16"),
-            I32Store16(_, offset) => write!(f, "i32.store16 offset={}", offset),
-
-            I64Store8(_, 0) => write!(f, "i64.store8"),
-            I64Store8(_, offset) => write!(f, "i64.store8 offset={}", offset),
-
-            I64Store16(_, 0) => write!(f, "i64.store16"),
-            I64Store16(_, offset) => write!(f, "i64.store16 offset={}", offset),
-
-            I64Store32(_, 0) => write!(f, "i64.store32"),
-            I64Store32(_, offset) => write!(f, "i64.store32 offset={}", offset),
+            I32Load(mem_arg) => fmt_op!(f, "i32.load", mem_arg),
+            I64Load(mem_arg) => fmt_op!(f, "i64.load", mem_arg),
+            F32Load(mem_arg) => fmt_op!(f, "f32.load", mem_arg),
+            F64Load(mem_arg) => fmt_op!(f, "f64.load", mem_arg),
+            I32Load8S(mem_arg) => fmt_op!(f, "i32.load8_s", mem_arg),
+            I32Load8U(mem_arg) => fmt_op!(f, "i32.load8_u", mem_arg),
+            I32Load16S(mem_arg) => fmt_op!(f, "i32.load16_s", mem_arg),
+            I32Load16U(mem_arg) => fmt_op!(f, "i32.load16_u", mem_arg),
+            I64Load8S(mem_arg) => fmt_op!(f, "i64.load8_s", mem_arg),
+            I64Load8U(mem_arg) => fmt_op!(f, "i64.load8_u", mem_arg),
+            I64Load16S(mem_arg) => fmt_op!(f, "i64.load16_s", mem_arg),
+            I64Load16U(mem_arg) => fmt_op!(f, "i64.load16_u", mem_arg),
+            I64Load32S(mem_arg) => fmt_op!(f, "i64.load32_s", mem_arg),
+            I64Load32U(mem_arg) => fmt_op!(f, "i64.load32_u", mem_arg),
+            I32Store(mem_arg) => fmt_op!(f, "i32.store", mem_arg),
+            I64Store(mem_arg) => fmt_op!(f, "i64.store", mem_arg),
+            F32Store(mem_arg) => fmt_op!(f, "f32.store", mem_arg),
+            F64Store(mem_arg) => fmt_op!(f, "f64.store", mem_arg),
+            I32Store8(mem_arg) => fmt_op!(f, "i32.store8", mem_arg),
+            I32Store16(mem_arg) => fmt_op!(f, "i32.store16", mem_arg),
+            I64Store8(mem_arg) => fmt_op!(f, "i64.store8", mem_arg),
+            I64Store16(mem_arg) => fmt_op!(f, "i64.store16", mem_arg),
+            I64Store32(mem_arg) => fmt_op!(f, "i64.store32", mem_arg),
 
             MemorySize(_) => fmt_op!(f, "memory.size"),
             MemoryGrow(_) => fmt_op!(f, "memory.grow"),
@@ -2348,6 +2217,7 @@ impl fmt::Display for Instruction {
             MemoryInit(mem_idx, data_idx) => fmt_op!(f, "memory.init", mem_idx, data_idx),
             DataDrop(data_idx) => fmt_op!(f, "data.drop", data_idx),
             MemoryFill(mem_idx) => fmt_op!(f, "memory.fill", mem_idx),
+
             MemoryCopy(src_mem_idx, dst_mem_idx) => {
                 fmt_op!(f, "memory.copy", src_mem_idx, dst_mem_idx)
             }
@@ -2380,6 +2250,16 @@ impl fmt::Display for Instruction {
             Throw(tag_idx) => write!(f, "throw {}", tag_idx),
             Rethrow(depth) => write!(f, "rethrow {}", depth),
         }
+    }
+}
+
+impl fmt::Display for MemArg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "offset={}, mem={}, align={}",
+            self.offset, self.mem_idx, self.align
+        )
     }
 }
 
@@ -2504,11 +2384,25 @@ fn display() {
     let instruction = Instruction::GetLocal(0);
     assert_eq!("get_local 0", instruction.to_string());
 
-    let instruction = Instruction::F64Store(0, 24);
-    assert_eq!("f64.store offset=24", instruction.to_string());
+    let instruction = Instruction::F64Store(MemArg {
+        align: 0,
+        offset: 24,
+        mem_idx: 0,
+    });
+    assert_eq!(
+        "f64.store offset=24, mem=0, align=0",
+        instruction.to_string()
+    );
 
-    let instruction = Instruction::I64Store(0, 0);
-    assert_eq!("i64.store", instruction.to_string());
+    let instruction = Instruction::I64Store(MemArg {
+        align: 0,
+        offset: 0,
+        mem_idx: 0,
+    });
+    assert_eq!(
+        "i64.store offset=0, mem=0, align=0",
+        instruction.to_string()
+    );
 }
 
 #[test]

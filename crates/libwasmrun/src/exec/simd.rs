@@ -22,11 +22,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(bytes))?;
         }
 
-        SimdInstruction::V128Load(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 16)?;
 
@@ -52,13 +56,17 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
-        SimdInstruction::V128Store(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Store(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 16)?;
 
@@ -67,13 +75,20 @@ pub fn exec_simd_instr(
             }
         }
 
-        SimdInstruction::V128Store8Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Store8Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -81,13 +96,20 @@ pub fn exec_simd_instr(
             mem[addr] = byte;
         }
 
-        SimdInstruction::V128Store16Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Store16Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -97,13 +119,20 @@ pub fn exec_simd_instr(
             mem[addr + 1] = b2;
         }
 
-        SimdInstruction::V128Store32Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Store32Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 4)?;
 
@@ -111,25 +140,36 @@ pub fn exec_simd_instr(
             mem.set_range(addr, &vec[lane * 4..lane * 4 + 4])?;
         }
 
-        SimdInstruction::V128Store64Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Store64Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             let lane = usize::from(lane);
             mem.set_range(addr, &vec[lane * 8..lane * 8 + 8])?;
         }
 
-        SimdInstruction::V128Load8x8s(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load8x8s(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             // Load 8 8-bit integers, sign extend each to 16-bit
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -148,11 +188,15 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
-        SimdInstruction::V128Load8x8u(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load8x8u(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -171,11 +215,15 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
-        SimdInstruction::V128Load16x4s(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load16x4s(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -187,11 +235,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i32x4_to_vec([i1, i2, i3, i4]))?;
         }
 
-        SimdInstruction::V128Load16x4u(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load16x4u(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -203,11 +255,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i32x4_to_vec([i1, i2, i3, i4]))?;
         }
 
-        SimdInstruction::V128Load32x2s(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load32x2s(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -217,11 +273,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i64x2_to_vec([i1, i2]))?;
         }
 
-        SimdInstruction::V128Load32x2u(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load32x2u(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -231,13 +291,20 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i64x2_to_vec([i1, i2]))?;
         }
 
-        SimdInstruction::V128Load8Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Load8Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let mut vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -249,13 +316,20 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(vec))?;
         }
 
-        SimdInstruction::V128Load16Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Load16Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let mut vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -269,13 +343,20 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(vec))?;
         }
 
-        SimdInstruction::V128Load32Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Load32Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let mut vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
@@ -293,13 +374,20 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(vec))?;
         }
 
-        SimdInstruction::V128Load64Lane(MemArg { align: _, offset }, lane) => {
+        SimdInstruction::V128Load64Lane(
+            MemArg {
+                align: _,
+                offset,
+                mem_idx,
+            },
+            lane,
+        ) => {
             let mut vec = rt.stack.pop_i128()?.to_le_bytes();
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -325,11 +413,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes(vec))?;
         }
 
-        SimdInstruction::V128Load8Splat(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load8Splat(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             let b = mem.load_8(addr)?;
@@ -337,11 +429,15 @@ pub fn exec_simd_instr(
             rt.stack.push_i128(i128::from_le_bytes([b; 16]))?;
         }
 
-        SimdInstruction::V128Load16Splat(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load16Splat(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             let bs = mem.load_16(addr)?.to_le_bytes();
@@ -352,11 +448,15 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
-        SimdInstruction::V128Load32Splat(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load32Splat(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             let bs = mem.load_32(addr)?.to_le_bytes();
@@ -367,11 +467,15 @@ pub fn exec_simd_instr(
             ]))?;
         }
 
-        SimdInstruction::V128Load64Splat(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load64Splat(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             let bs = mem.load_64(addr)?.to_le_bytes();
@@ -749,11 +853,15 @@ pub fn exec_simd_instr(
                 .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
         }
 
-        SimdInstruction::V128Load32Zero(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load32Zero(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
@@ -767,11 +875,15 @@ pub fn exec_simd_instr(
                 .push_i128(i128::from_le_bytes(res.try_into().unwrap()))?;
         }
 
-        SimdInstruction::V128Load64Zero(MemArg { align: _, offset }) => {
+        SimdInstruction::V128Load64Zero(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 

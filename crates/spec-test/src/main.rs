@@ -4,11 +4,12 @@ mod spec;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-static TEST_DIRS: [&str; 4] = [
+static TEST_DIRS: [&str; 5] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
     "tests/spec/proposals/function-references",
+    "tests/spec/proposals/multi-memory",
     // Tail call tests take a long time to run, disabled for now
     // "tests/spec/proposals/tail-call",
 ];

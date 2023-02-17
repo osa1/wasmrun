@@ -20,7 +20,7 @@ use crate::{ExecError, Result};
 use ieee754::Ieee754;
 use libwasmrun_syntax as wasm;
 use wasi_common::{WasiCtx, WasiCtxBuilder};
-use wasm::{Instruction, SignExtInstruction};
+use wasm::{Instruction, MemArg, SignExtInstruction};
 
 use std::fmt;
 use std::iter;
@@ -995,12 +995,16 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Store(_align, offset) => {
+        Instruction::I32Store(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let value = rt.stack.pop_i32()?;
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             mem.store_32(addr, value as u32)?;
@@ -1008,13 +1012,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::F32Store(_align, offset) => {
+        Instruction::F32Store(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let value = rt.stack.pop_f32()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             mem.store_32(addr, value.to_bits())?;
@@ -1022,12 +1030,16 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Store(_align, offset) => {
+        Instruction::I64Store(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let value = rt.stack.pop_i64()?;
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             mem.store_64(addr, value as u64)?;
@@ -1035,13 +1047,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::F64Store(_align, offset) => {
+        Instruction::F64Store(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let value = rt.stack.pop_f64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
             mem.store_64(addr, value.to_bits())?;
@@ -1049,13 +1065,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Store8(_align, offset) => {
+        Instruction::I64Store8(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let c = rt.stack.pop_i64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -1065,13 +1085,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Store16(_align, offset) => {
+        Instruction::I64Store16(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let c = rt.stack.pop_i64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -1082,13 +1106,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Store32(_align, offset) => {
+        Instruction::I64Store32(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let c = rt.stack.pop_i64()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 4)?;
 
@@ -1097,11 +1125,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load8S(_align, offset) => {
+        Instruction::I64Load8S(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -1111,11 +1143,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Load(_align, offset) => {
+        Instruction::I32Load(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             rt.stack.push_i32(mem.load_32(addr)? as i32)?;
@@ -1123,11 +1159,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::F32Load(_align, offset) => {
+        Instruction::F32Load(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             rt.stack.push_f32(f32::from_bits(mem.load_32(addr)?))?;
@@ -1135,11 +1175,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load(_align, offset) => {
+        Instruction::I64Load(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -1156,11 +1200,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::F64Load(_align, offset) => {
+        Instruction::F64Load(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
@@ -1177,11 +1225,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Load8U(_align, offset) => {
+        Instruction::I32Load8U(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -1190,11 +1242,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Load8S(_align, offset) => {
+        Instruction::I32Load8S(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -1204,11 +1260,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load8U(_align, offset) => {
+        Instruction::I64Load8U(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -1218,11 +1278,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Load16U(_align, offset) => {
+        Instruction::I32Load16U(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -1232,11 +1296,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Load16S(_align, offset) => {
+        Instruction::I32Load16S(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -1247,11 +1315,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load16U(_align, offset) => {
+        Instruction::I64Load16U(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -1262,11 +1334,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load16S(_align, offset) => {
+        Instruction::I64Load16S(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 2)?;
 
@@ -1277,11 +1353,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load32U(_align, offset) => {
+        Instruction::I64Load32U(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             rt.stack.push_i64(mem.load_32(addr)? as i64)?;
@@ -1289,11 +1369,15 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I64Load32S(_align, offset) => {
+        Instruction::I64Load32S(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
             rt.stack.push_i64((mem.load_32(addr)? as i32) as i64)?;
@@ -1301,13 +1385,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Store8(_align, offset) => {
+        Instruction::I32Store8(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let c = rt.stack.pop_i32()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 1)?;
 
@@ -1315,13 +1403,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::I32Store16(_align, offset) => {
+        Instruction::I32Store16(MemArg {
+            align: _,
+            offset,
+            mem_idx,
+        }) => {
             let c = rt.stack.pop_i32()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
-            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(0));
+            let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
             mem.check_range(addr, 2)?;
 

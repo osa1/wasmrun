@@ -672,7 +672,7 @@ mod integration_tests {
 
     #[test]
     fn const_() {
-        use super::super::Instruction::*;
+        use crate::Instruction::*;
 
         let module = deserialize_file("./res/cases/v1/const.wasm").expect("Should be deserialized");
         let func = &module
@@ -703,7 +703,8 @@ mod integration_tests {
 
     #[test]
     fn store() {
-        use super::super::Instruction::*;
+        use crate::Instruction::*;
+        use crate::MemArg;
 
         let module =
             deserialize_file("./res/cases/v1/offset.wasm").expect("Should be deserialized");
@@ -713,7 +714,14 @@ mod integration_tests {
             .entries()[0];
 
         assert_eq!(func.code().elements().len(), 5);
-        assert_eq!(I64Store(0, 32), func.code().elements()[2]);
+        assert_eq!(
+            I64Store(MemArg {
+                align: 0,
+                offset: 32,
+                mem_idx: 0
+            }),
+            func.code().elements()[2]
+        );
     }
 
     #[test]
