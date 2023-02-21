@@ -1726,6 +1726,8 @@ pub fn exec_simd_instr(
                 canonicalize_f64_nan(v[1] as f64),
             ]))?
         }
+
+        other => exec_panic!("SIMD instruction not implemented: {:?}", other),
     }
 
     rt.ip += 1;

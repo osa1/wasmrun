@@ -677,6 +677,29 @@ pub enum SimdInstruction {
     F64x2ConvertLowI32x4U,
     F32x4DemoteF64x2Zero,
     F64x2PromoteLowF32x4,
+
+    // Relaxed SIMD
+    I8x16RelaxedSwizzle,
+    I32x4RelaxedTruncSatF32x4S,
+    I32x4RelaxedTruncSatF32x4U,
+    I32x4RelaxedTruncSatF64x2SZero,
+    I32x4RelaxedTruncSatF64x2UZero,
+    F32x4RelaxedMa,
+    F32x4RelaxedNma,
+    F64x2RelaxedMa,
+    F64x2RelaxedNma,
+    I8x16RelaxedLaneselect,
+    I16x8RelaxedLaneselect,
+    I32x4RelaxedLaneselect,
+    I64x2RelaxedLaneselect,
+    F32x4RelaxedMin,
+    F32x4RelaxedMax,
+    F64x2RelaxedMin,
+    F64x2RelaxedMax,
+    I16x8RelaxedQ15mulrS,
+    I16x8DotI8x16I7x16S,
+    I32x4DotI8x16I7x16AddS,
+    F32x4RelaxedDotBf16x8AddF32x4,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1250,6 +1273,28 @@ mod opcodes {
     pub const F64X2_CONVERT_LOW_I32X4_U: u32 = 255;
     pub const F32X4_DEMOTE_F64X2_ZERO: u32 = 94;
     pub const F64X2_PROMOTE_LOW_F32X4: u32 = 95;
+
+    pub const I8X16_RELAXED_SWIZZLE: u32 = 0x100;
+    pub const I32X4_RELAXED_TRUNC_SAT_F32X4_S: u32 = 0x101;
+    pub const I32X4_RELAXED_TRUNC_SAT_F32X4_U: u32 = 0x102;
+    pub const I32X4_RELAXED_TRUNC_SAT_F64X2_S_ZERO: u32 = 0x103;
+    pub const I32X4_RELAXED_TRUNC_SAT_F64X2_U_ZERO: u32 = 0x104;
+    pub const F32X4_RELAXED_MA: u32 = 0x105;
+    pub const F32X4_RELAXED_NMA: u32 = 0x106;
+    pub const F64X2_RELAXED_MA: u32 = 0x107;
+    pub const F64X2_RELAXED_NMA: u32 = 0x108;
+    pub const I8X16_RELAXED_LANESELECT: u32 = 0x109;
+    pub const I16X8_RELAXED_LANESELECT: u32 = 0x10a;
+    pub const I32X4_RELAXED_LANESELECT: u32 = 0x10b;
+    pub const I64X2_RELAXED_LANESELECT: u32 = 0x10c;
+    pub const F32X4_RELAXED_MIN: u32 = 0x10d;
+    pub const F32X4_RELAXED_MAX: u32 = 0x10e;
+    pub const F64X2_RELAXED_MIN: u32 = 0x10f;
+    pub const F64X2_RELAXED_MAX: u32 = 0x110;
+    pub const I16X8_RELAXED_Q15_MULR_S: u32 = 0x111;
+    pub const I16X8_DOT_I8X16_I7X16_S: u32 = 0x112;
+    pub const I32X4_DOT_I8X16_I7X16_ADD_S: u32 = 0x113;
+    pub const F32X4_RELAXED_DOT_BF_16X8_ADD_F32X4: u32 = 0x114;
 
     pub const BULK_PREFIX: u8 = 0xfc;
     pub const MEMORY_INIT: u32 = 8; // BULK_PREFIX
@@ -1907,6 +1952,27 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         F64X2_CONVERT_LOW_I32X4_U => F64x2ConvertLowI32x4U,
         F32X4_DEMOTE_F64X2_ZERO => F32x4DemoteF64x2Zero,
         F64X2_PROMOTE_LOW_F32X4 => F64x2PromoteLowF32x4,
+        I8X16_RELAXED_SWIZZLE => I8x16RelaxedSwizzle,
+        I32X4_RELAXED_TRUNC_SAT_F32X4_S => I32x4RelaxedTruncSatF32x4S,
+        I32X4_RELAXED_TRUNC_SAT_F32X4_U => I32x4RelaxedTruncSatF32x4U,
+        I32X4_RELAXED_TRUNC_SAT_F64X2_S_ZERO => I32x4RelaxedTruncSatF64x2SZero,
+        I32X4_RELAXED_TRUNC_SAT_F64X2_U_ZERO => I32x4RelaxedTruncSatF64x2UZero,
+        F32X4_RELAXED_MA => F32x4RelaxedMa,
+        F32X4_RELAXED_NMA => F32x4RelaxedNma,
+        F64X2_RELAXED_MA => F32x4RelaxedMa,
+        F64X2_RELAXED_NMA => F32x4RelaxedNma,
+        I8X16_RELAXED_LANESELECT => I8x16RelaxedLaneselect,
+        I16X8_RELAXED_LANESELECT => I16x8RelaxedLaneselect,
+        I32X4_RELAXED_LANESELECT => I32x4RelaxedLaneselect,
+        I64X2_RELAXED_LANESELECT => I64x2RelaxedLaneselect,
+        F32X4_RELAXED_MIN => F32x4RelaxedMin,
+        F32X4_RELAXED_MAX => F32x4RelaxedMax,
+        F64X2_RELAXED_MIN => F64x2RelaxedMin,
+        F64X2_RELAXED_MAX => F64x2RelaxedMax,
+        I16X8_RELAXED_Q15_MULR_S => I16x8RelaxedQ15mulrS,
+        I16X8_DOT_I8X16_I7X16_S => I16x8DotI8x16I7x16S,
+        I32X4_DOT_I8X16_I7X16_ADD_S => I32x4DotI8x16I7x16AddS,
+        F32X4_RELAXED_DOT_BF_16X8_ADD_F32X4 => F32x4RelaxedDotBf16x8AddF32x4,
         _ => return Err(Error::UnknownSimdOpcode(val)),
     }))
 }

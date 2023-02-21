@@ -3,7 +3,7 @@ use crate::exec::Runtime;
 use crate::module::TypeIdx;
 use crate::store::{FunAddr, MemAddr, ModuleAddr};
 use crate::value::Value;
-use crate::{ExecError, Result};
+use crate::Result;
 
 use std::fmt;
 use std::rc::Rc;

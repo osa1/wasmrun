@@ -2,7 +2,7 @@ use crate::module::{FunIdx, GlobalIdx};
 use crate::stack::Stack;
 use crate::store::FunAddr;
 use crate::value::{Ref, Value};
-use crate::{ExecError, Result};
+use crate::Result;
 
 use libwasmrun_syntax::{Instruction, SimdInstruction};
 
