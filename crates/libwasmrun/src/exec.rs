@@ -569,9 +569,11 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     // Allocate memories
     if let Some(memory_section) = parsed_module.memory_section_mut() {
         for mem in memory_section.entries_mut().drain(..) {
-            let mem_addr = rt
-                .store
-                .allocate_mem(Mem::new(mem.limits().initial(), mem.limits().maximum()));
+            let (initial, max) = match mem.limits() {
+                wasm::Limits::Limits32(limits) => (limits.initial(), limits.maximum()),
+                wasm::Limits::Limits64(_) => exec_panic!("64-bit memories not implements"),
+            };
+            let mem_addr = rt.store.allocate_mem(Mem::new(initial, max));
             rt.store.get_module_mut(module_addr).add_mem(mem_addr);
         }
     }

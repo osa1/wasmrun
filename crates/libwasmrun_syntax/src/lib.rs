@@ -18,7 +18,9 @@ pub use self::{
     export_entry::{ExportEntry, Internal},
     func::{Func, FuncBody, Local},
     global_entry::GlobalEntry,
-    import_entry::{External, GlobalType, ImportEntry, MemoryType, ResizableLimits, TableType},
+    import_entry::{
+        External, GlobalType, ImportEntry, Limits, Limits32, Limits64, MemoryType, TableType,
+    },
     index_map::IndexMap,
     module::{ImportCountType, Module},
     name_section::{

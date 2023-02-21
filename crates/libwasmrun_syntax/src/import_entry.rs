@@ -1,9 +1,7 @@
 use crate::{
-    io, Deserialize, Error, ReferenceType, TagType, Uint8, ValueType, VarUint1, VarUint32, VarUint7,
+    io, Deserialize, Error, ReferenceType, TagType, Uint8, ValueType, VarUint1, VarUint32,
+    VarUint64, VarUint7,
 };
-
-const FLAG_HAS_MAX: u8 = 0x01;
-const FLAG_SHARED: u8 = 0x02;
 
 /// Global definition struct
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -47,7 +45,7 @@ impl Deserialize for GlobalType {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TableType {
     pub elem_type: ReferenceType,
-    pub limits: ResizableLimits,
+    pub limits: Limits32,
 }
 
 impl TableType {
@@ -55,12 +53,12 @@ impl TableType {
     pub fn new(elem_type: ReferenceType, min: u32, max: Option<u32>) -> Self {
         TableType {
             elem_type,
-            limits: ResizableLimits::new(min, max),
+            limits: Limits32::new(min, max),
         }
     }
 
     /// Table memory specification
-    pub fn limits(&self) -> &ResizableLimits {
+    pub fn limits(&self) -> &Limits32 {
         &self.limits
     }
 
@@ -73,28 +71,73 @@ impl TableType {
 impl Deserialize for TableType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let elem_type = ReferenceType::deserialize(reader)?;
-        let limits = ResizableLimits::deserialize(reader)?;
+        let limits = Limits32::deserialize(reader)?;
         Ok(TableType { elem_type, limits })
     }
 }
 
-/// Memory and table limits.
+/// Memory entry.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResizableLimits {
+pub struct MemoryType(Limits);
+
+impl MemoryType {
+    /// New memory definition
+    pub fn new(limits: Limits) -> Self {
+        MemoryType(limits)
+    }
+
+    /// Limits of the memory entry.
+    pub fn limits(&self) -> &Limits {
+        &self.0
+    }
+}
+
+impl Deserialize for MemoryType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        Ok(MemoryType(Limits::deserialize(reader)?))
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Limits32 {
     initial: u32,
     maximum: Option<u32>,
     shared: bool,
 }
 
-impl ResizableLimits {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Limits64 {
+    initial: u64,
+    maximum: Option<u64>,
+    shared: bool,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Limits {
+    Limits32(Limits32),
+    Limits64(Limits64),
+}
+
+impl Limits {
+    pub fn new_32(min: u32, max: Option<u32>) -> Self {
+        Limits::Limits32(Limits32::new(min, max))
+    }
+
+    pub fn new_64(min: u64, max: Option<u64>) -> Self {
+        Limits::Limits64(Limits64::new(min, max))
+    }
+}
+
+impl Limits32 {
     /// New memory limits definition.
     pub fn new(min: u32, max: Option<u32>) -> Self {
-        ResizableLimits {
+        Limits32 {
             initial: min,
             maximum: max,
             shared: false,
         }
     }
+
     /// Initial size.
     pub fn initial(&self) -> u32 {
         self.initial
@@ -105,68 +148,112 @@ impl ResizableLimits {
         self.maximum
     }
 
-    /// Whether or not this is a shared array buffer.
+    /// Whether the table or memory is shared.
     pub fn shared(&self) -> bool {
         self.shared
     }
 }
 
-impl Deserialize for ResizableLimits {
+impl Limits64 {
+    pub fn new(min: u64, max: Option<u64>) -> Self {
+        Limits64 {
+            initial: min,
+            maximum: max,
+            shared: false,
+        }
+    }
+
+    /// Initial size.
+    pub fn initial(&self) -> u64 {
+        self.initial
+    }
+
+    /// Maximum size.
+    pub fn maximum(&self) -> Option<u64> {
+        self.maximum
+    }
+
+    /// Whether the table or memory is shared.
+    pub fn shared(&self) -> bool {
+        self.shared
+    }
+}
+
+impl Deserialize for Limits {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u8 = Uint8::deserialize(reader)?.into();
-        match flags {
-            // Default flags are always supported. This is simply: FLAG_HAS_MAX={true, false}.
-            0x00 | 0x01 => {}
 
-            // Atomics proposal introduce FLAG_SHARED (0x02). Shared memories can be used only
-            // together with FLAG_HAS_MAX (0x01), hence 0x03.
-            0x03 => {}
-
-            _ => return Err(Error::InvalidLimitsFlags(flags)),
+        if flags >> 3 != 0 {
+            return Err(Error::InvalidLimitsFlags(flags));
         }
 
+        let has_max = flags & 0b001 != 0;
+        let shared = flags & 0b010 != 0;
+        let bit64 = flags & 0b100 != 0;
+
+        if bit64 {
+            Ok(Limits::Limits64(Limits64::deserialize_rest(
+                reader, has_max, shared,
+            )?))
+        } else {
+            Ok(Limits::Limits32(Limits32::deserialize_rest(
+                reader, has_max, shared,
+            )?))
+        }
+    }
+}
+
+impl Limits32 {
+    fn deserialize_rest<R: io::Read>(
+        reader: &mut R,
+        has_max: bool,
+        shared: bool,
+    ) -> Result<Self, Error> {
         let initial = VarUint32::deserialize(reader)?;
-        let maximum = if flags & FLAG_HAS_MAX != 0 {
+        let maximum = if has_max {
             Some(VarUint32::deserialize(reader)?.into())
         } else {
             None
         };
-
-        Ok(ResizableLimits {
+        Ok(Limits32 {
             initial: initial.into(),
             maximum,
-            shared: flags & FLAG_SHARED != 0,
+            shared,
         })
     }
 }
 
-/// Memory entry.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MemoryType(ResizableLimits);
+impl Deserialize for Limits32 {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let flags: u8 = Uint8::deserialize(reader)?.into();
 
-impl MemoryType {
-    /// New memory definition
-    pub fn new(min: u32, max: Option<u32>) -> Self {
-        let r = ResizableLimits::new(min, max);
-        MemoryType(r)
-    }
+        if flags >> 2 != 0 {
+            return Err(Error::InvalidLimitsFlags(flags));
+        }
 
-    /// Set the `shared` flag that denotes a memory that can be shared between threads.
-    ///
-    /// `false` by default. This is only available if the `atomics` feature is enabled.
-    pub fn set_shared(&mut self, shared: bool) {
-        self.0.shared = shared;
-    }
-
-    /// Limits of the memory entry.
-    pub fn limits(&self) -> &ResizableLimits {
-        &self.0
+        let has_max = flags & 0b001 != 0;
+        let shared = flags & 0b010 != 0;
+        Limits32::deserialize_rest(reader, has_max, shared)
     }
 }
 
-impl Deserialize for MemoryType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        Ok(MemoryType(ResizableLimits::deserialize(reader)?))
+impl Limits64 {
+    fn deserialize_rest<R: io::Read>(
+        reader: &mut R,
+        has_max: bool,
+        shared: bool,
+    ) -> Result<Self, Error> {
+        let initial = VarUint64::deserialize(reader)?;
+        let maximum = if has_max {
+            Some(VarUint64::deserialize(reader)?.into())
+        } else {
+            None
+        };
+        Ok(Limits64 {
+            initial: initial.into(),
+            maximum,
+            shared,
+        })
     }
 }
 

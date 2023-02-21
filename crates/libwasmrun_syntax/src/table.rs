@@ -1,4 +1,4 @@
-use crate::{io, Deserialize, Error, InitExpr, ReferenceType, ResizableLimits, TableType, Uint8};
+use crate::{io, Deserialize, Error, InitExpr, Limits32, ReferenceType, TableType, Uint8};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
@@ -16,7 +16,7 @@ impl Deserialize for Table {
                 return Err(Error::Other("")); // TODO
             }
             let elem_type = ReferenceType::deserialize(reader)?;
-            let limits = ResizableLimits::deserialize(reader)?;
+            let limits = Limits32::deserialize(reader)?;
             let ty = TableType { elem_type, limits };
             let init = InitExpr::deserialize(reader)?;
             Ok(Table {
@@ -25,7 +25,7 @@ impl Deserialize for Table {
             })
         } else {
             let elem_type = ReferenceType::deserialize_val(reader, val)?;
-            let limits = ResizableLimits::deserialize(reader)?;
+            let limits = Limits32::deserialize(reader)?;
             let ty = TableType { elem_type, limits };
             Ok(Table { ty, init: None })
         }
