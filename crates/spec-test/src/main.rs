@@ -151,6 +151,26 @@ fn run_spec_test(path: &Path) -> Result<Vec<usize>, String> {
     let mut lexer = wast::lexer::Lexer::new(&wast);
     lexer.allow_confusing_unicode(path.ends_with("names.wast"));
 
+    // wast parser expects at least one `(module ...)` and cannot handle empty files. Skip empty
+    // files.
+    //
+    // As of testsuite 7ef86dd there's one empty file which is multi-memory/memory_copy1.wast.
+    {
+        let mut lexer = lexer.clone();
+        let not_all_ws = lexer.any(|token| {
+            !matches!(
+                token,
+                Ok(wast::lexer::Token::LineComment(_)
+                    | wast::lexer::Token::BlockComment(_)
+                    | wast::lexer::Token::Whitespace(_))
+            )
+        });
+        if !not_all_ws {
+            println!("  Empty file");
+            return Ok(vec![]);
+        }
+    }
+
     let buf = wast::parser::ParseBuffer::new_with_lexer(lexer)
         .map_err(adjust_wast)
         .map_err(|err| format!("Unable to tokenize wast file: {:?}", err))?;
