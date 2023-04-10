@@ -21,7 +21,7 @@ proposals:
 To run spec tests, first pull the submodules (`git submodule update --init`),
 then run `cargo run --bin spec-test`.
 
-## Releated projects
+## Related projects
 
 - [wain][5] and [wasmi][7] are Wasm interpreters written in Rust
 - [wasm-spec-interpreter][6] provides Rust bindings for the Wasm reference
