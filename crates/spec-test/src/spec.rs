@@ -380,7 +380,10 @@ impl<'a> TestFileRunner<'a> {
                 | wast::core::HeapType::Struct
                 | wast::core::HeapType::Array
                 | wast::core::HeapType::I31
-                | wast::core::HeapType::Index(_) => todo!(),
+                | wast::core::HeapType::Index(_)
+                | wast::core::HeapType::NoFunc
+                | wast::core::HeapType::NoExtern
+                | wast::core::HeapType::None => todo!(),
             },
 
             WastArgCore::RefExtern(addr) => Value::Ref(Ref::Extern(ExternAddr(*addr))),

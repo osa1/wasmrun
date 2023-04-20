@@ -8,5 +8,5 @@ name = "wast_lexer"
 path = "bin/wast_lexer.rs"
 
 [dependencies]
-lexgen = { git = "https://github.com/osa1/lexgen", rev = "271ba43" }
-lexgen_util = { git = "https://github.com/osa1/lexgen", rev = "271ba43" }
+lexgen = "0.13.0"
+lexgen_util = "0.13.0"
