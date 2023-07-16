@@ -8,5 +8,5 @@ name = "wast_lexer"
 path = "bin/wast_lexer.rs"
 
 [dependencies]
-lexgen = "0.13.0"
-lexgen_util = "0.13.0"
+lexgen = "0.14"
+lexgen_util = "0.14"

@@ -160,9 +160,12 @@ fn run_spec_test(path: &Path) -> Result<Vec<usize>, String> {
         let not_all_ws = lexer.any(|token| {
             !matches!(
                 token,
-                Ok(wast::lexer::Token::LineComment(_)
-                    | wast::lexer::Token::BlockComment(_)
-                    | wast::lexer::Token::Whitespace(_))
+                Ok(wast::lexer::Token {
+                    kind: wast::lexer::TokenKind::LineComment
+                        | wast::lexer::TokenKind::BlockComment
+                        | wast::lexer::TokenKind::Whitespace,
+                    ..
+                })
             )
         });
         if !not_all_ws {
