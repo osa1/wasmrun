@@ -541,6 +541,19 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                             &[Instruction::RefNull(heap_ty), Instruction::End] => {
                                 Ref::Null(heap_ty)
                             }
+                            &[Instruction::GetGlobal(global_idx), Instruction::End] => {
+                                let global_addr = rt
+                                    .store
+                                    .get_module(module_addr)
+                                    .get_global(GlobalIdx(global_idx));
+                                match &rt.store.get_global(global_addr).value {
+                                    Value::Ref(ref_) => *ref_,
+                                    other => exec_panic!(
+                                        "Element get.global value is not a reference: {:?}",
+                                        other
+                                    ),
+                                }
+                            }
                             other => exec_panic!("Unhandled element expression: {:?}", other),
                         };
                         rt.store.get_table_mut(table_addr).set(elem_idx, elem)?;
@@ -919,7 +932,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::MemoryCopy(src_mem_idx, dst_mem_idx) => {
+        Instruction::MemoryCopy(dst_mem_idx, src_mem_idx) => {
             let amt = rt.stack.pop_i32()? as usize;
             let src = rt.stack.pop_i32()? as usize;
             let dst = rt.stack.pop_i32()? as usize;

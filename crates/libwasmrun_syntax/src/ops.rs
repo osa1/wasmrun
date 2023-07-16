@@ -1998,9 +1998,9 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         }
         DATA_DROP => DataDrop(VarUint32::deserialize(reader)?.into()),
         MEMORY_COPY => {
-            let src_mem_idx = Uint8::deserialize(reader)?.into();
             let dst_mem_idx = Uint8::deserialize(reader)?.into();
-            MemoryCopy(src_mem_idx, dst_mem_idx)
+            let src_mem_idx = Uint8::deserialize(reader)?.into();
+            MemoryCopy(dst_mem_idx, src_mem_idx)
         }
         MEMORY_FILL => MemoryFill(Uint8::deserialize(reader)?.into()),
         TABLE_INIT => {

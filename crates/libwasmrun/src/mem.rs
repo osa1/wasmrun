@@ -12,6 +12,15 @@ pub struct Mem {
     bc: BorrowChecker,
 }
 
+impl std::fmt::Debug for Mem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Mem")
+            .field("mem", &self.mem)
+            .field("limit", &self.limit)
+            .finish()
+    }
+}
+
 impl Index<u32> for Mem {
     type Output = u8;
 
