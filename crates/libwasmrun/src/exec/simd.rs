@@ -145,16 +145,16 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let b1 = (((mem[addr] as i8) as i16) as u16).to_le_bytes();
-            let b2 = (((mem[addr + 1] as i8) as i16) as u16).to_le_bytes();
-            let b3 = (((mem[addr + 2] as i8) as i16) as u16).to_le_bytes();
-            let b4 = (((mem[addr + 3] as i8) as i16) as u16).to_le_bytes();
-            let b5 = (((mem[addr + 4] as i8) as i16) as u16).to_le_bytes();
-            let b6 = (((mem[addr + 5] as i8) as i16) as u16).to_le_bytes();
-            let b7 = (((mem[addr + 6] as i8) as i16) as u16).to_le_bytes();
-            let b8 = (((mem[addr + 7] as i8) as i16) as u16).to_le_bytes();
+            let [b1, b2, b3, b4, b5, b6, b7, b8] = mem.load_64_le(addr)?.to_le_bytes();
+            let b1 = (b1 as i8 as i16).to_le_bytes();
+            let b2 = (b2 as i8 as i16).to_le_bytes();
+            let b3 = (b3 as i8 as i16).to_le_bytes();
+            let b4 = (b4 as i8 as i16).to_le_bytes();
+            let b5 = (b5 as i8 as i16).to_le_bytes();
+            let b6 = (b6 as i8 as i16).to_le_bytes();
+            let b7 = (b7 as i8 as i16).to_le_bytes();
+            let b8 = (b8 as i8 as i16).to_le_bytes();
 
             rt.stack.push_i128(i128::from_le_bytes([
                 b1[0], b1[1], b2[0], b2[1], b3[0], b3[1], b4[0], b4[1], b5[0], b5[1], b6[0], b6[1],
@@ -172,20 +172,10 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let b1 = (mem[addr] as u16).to_le_bytes();
-            let b2 = (mem[addr + 1] as u16).to_le_bytes();
-            let b3 = (mem[addr + 2] as u16).to_le_bytes();
-            let b4 = (mem[addr + 3] as u16).to_le_bytes();
-            let b5 = (mem[addr + 4] as u16).to_le_bytes();
-            let b6 = (mem[addr + 5] as u16).to_le_bytes();
-            let b7 = (mem[addr + 6] as u16).to_le_bytes();
-            let b8 = (mem[addr + 7] as u16).to_le_bytes();
-
+            let [b1, b2, b3, b4, b5, b6, b7, b8] = mem.load_64_le(addr)?.to_le_bytes();
             rt.stack.push_i128(i128::from_le_bytes([
-                b1[0], b1[1], b2[0], b2[1], b3[0], b3[1], b4[0], b4[1], b5[0], b5[1], b6[0], b6[1],
-                b7[0], b7[1], b8[0], b8[1],
+                b1, 0, b2, 0, b3, 0, b4, 0, b5, 0, b6, 0, b7, 0, b8, 0,
             ]))?;
         }
 

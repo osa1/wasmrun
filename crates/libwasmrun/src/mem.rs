@@ -108,7 +108,7 @@ impl Mem {
             .resize((self.size_pages() + n) as usize * PAGE_SIZE, 0);
     }
 
-    pub(crate) fn check_range(&self, addr: u32, len: u32) -> Result<()> {
+    fn check_range(&self, addr: u32, len: u32) -> Result<()> {
         if addr
             .checked_add(len)
             .ok_or(ExecError::Trap(Trap::OOBMemoryAccess))? as usize
