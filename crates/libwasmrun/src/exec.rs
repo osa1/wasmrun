@@ -1022,7 +1022,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
-            mem.store_32(addr, value as u32)?;
+            mem.store_32_le(addr, value as u32)?;
 
             rt.ip += 1;
         }
@@ -1040,7 +1040,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
-            mem.store_32(addr, value.to_bits())?;
+            mem.store_32_le(addr, value.to_bits())?;
 
             rt.ip += 1;
         }
@@ -1057,7 +1057,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
-            mem.store_64(addr, value as u64)?;
+            mem.store_64_le(addr, value as u64)?;
 
             rt.ip += 1;
         }
@@ -1075,7 +1075,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
 
-            mem.store_64(addr, value.to_bits())?;
+            mem.store_64_le(addr, value.to_bits())?;
 
             rt.ip += 1;
         }
@@ -1092,10 +1092,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            let val = c as u8;
-            mem[addr] = val;
+            mem.store_8(addr, c as u8)?;
 
             rt.ip += 1;
         }
@@ -1112,11 +1110,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let [b1, b2] = (c as u16).to_le_bytes();
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
+            mem.store_16_le(addr, c as u16)?;
 
             rt.ip += 1;
         }
@@ -1133,9 +1128,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            mem.store_32(addr, c as u32)?;
+            mem.store_32_le(addr, c as u32)?;
 
             rt.ip += 1;
         }
@@ -1150,10 +1144,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            let val = mem[addr];
-            rt.stack.push_i64(((val as i64) << 56) >> 56)?;
+            let val = mem.load_8(addr)?;
+            rt.stack.push_i64(val as i8 as i64)?;
 
             rt.ip += 1;
         }
@@ -1169,7 +1162,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            rt.stack.push_i32(mem.load_32(addr)? as i32)?;
+            rt.stack.push_i32(mem.load_32_le(addr)? as i32)?;
 
             rt.ip += 1;
         }
@@ -1185,7 +1178,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            rt.stack.push_f32(f32::from_bits(mem.load_32(addr)?))?;
+            rt.stack.push_f32(f32::from_bits(mem.load_32_le(addr)?))?;
 
             rt.ip += 1;
         }
@@ -1200,18 +1193,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            let b5 = mem[addr + 4];
-            let b6 = mem[addr + 5];
-            let b7 = mem[addr + 6];
-            let b8 = mem[addr + 7];
-            rt.stack
-                .push_i64(i64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))?;
+            let val = mem.load_64_le(addr)?;
+            rt.stack.push_i64(val as i64)?;
+
             rt.ip += 1;
         }
 
@@ -1225,18 +1210,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            let b5 = mem[addr + 4];
-            let b6 = mem[addr + 5];
-            let b7 = mem[addr + 6];
-            let b8 = mem[addr + 7];
-            rt.stack
-                .push_f64(f64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))?;
+            let val = mem.load_64_le(addr)?;
+            rt.stack.push_f64(f64::from_bits(val))?;
+
             rt.ip += 1;
         }
 
@@ -1250,10 +1227,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            let b = mem[addr];
-            rt.stack.push_i32(i32::from_le_bytes([b, 0, 0, 0]))?;
+            let b = mem.load_8(addr)?;
+            rt.stack.push_i32(b as i32)?;
+
             rt.ip += 1;
         }
 
@@ -1267,11 +1244,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            let b = mem[addr];
-            let val = i8::from_le_bytes([b]) as i32;
-            rt.stack.push_i32(val)?;
+            let val = mem.load_8(addr)?;
+            rt.stack.push_i32(val as i8 as i32)?;
+
             rt.ip += 1;
         }
 
@@ -1285,11 +1261,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            let b = mem[addr];
-            rt.stack
-                .push_i64(i64::from_le_bytes([b, 0, 0, 0, 0, 0, 0, 0]))?;
+            let b = mem.load_8(addr)?;
+            rt.stack.push_i64(b as i64)?;
+
             rt.ip += 1;
         }
 
@@ -1303,11 +1278,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            rt.stack.push_i32(i32::from_le_bytes([b1, b2, 0, 0]))?;
+            let val = mem.load_16_le(addr)?;
+            rt.stack.push_i32(val as i32)?;
+
             rt.ip += 1;
         }
 
@@ -1321,12 +1295,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
+            let val = mem.load_16_le(addr)?;
+            rt.stack.push_i32(val as i16 as i32)?;
 
-            rt.stack.push_i32(i16::from_le_bytes([b1, b2]) as i32)?;
             rt.ip += 1;
         }
 
@@ -1340,12 +1312,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            rt.stack
-                .push_i64(i64::from_le_bytes([b1, b2, 0, 0, 0, 0, 0, 0]))?;
+            let val = mem.load_16_le(addr)?;
+            rt.stack.push_i64(val as i64)?;
+
             rt.ip += 1;
         }
 
@@ -1359,12 +1329,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
+            let val = mem.load_16_le(addr)?;
+            rt.stack.push_i64(val as i16 as i64)?;
 
-            rt.stack.push_i64(i16::from_le_bytes([b1, b2]) as i64)?;
             rt.ip += 1;
         }
 
@@ -1379,7 +1347,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            rt.stack.push_i64(mem.load_32(addr)? as i64)?;
+            rt.stack.push_i64(mem.load_32_le(addr)? as i64)?;
 
             rt.ip += 1;
         }
@@ -1395,7 +1363,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            rt.stack.push_i64((mem.load_32(addr)? as i32) as i64)?;
+            rt.stack.push_i64((mem.load_32_le(addr)? as i32) as i64)?;
 
             rt.ip += 1;
         }
@@ -1412,9 +1380,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            mem[addr] = c as u8;
+            mem.store_8(addr, c as u8)?;
+
             rt.ip += 1;
         }
 
@@ -1430,11 +1398,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let [b1, b2] = (c as u16).to_le_bytes();
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
+            mem.store_16_le(addr, c as u16)?;
+
             rt.ip += 1;
         }
 

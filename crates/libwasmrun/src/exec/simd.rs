@@ -227,10 +227,10 @@ pub fn exec_simd_instr(
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
-            let i1 = mem.load_16(addr)? as i16 as i32;
-            let i2 = mem.load_16(addr + 2)? as i16 as i32;
-            let i3 = mem.load_16(addr + 4)? as i16 as i32;
-            let i4 = mem.load_16(addr + 6)? as i16 as i32;
+            let i1 = mem.load_16_le(addr)? as i16 as i32;
+            let i2 = mem.load_16_le(addr + 2)? as i16 as i32;
+            let i3 = mem.load_16_le(addr + 4)? as i16 as i32;
+            let i4 = mem.load_16_le(addr + 6)? as i16 as i32;
 
             rt.stack.push_i128(i32x4_to_vec([i1, i2, i3, i4]))?;
         }
@@ -247,10 +247,10 @@ pub fn exec_simd_instr(
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
-            let i1 = mem.load_16(addr)? as i32;
-            let i2 = mem.load_16(addr + 2)? as i32;
-            let i3 = mem.load_16(addr + 4)? as i32;
-            let i4 = mem.load_16(addr + 6)? as i32;
+            let i1 = mem.load_16_le(addr)? as i32;
+            let i2 = mem.load_16_le(addr + 2)? as i32;
+            let i3 = mem.load_16_le(addr + 4)? as i32;
+            let i4 = mem.load_16_le(addr + 6)? as i32;
 
             rt.stack.push_i128(i32x4_to_vec([i1, i2, i3, i4]))?;
         }
@@ -267,8 +267,8 @@ pub fn exec_simd_instr(
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
-            let i1 = mem.load_32(addr)? as i32 as i64;
-            let i2 = mem.load_32(addr + 4)? as i32 as i64;
+            let i1 = mem.load_32_le(addr)? as i32 as i64;
+            let i2 = mem.load_32_le(addr + 4)? as i32 as i64;
 
             rt.stack.push_i128(i64x2_to_vec([i1, i2]))?;
         }
@@ -285,8 +285,8 @@ pub fn exec_simd_instr(
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 8)?;
 
-            let i1 = mem.load_32(addr)? as i64;
-            let i2 = mem.load_32(addr + 4)? as i64;
+            let i1 = mem.load_32_le(addr)? as i64;
+            let i2 = mem.load_32_le(addr + 4)? as i64;
 
             rt.stack.push_i128(i64x2_to_vec([i1, i2]))?;
         }
@@ -440,7 +440,7 @@ pub fn exec_simd_instr(
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            let bs = mem.load_16(addr)?.to_le_bytes();
+            let bs = mem.load_16_le(addr)?.to_le_bytes();
 
             rt.stack.push_i128(i128::from_le_bytes([
                 bs[0], bs[1], bs[0], bs[1], bs[0], bs[1], bs[0], bs[1], bs[0], bs[1], bs[0], bs[1],
@@ -459,7 +459,7 @@ pub fn exec_simd_instr(
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            let bs = mem.load_32(addr)?.to_le_bytes();
+            let bs = mem.load_32_le(addr)?.to_le_bytes();
 
             rt.stack.push_i128(i128::from_le_bytes([
                 bs[0], bs[1], bs[2], bs[3], bs[0], bs[1], bs[2], bs[3], bs[0], bs[1], bs[2], bs[3],
@@ -478,7 +478,7 @@ pub fn exec_simd_instr(
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
 
-            let bs = mem.load_64(addr)?.to_le_bytes();
+            let bs = mem.load_64_le(addr)?.to_le_bytes();
 
             rt.stack.push_i128(i128::from_le_bytes([
                 bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[0], bs[1], bs[2], bs[3],
@@ -865,7 +865,7 @@ pub fn exec_simd_instr(
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
-            let u32 = mem.load_32(addr)?;
+            let u32 = mem.load_32_le(addr)?;
 
             let mut res: Vec<u8> = Vec::with_capacity(16);
             res.extend_from_slice(&u32.to_le_bytes());
@@ -887,7 +887,7 @@ pub fn exec_simd_instr(
             let mem = rt.store.get_mem(mem_addr);
             mem.check_range(addr, 4)?;
 
-            let u64 = mem.load_64(addr)?;
+            let u64 = mem.load_64_le(addr)?;
 
             let mut res: Vec<u8> = Vec::with_capacity(16);
             res.extend_from_slice(&u64.to_le_bytes());
