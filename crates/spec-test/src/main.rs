@@ -153,25 +153,20 @@ fn run_spec_test(path: &Path) -> Result<Vec<usize>, String> {
 
     // wast parser expects at least one `(module ...)` and cannot handle empty files. Skip empty
     // files.
-    //
-    // As of testsuite 7ef86dd there's one empty file which is multi-memory/memory_copy1.wast.
-    {
-        let mut lexer = lexer.clone();
-        let not_all_ws = lexer.any(|token| {
-            !matches!(
-                token,
-                Ok(wast::lexer::Token {
-                    kind: wast::lexer::TokenKind::LineComment
-                        | wast::lexer::TokenKind::BlockComment
-                        | wast::lexer::TokenKind::Whitespace,
-                    ..
-                })
-            )
-        });
-        if !not_all_ws {
-            println!("  Empty file");
-            return Ok(vec![]);
-        }
+    let not_all_ws = lexer.iter(0).any(|token| {
+        !matches!(
+            token,
+            Ok(wast::lexer::Token {
+                kind: wast::lexer::TokenKind::LineComment
+                    | wast::lexer::TokenKind::BlockComment
+                    | wast::lexer::TokenKind::Whitespace,
+                ..
+            })
+        )
+    });
+    if !not_all_ws {
+        println!("  Empty file");
+        return Ok(vec![]);
     }
 
     let buf = wast::parser::ParseBuffer::new_with_lexer(lexer)
