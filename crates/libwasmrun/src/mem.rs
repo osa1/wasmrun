@@ -203,4 +203,54 @@ impl Mem {
 
         Ok(())
     }
+
+    pub(crate) fn load_128_le(&self, addr: u32) -> Result<u128> {
+        self.check_range(addr, 16)?;
+
+        let b1 = self[addr];
+        let b2 = self[addr + 1];
+        let b3 = self[addr + 2];
+        let b4 = self[addr + 3];
+        let b5 = self[addr + 4];
+        let b6 = self[addr + 5];
+        let b7 = self[addr + 6];
+        let b8 = self[addr + 7];
+        let b9 = self[addr + 8];
+        let b10 = self[addr + 9];
+        let b11 = self[addr + 10];
+        let b12 = self[addr + 11];
+        let b13 = self[addr + 12];
+        let b14 = self[addr + 13];
+        let b15 = self[addr + 14];
+        let b16 = self[addr + 15];
+
+        Ok(u128::from_le_bytes([
+            b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16,
+        ]))
+    }
+
+    pub(crate) fn store_128_le(&mut self, addr: u32, value: u128) -> Result<()> {
+        self.check_range(addr, 16)?;
+
+        let [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16] =
+            value.to_le_bytes();
+        self[addr] = b1;
+        self[addr + 1] = b2;
+        self[addr + 2] = b3;
+        self[addr + 3] = b4;
+        self[addr + 4] = b5;
+        self[addr + 5] = b6;
+        self[addr + 6] = b7;
+        self[addr + 7] = b8;
+        self[addr + 8] = b9;
+        self[addr + 9] = b10;
+        self[addr + 10] = b11;
+        self[addr + 11] = b12;
+        self[addr + 12] = b13;
+        self[addr + 13] = b14;
+        self[addr + 14] = b15;
+        self[addr + 15] = b16;
+
+        Ok(())
+    }
 }

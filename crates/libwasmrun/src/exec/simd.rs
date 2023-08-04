@@ -32,28 +32,9 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 16)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            let b5 = mem[addr + 4];
-            let b6 = mem[addr + 5];
-            let b7 = mem[addr + 6];
-            let b8 = mem[addr + 7];
-            let b9 = mem[addr + 8];
-            let b10 = mem[addr + 9];
-            let b11 = mem[addr + 10];
-            let b12 = mem[addr + 11];
-            let b13 = mem[addr + 12];
-            let b14 = mem[addr + 13];
-            let b15 = mem[addr + 14];
-            let b16 = mem[addr + 15];
-
-            rt.stack.push_i128(i128::from_le_bytes([
-                b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16,
-            ]))?;
+            let val = mem.load_128_le(addr)?;
+            rt.stack.push_i128(val as i128)?;
         }
 
         SimdInstruction::V128Store(MemArg {
@@ -61,18 +42,15 @@ pub fn exec_simd_instr(
             offset,
             mem_idx,
         }) => {
-            let vec = rt.stack.pop_i128()?.to_le_bytes();
+            let val = rt.stack.pop_i128()?;
 
             let addr = rt.stack.pop_i32()? as u32;
             let addr = trapping_add(addr, offset)?;
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 16)?;
 
-            for i in 0..16 {
-                mem[addr + i] = vec[i as usize];
-            }
+            mem.store_128_le(addr, val as u128)?;
         }
 
         SimdInstruction::V128Store8Lane(
@@ -90,10 +68,9 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 1)?;
 
             let byte = vec[usize::from(lane)];
-            mem[addr] = byte;
+            mem.store_8(addr, byte)?;
         }
 
         SimdInstruction::V128Store16Lane(
@@ -111,12 +88,10 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 2)?;
 
             let b1 = vec[usize::from(lane) * 2];
             let b2 = vec[usize::from(lane) * 2 + 1];
-            mem[addr] = b1;
-            mem[addr + 1] = b2;
+            mem.store_16_le(addr, u16::from_le_bytes([b1, b2]))?;
         }
 
         SimdInstruction::V128Store32Lane(
@@ -134,7 +109,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem_mut(mem_addr);
-            mem.check_range(addr, 4)?;
 
             let lane = usize::from(lane);
             mem.set_range(addr, &vec[lane * 4..lane * 4 + 4])?;
@@ -225,7 +199,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
             let i1 = mem.load_16_le(addr)? as i16 as i32;
             let i2 = mem.load_16_le(addr + 2)? as i16 as i32;
@@ -245,7 +218,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
             let i1 = mem.load_16_le(addr)? as i32;
             let i2 = mem.load_16_le(addr + 2)? as i32;
@@ -265,7 +237,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
             let i1 = mem.load_32_le(addr)? as i32 as i64;
             let i2 = mem.load_32_le(addr + 4)? as i32 as i64;
@@ -283,7 +254,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
             let i1 = mem.load_32_le(addr)? as i64;
             let i2 = mem.load_32_le(addr + 4)? as i64;
@@ -306,9 +276,8 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 1)?;
 
-            let b = mem[addr];
+            let b = mem.load_8(addr)?;
 
             let lane = usize::from(lane);
             vec[lane] = b;
@@ -331,10 +300,8 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 2)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
+            let [b1, b2] = mem.load_16_le(addr)?.to_le_bytes();
 
             let lane = usize::from(lane);
             vec[lane * 2] = b1;
@@ -358,12 +325,8 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
+            let [b1, b2, b3, b4] = mem.load_32_le(addr)?.to_le_bytes();
 
             let lane = usize::from(lane);
             vec[lane * 4] = b1;
@@ -389,16 +352,8 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 8)?;
 
-            let b1 = mem[addr];
-            let b2 = mem[addr + 1];
-            let b3 = mem[addr + 2];
-            let b4 = mem[addr + 3];
-            let b5 = mem[addr + 4];
-            let b6 = mem[addr + 5];
-            let b7 = mem[addr + 6];
-            let b8 = mem[addr + 7];
+            let [b1, b2, b3, b4, b5, b6, b7, b8] = mem.load_64_le(addr)?.to_le_bytes();
 
             let lane = usize::from(lane);
             vec[lane * 8] = b1;
@@ -863,7 +818,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
             let u32 = mem.load_32_le(addr)?;
 
@@ -885,7 +839,6 @@ pub fn exec_simd_instr(
 
             let mem_addr = rt.store.get_module(module_addr).get_mem(MemIdx(mem_idx));
             let mem = rt.store.get_mem(mem_addr);
-            mem.check_range(addr, 4)?;
 
             let u64 = mem.load_64_le(addr)?;
 
