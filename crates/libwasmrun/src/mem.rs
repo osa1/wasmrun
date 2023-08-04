@@ -6,7 +6,7 @@ use std::ops::{Index, IndexMut};
 use wiggle::{BorrowHandle, GuestError, GuestMemory, Region};
 use wiggle_borrow::BorrowChecker;
 
-pub struct Mem {
+pub(crate) struct Mem {
     pub mem: Vec<u8>,
     limit: Option<u32>,
     bc: BorrowChecker,
@@ -80,33 +80,11 @@ impl Mem {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.mem.len()
     }
 
-    pub fn get_len(&self, offset: u32, len: u32) -> Result<&[u8]> {
-        self.get_range_exclusive(offset, offset + len)
-    }
-
-    pub fn get_len_mut(&mut self, offset: u32, len: u32) -> Result<&mut [u8]> {
-        self.get_range_exclusive_mut(offset, offset + len)
-    }
-
-    pub fn get_range_exclusive(&self, range_begin: u32, range_end_exclusive: u32) -> Result<&[u8]> {
-        self.check_range(range_begin, range_end_exclusive - range_begin)?;
-        Ok(&self.mem[range_begin as usize..range_end_exclusive as usize])
-    }
-
-    pub fn get_range_exclusive_mut(
-        &mut self,
-        range_begin: u32,
-        range_end_exclusive: u32,
-    ) -> Result<&mut [u8]> {
-        self.check_range(range_begin, range_end_exclusive - range_begin)?;
-        Ok(&mut self.mem[range_begin as usize..range_end_exclusive as usize])
-    }
-
-    pub fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
+    pub(crate) fn set_range(&mut self, offset: u32, value: &[u8]) -> Result<()> {
         if value.is_empty() {
             return Ok(());
         }
@@ -142,7 +120,7 @@ impl Mem {
         }
     }
 
-    pub fn load_8(&self, addr: u32) -> Result<u8> {
+    pub(crate) fn load_8(&self, addr: u32) -> Result<u8> {
         self.check_range(addr, 1)?;
         Ok(self[addr])
     }
@@ -155,7 +133,7 @@ impl Mem {
         }
     */
 
-    pub fn load_16(&self, addr: u32) -> Result<u16> {
+    pub(crate) fn load_16(&self, addr: u32) -> Result<u16> {
         self.check_range(addr, 2)?;
 
         let b1 = self[addr];
@@ -164,7 +142,7 @@ impl Mem {
         Ok(u16::from_le_bytes([b1, b2]))
     }
 
-    pub fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
+    pub(crate) fn store_32(&mut self, addr: u32, value: u32) -> Result<()> {
         self.check_range(addr, 4)?;
 
         let [b1, b2, b3, b4] = value.to_le_bytes();
@@ -176,7 +154,7 @@ impl Mem {
         Ok(())
     }
 
-    pub fn load_32(&self, addr: u32) -> Result<u32> {
+    pub(crate) fn load_32(&self, addr: u32) -> Result<u32> {
         self.check_range(addr, 4)?;
 
         let b1 = self[addr];
@@ -187,7 +165,7 @@ impl Mem {
         Ok(u32::from_le_bytes([b1, b2, b3, b4]))
     }
 
-    pub fn store_64(&mut self, addr: u32, value: u64) -> Result<()> {
+    pub(crate) fn store_64(&mut self, addr: u32, value: u64) -> Result<()> {
         self.check_range(addr, 8)?;
 
         let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
@@ -203,7 +181,7 @@ impl Mem {
         Ok(())
     }
 
-    pub fn load_64(&self, addr: u32) -> Result<u64> {
+    pub(crate) fn load_64(&self, addr: u32) -> Result<u64> {
         self.check_range(addr, 8)?;
 
         let b1 = self[addr];

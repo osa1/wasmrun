@@ -130,11 +130,11 @@ impl Store {
         MemAddr(ret)
     }
 
-    pub fn get_mem(&self, mem_addr: MemAddr) -> &Mem {
+    pub(crate) fn get_mem(&self, mem_addr: MemAddr) -> &Mem {
         &self.mems[mem_addr.0 as usize]
     }
 
-    pub fn get_mem_mut(&mut self, mem_addr: MemAddr) -> &mut Mem {
+    pub(crate) fn get_mem_mut(&mut self, mem_addr: MemAddr) -> &mut Mem {
         &mut self.mems[mem_addr.0 as usize]
     }
 
