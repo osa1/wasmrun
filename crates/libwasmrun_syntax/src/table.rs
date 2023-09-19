@@ -24,7 +24,7 @@ impl Deserialize for Table {
                 init: Some(init),
             })
         } else {
-            let elem_type = ReferenceType::deserialize_val(reader, val)?;
+            let elem_type = ReferenceType::deserialize_val(reader, val_u8)?;
             let limits = Limits32::deserialize(reader)?;
             let ty = TableType { elem_type, limits };
             Ok(Table { ty, init: None })

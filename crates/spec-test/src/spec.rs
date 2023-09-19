@@ -387,6 +387,8 @@ impl<'a> TestFileRunner<'a> {
             },
 
             WastArgCore::RefExtern(addr) => Value::Ref(Ref::Extern(ExternAddr(*addr))),
+
+            WastArgCore::RefHost(_) => panic!("ref.host"),
         })
     }
 }
@@ -511,7 +513,9 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefFunc(None), Value::Ref(Ref::Func(_))) => true,
 
-        (WastRetCore::RefExtern(extern1), Value::Ref(Ref::Extern(extern2))) => {
+        (WastRetCore::RefExtern(None), Value::Ref(Ref::Extern(_))) => true,
+
+        (WastRetCore::RefExtern(Some(extern1)), Value::Ref(Ref::Extern(extern2))) => {
             ExternAddr(*extern1) == *extern2
         }
 

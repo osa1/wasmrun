@@ -44,16 +44,32 @@ impl Deserialize for ValueType {
             0x7d => Ok(ValueType::F32),
             0x7c => Ok(ValueType::F64),
             0x7b => Ok(ValueType::V128),
+
+            // TODO: duplicate reftype parsing
+            // -0x10
             0x70 => Ok(ValueType::Reference(ReferenceType::funcref())),
-            0x6f => Ok(ValueType::Reference(ReferenceType::externref())),
-            0x6b => Ok(ValueType::Reference(ReferenceType {
-                nullable: false,
-                heap_ty: HeapType::deserialize(reader)?,
-            })),
-            0x6c => Ok(ValueType::Reference(ReferenceType {
-                nullable: true,
-                heap_ty: HeapType::deserialize(reader)?,
-            })),
+
+            // -0x11
+            0x6F => Ok(ValueType::Reference(ReferenceType::externref())),
+
+            // -0x1D
+            0x63 => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(ValueType::Reference(ReferenceType {
+                    nullable: true,
+                    heap_ty,
+                }))
+            }
+
+            // -0x1C
+            0x64 => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(ValueType::Reference(ReferenceType {
+                    nullable: false,
+                    heap_ty,
+                }))
+            }
+
             _ => Err(Error::UnknownValueType(val.into())),
         }
     }
@@ -108,21 +124,36 @@ impl Deserialize for BlockType {
             -0x03 => Ok(BlockType::Value(ValueType::F32)),
             -0x04 => Ok(BlockType::Value(ValueType::F64)),
             -0x05 => Ok(BlockType::Value(ValueType::V128)),
+
             // TODO: duplicate reftype parsing
+            // -0x10
             -0x10 => Ok(BlockType::Value(ValueType::Reference(
                 ReferenceType::funcref(),
             ))),
+
+            // -0x11
             -0x11 => Ok(BlockType::Value(ValueType::Reference(
                 ReferenceType::externref(),
             ))),
-            -0x14 => Ok(BlockType::Value(ValueType::Reference(ReferenceType {
-                nullable: false,
-                heap_ty: HeapType::deserialize(reader)?,
-            }))),
-            -0x15 => Ok(BlockType::Value(ValueType::Reference(ReferenceType {
-                nullable: true,
-                heap_ty: HeapType::deserialize(reader)?,
-            }))),
+
+            // -0x1D
+            -0x1D => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(BlockType::Value(ValueType::Reference(ReferenceType {
+                    nullable: true,
+                    heap_ty,
+                })))
+            }
+
+            // -0x1C
+            -0x1C => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(BlockType::Value(ValueType::Reference(ReferenceType {
+                    nullable: false,
+                    heap_ty,
+                })))
+            }
+
             idx => {
                 let idx = u32::try_from(idx).map_err(|_| Error::UnknownBlockType(idx))?;
                 Ok(BlockType::TypeIndex(idx))
@@ -205,33 +236,37 @@ impl ReferenceType {
 impl Deserialize for ReferenceType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = Uint8::deserialize(reader)?;
-        ReferenceType::deserialize_val(reader, val)
+        ReferenceType::deserialize_val(reader, val.into())
     }
 }
 
 impl ReferenceType {
-    pub(crate) fn deserialize_val<R: io::Read>(reader: &mut R, val: Uint8) -> Result<Self, Error> {
-        match val.into() {
+    pub(crate) fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
+        match val {
             // -0x10
-            0x70 => Ok(ReferenceType {
-                nullable: true,
-                heap_ty: HeapType::Func,
-            }),
+            0x70 => Ok(ReferenceType::funcref()),
+
             // -0x11
-            0x6F => Ok(ReferenceType {
-                nullable: true,
-                heap_ty: HeapType::Extern,
-            }),
-            // -0x14
-            0x6B => Ok(ReferenceType {
-                nullable: false,
-                heap_ty: HeapType::deserialize(reader)?,
-            }),
-            // -0x15
-            0x6C => Ok(ReferenceType {
-                nullable: true,
-                heap_ty: HeapType::deserialize(reader)?,
-            }),
+            0x6F => Ok(ReferenceType::externref()),
+
+            // -0x1D
+            0x63 => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(ReferenceType {
+                    nullable: true,
+                    heap_ty,
+                })
+            }
+
+            // -0x1C
+            0x64 => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(ReferenceType {
+                    nullable: false,
+                    heap_ty,
+                })
+            }
+
             other => Err(Error::UnknownReferenceType(other)),
         }
     }

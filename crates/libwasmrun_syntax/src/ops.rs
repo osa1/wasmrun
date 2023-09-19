@@ -1314,8 +1314,8 @@ mod opcodes {
     pub const REF_NULL: u8 = 0xD0;
     pub const REF_IS_NULL: u8 = 0xD1;
     pub const REF_FUNC: u8 = 0xD2;
-    pub const REF_AS_NON_NULL: u8 = 0xD3;
-    pub const BR_ON_NULL: u8 = 0xD4;
+    pub const REF_AS_NON_NULL: u8 = 0xD4;
+    pub const BR_ON_NULL: u8 = 0xD5;
     pub const BR_ON_NON_NULL: u8 = 0xD6;
 
     pub const TRY: u8 = 0x06;
