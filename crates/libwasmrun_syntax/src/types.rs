@@ -16,22 +16,22 @@ impl Deserialize for Type {
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 pub enum ValueType {
-    /// 32-bit signed integer
+    /// 32-bit signed integer.
     I32,
 
-    /// 64-bit signed integer
+    /// 64-bit signed integer.
     I64,
 
-    /// 32-bit float
+    /// 32-bit float.
     F32,
 
-    /// 64-bit float
+    /// 64-bit float.
     F64,
 
-    /// 128-bit SIMD register
+    /// 128-bit SIMD number.
     V128,
 
-    /// Reference
+    /// A reference type.
     Reference(ReferenceType),
 }
 
@@ -90,13 +90,13 @@ impl fmt::Display for ValueType {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BlockType {
-    /// Shorthand for `[] -> []`
+    /// Shorthand for `[] -> []`.
     Empty,
 
-    /// Shorthand for `[] -> [ty]`
+    /// Shorthand for `[] -> [ty]`.
     Value(ValueType),
 
-    /// Type of the block is the given function type with given index
+    /// Type of the block is the given function type with given index.
     TypeIndex(u32),
 }
 
@@ -169,27 +169,22 @@ pub struct FunctionType {
 }
 
 impl FunctionType {
-    /// New function type given the params and results as vectors
     pub fn new(params: Vec<ValueType>, results: Vec<ValueType>) -> Self {
         FunctionType { params, results }
     }
 
-    /// Parameters in the function signature.
     pub fn params(&self) -> &[ValueType] {
         &self.params
     }
 
-    /// Mutable parameters in the function signature.
     pub fn params_mut(&mut self) -> &mut Vec<ValueType> {
         &mut self.params
     }
 
-    /// Results in the function signature, if any.
     pub fn results(&self) -> &[ValueType] {
         &self.results
     }
 
-    /// Mutable type in the function signature, if any.
     pub fn results_mut(&mut self) -> &mut Vec<ValueType> {
         &mut self.results
     }
@@ -210,7 +205,7 @@ impl Deserialize for FunctionType {
     }
 }
 
-/// <https://webassembly.github.io/spec/core/syntax/types.html#syntax-reftype>
+/// <https://webassembly.github.io/spec/core/syntax/types.html#syntax-reftype>.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ReferenceType {
     pub nullable: bool,
@@ -218,6 +213,39 @@ pub struct ReferenceType {
 }
 
 impl ReferenceType {
+    /// `ref null any`: nullable top type of all internal types.
+    pub fn anyref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Any,
+        }
+    }
+
+    /// `ref null none`: nullable bottom type of all internal types.
+    pub fn nullref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::None,
+        }
+    }
+
+    /// `ref null extern`: nullable top type of all external types.
+    pub fn externref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Extern,
+        }
+    }
+
+    /// `ref null noextern`: nullable bottom type of all external types.
+    pub fn nullexternref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::NoExtern,
+        }
+    }
+
+    /// `ref null func`: nullable top type of all function types.
     pub fn funcref() -> Self {
         ReferenceType {
             nullable: true,
@@ -225,10 +253,43 @@ impl ReferenceType {
         }
     }
 
-    pub fn externref() -> Self {
+    /// `ref null nofunc`: nullable bottom type of all function types.
+    pub fn nullfuncref() -> Self {
         ReferenceType {
             nullable: true,
-            heap_ty: HeapType::Extern,
+            heap_ty: HeapType::NoFunc,
+        }
+    }
+
+    /// `ref null eq`: nullable `eq` type.
+    pub fn eqref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Eq,
+        }
+    }
+
+    /// `ref null struct`: nullable top type of all struct types.
+    pub fn structref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Struct,
+        }
+    }
+
+    /// `ref null array`: nullable top type of all array types.
+    pub fn arrayref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Array,
+        }
+    }
+
+    /// `ref null i31`.
+    pub fn i31ref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::I31,
         }
     }
 }
@@ -282,11 +343,40 @@ impl fmt::Display for ReferenceType {
     }
 }
 
-/// <https://webassembly.github.io/function-references/core/binary/types.html#heap-types>
+/// <https://webassembly.github.io/function-references/core/binary/types.html#heap-types>, with GC
+/// stuff from <https://github.com/WebAssembly/gc/blob/main/proposals/gc/MVP.md#types>.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum HeapType {
+    /// The top type for all internal types.
+    Any,
+
+    /// The bottom type for all internal types.
+    None,
+
+    /// The top type for all extern types.
     Extern,
+
+    /// The bottom type for all external types.
+    NoExtern,
+
+    /// The top type for all function types.
     Func,
+
+    /// The bottom type for all function types.
+    NoFunc,
+
+    /// The common supertype for all types comparable with `ref.eq`.
+    Eq,
+
+    /// The top type for all struct types.
+    Struct,
+
+    /// The top type for all array types.
+    Array,
+
+    /// A 31-bit unboxed scalar.
+    I31,
+
     TypeIdx(u32),
 }
 
@@ -306,8 +396,16 @@ impl Deserialize for HeapType {
 impl fmt::Display for HeapType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            HeapType::Any => write!(f, "any"),
+            HeapType::None => write!(f, "none"),
             HeapType::Extern => write!(f, "extern"),
+            HeapType::NoExtern => write!(f, "noextern"),
             HeapType::Func => write!(f, "func"),
+            HeapType::NoFunc => write!(f, "nofunc"),
+            HeapType::Eq => write!(f, "eq"),
+            HeapType::Struct => write!(f, "struct"),
+            HeapType::Array => write!(f, "struct"),
+            HeapType::I31 => write!(f, "i31"),
             HeapType::TypeIdx(idx) => <u32 as fmt::Display>::fmt(idx, f),
         }
     }
