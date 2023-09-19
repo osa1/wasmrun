@@ -1,6 +1,6 @@
 #![allow(unused)] // temporary while implementing GC stuff
 
-use crate::{io, CountedList, Deserialize, Error, Uint8, VarInt32, VarUint7};
+use crate::{io, CountedList, Deserialize, Error, VarInt32, VarUint7};
 
 use std::fmt;
 
@@ -361,8 +361,8 @@ impl ReferenceType {
 
 impl Deserialize for ReferenceType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let val = Uint8::deserialize(reader)?;
-        ReferenceType::deserialize_val(reader, val.into())
+        let val = u8::deserialize(reader)?;
+        ReferenceType::deserialize_val(reader, val)
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{
-    io, BlockType, CountedList, Deserialize, Error, HeapType, Uint32, Uint64, Uint8, ValueType,
-    VarInt32, VarInt64, VarUint32,
+    io, BlockType, CountedList, Deserialize, Error, HeapType, Uint32, Uint64, ValueType, VarInt32,
+    VarInt64, VarUint32,
 };
 
 use std::fmt;
@@ -1330,7 +1330,7 @@ impl Deserialize for Instruction {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         use self::{opcodes::*, Instruction::*};
 
-        let val: u8 = Uint8::deserialize(reader)?.into();
+        let val: u8 = u8::deserialize(reader)?;
 
         Ok(match val {
             UNREACHABLE => Unreachable,
@@ -1359,13 +1359,13 @@ impl Deserialize for Instruction {
             CALL => Call(VarUint32::deserialize(reader)?.into()),
             CALLINDIRECT => {
                 let signature: u32 = VarUint32::deserialize(reader)?.into();
-                let table_ref: u8 = Uint8::deserialize(reader)?.into();
+                let table_ref: u8 = u8::deserialize(reader)?;
                 CallIndirect(signature, table_ref)
             }
             RETURN_CALL => ReturnCall(VarUint32::deserialize(reader)?.into()),
             RETURN_CALL_INDIRECT => {
                 let signature: u32 = VarUint32::deserialize(reader)?.into();
-                let table_ref: u8 = Uint8::deserialize(reader)?.into();
+                let table_ref: u8 = u8::deserialize(reader)?;
                 ReturnCallIndirect(signature, table_ref)
             }
             CALL_REF => CallRef(VarUint32::deserialize(reader)?.into()),
@@ -1408,8 +1408,8 @@ impl Deserialize for Instruction {
             I64STORE16 => I64Store16(MemArg::deserialize(reader)?),
             I64STORE32 => I64Store32(MemArg::deserialize(reader)?),
 
-            MEMORY_SIZE => MemorySize(Uint8::deserialize(reader)?.into()),
-            MEMORY_GROW => MemoryGrow(Uint8::deserialize(reader)?.into()),
+            MEMORY_SIZE => MemorySize(u8::deserialize(reader)?),
+            MEMORY_GROW => MemoryGrow(u8::deserialize(reader)?),
 
             I32CONST => I32Const(VarInt32::deserialize(reader)?.into()),
             I64CONST => I64Const(VarInt64::deserialize(reader)?.into()),
@@ -1589,7 +1589,7 @@ impl Deserialize for Instruction {
 fn deserialize_atomic<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     use self::{opcodes::*, AtomicsInstruction::*};
 
-    let val: u8 = Uint8::deserialize(reader)?.into();
+    let val: u8 = u8::deserialize(reader)?;
     let mem = MemArg::deserialize(reader)?;
     Ok(Instruction::Atomics(match val {
         ATOMIC_WAKE => AtomicWake(mem),
@@ -1692,42 +1692,42 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         V128_STORE => V128Store(MemArg::deserialize(reader)?),
         V128_LOAD_8_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Load8Lane(mem, lane)
         }
         V128_LOAD_16_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Load16Lane(mem, lane)
         }
         V128_LOAD_32_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Load32Lane(mem, lane)
         }
         V128_LOAD_64_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Load64Lane(mem, lane)
         }
         V128_STORE_8_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Store8Lane(mem, lane)
         }
         V128_STORE_16_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Store16Lane(mem, lane)
         }
         V128_STORE_32_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Store32Lane(mem, lane)
         }
         V128_STORE_64_LANE => {
             let mem = MemArg::deserialize(reader)?;
-            let lane = Uint8::deserialize(reader)?.into();
+            let lane = u8::deserialize(reader)?;
             V128Store64Lane(mem, lane)
         }
         V128_CONST => {
@@ -1740,20 +1740,20 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
             reader.read(&mut lanes)?;
             I8x16Shuffle(lanes)
         }
-        I8X16_EXTRACT_LANE_S => I8x16ExtractLaneS(Uint8::deserialize(reader)?.into()),
-        I8X16_EXTRACT_LANE_U => I8x16ExtractLaneU(Uint8::deserialize(reader)?.into()),
-        I8X16_REPLACE_LANE => I8x16ReplaceLane(Uint8::deserialize(reader)?.into()),
-        I16X8_EXTRACT_LANE_S => I16x8ExtractLaneS(Uint8::deserialize(reader)?.into()),
-        I16X8_EXTRACT_LANE_U => I16x8ExtractLaneU(Uint8::deserialize(reader)?.into()),
-        I16X8_REPLACE_LANE => I16x8ReplaceLane(Uint8::deserialize(reader)?.into()),
-        I32X4_EXTRACT_LANE => I32x4ExtractLane(Uint8::deserialize(reader)?.into()),
-        I32X4_REPLACE_LANE => I32x4ReplaceLane(Uint8::deserialize(reader)?.into()),
-        I64X2_EXTRACT_LANE => I64x2ExtractLane(Uint8::deserialize(reader)?.into()),
-        I64X2_REPLACE_LANE => I64x2ReplaceLane(Uint8::deserialize(reader)?.into()),
-        F32X4_EXTRACT_LANE => F32x4ExtractLane(Uint8::deserialize(reader)?.into()),
-        F32X4_REPLACE_LANE => F32x4ReplaceLane(Uint8::deserialize(reader)?.into()),
-        F64X2_EXTRACT_LANE => F64x2ExtractLane(Uint8::deserialize(reader)?.into()),
-        F64X2_REPLACE_LANE => F64x2ReplaceLane(Uint8::deserialize(reader)?.into()),
+        I8X16_EXTRACT_LANE_S => I8x16ExtractLaneS(u8::deserialize(reader)?),
+        I8X16_EXTRACT_LANE_U => I8x16ExtractLaneU(u8::deserialize(reader)?),
+        I8X16_REPLACE_LANE => I8x16ReplaceLane(u8::deserialize(reader)?),
+        I16X8_EXTRACT_LANE_S => I16x8ExtractLaneS(u8::deserialize(reader)?),
+        I16X8_EXTRACT_LANE_U => I16x8ExtractLaneU(u8::deserialize(reader)?),
+        I16X8_REPLACE_LANE => I16x8ReplaceLane(u8::deserialize(reader)?),
+        I32X4_EXTRACT_LANE => I32x4ExtractLane(u8::deserialize(reader)?),
+        I32X4_REPLACE_LANE => I32x4ReplaceLane(u8::deserialize(reader)?),
+        I64X2_EXTRACT_LANE => I64x2ExtractLane(u8::deserialize(reader)?),
+        I64X2_REPLACE_LANE => I64x2ReplaceLane(u8::deserialize(reader)?),
+        F32X4_EXTRACT_LANE => F32x4ExtractLane(u8::deserialize(reader)?),
+        F32X4_REPLACE_LANE => F32x4ReplaceLane(u8::deserialize(reader)?),
+        F64X2_EXTRACT_LANE => F64x2ExtractLane(u8::deserialize(reader)?),
+        F64X2_REPLACE_LANE => F64x2ReplaceLane(u8::deserialize(reader)?),
         I8X16_SWIZZLE => I8x16Swizzle,
         I8X16_SPLAT => I8x16Splat,
         I16X8_SPLAT => I16x8Splat,
@@ -1993,16 +1993,16 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         I64_TRUNC_SAT_F64_U => I64TruncSatUF64,
         MEMORY_INIT => {
             let data_idx = VarUint32::deserialize(reader)?.into();
-            let mem_idx = Uint8::deserialize(reader)?.into();
+            let mem_idx = u8::deserialize(reader)?;
             MemoryInit(mem_idx, data_idx)
         }
         DATA_DROP => DataDrop(VarUint32::deserialize(reader)?.into()),
         MEMORY_COPY => {
-            let dst_mem_idx = Uint8::deserialize(reader)?.into();
-            let src_mem_idx = Uint8::deserialize(reader)?.into();
+            let dst_mem_idx = u8::deserialize(reader)?;
+            let src_mem_idx = u8::deserialize(reader)?;
             MemoryCopy(dst_mem_idx, src_mem_idx)
         }
-        MEMORY_FILL => MemoryFill(Uint8::deserialize(reader)?.into()),
+        MEMORY_FILL => MemoryFill(u8::deserialize(reader)?),
         TABLE_INIT => {
             let elem_idx = VarUint32::deserialize(reader)?.into();
             let table_idx = VarUint32::deserialize(reader)?.into();

@@ -1,7 +1,7 @@
 use crate::{
-    io, name_section::NameSection, primitives::Uint8, reloc_section::RelocSection, types::Type,
-    CountedList, DataSegment, Deserialize, ElementSegment, Error, ExportEntry, Func, FuncBody,
-    GlobalEntry, ImportEntry, MemoryType, Table, VarUint32, VarUint7,
+    io, name_section::NameSection, reloc_section::RelocSection, types::Type, CountedList,
+    DataSegment, Deserialize, ElementSegment, Error, ExportEntry, Func, FuncBody, GlobalEntry,
+    ImportEntry, MemoryType, Table, VarUint32, VarUint7,
 };
 
 const ENTRIES_BUFFER_LENGTH: usize = 16384;
@@ -472,7 +472,7 @@ pub enum TagAttribute {
 
 impl Deserialize for TagType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let attribute = match Uint8::deserialize(reader)?.into() {
+        let attribute = match u8::deserialize(reader)? {
             0 => TagAttribute::Exception,
             other => return Err(Error::InvalidTagAttribute(other)),
         };

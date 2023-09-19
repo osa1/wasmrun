@@ -2,8 +2,16 @@ use crate::{io, Deserialize, Error};
 
 const PRIMITIVES_BUFFER_LENGTH: usize = 1024;
 
-/// Unsigned variable-length integer, limited to 32 bits,
-/// represented by at most 5 bytes that may contain padding 0x80 bytes.
+impl Deserialize for u8 {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let mut buf = [0u8; 1];
+        reader.read(&mut buf)?;
+        Ok(buf[0])
+    }
+}
+
+/// Unsigned variable-length integer, limited to 32 bits, represented by at most 5 bytes that may
+/// contain padding 0x80 bytes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct VarUint32(u32);
 
@@ -36,14 +44,14 @@ impl Deserialize for VarUint32 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0;
         let mut shift = 0;
-        let mut u8buf = [0u8; 1];
+        let mut buf = [0u8; 1];
         loop {
             if shift > 31 {
                 return Err(Error::InvalidVarUint32);
             }
 
-            reader.read(&mut u8buf)?;
-            let b = u8buf[0] as u32;
+            reader.read(&mut buf)?;
+            let b = buf[0] as u32;
             res |= (b & 0x7f)
                 .checked_shl(shift)
                 .ok_or(Error::InvalidVarUint32)?;
@@ -59,8 +67,8 @@ impl Deserialize for VarUint32 {
     }
 }
 
-/// Unsigned variable-length integer, limited to 64 bits,
-/// represented by at most 9 bytes that may contain padding 0x80 bytes.
+/// Unsigned variable-length integer, limited to 64 bits, represented by at most 9 bytes that may
+/// contain padding 0x80 bytes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct VarUint64(u64);
 
@@ -74,14 +82,14 @@ impl Deserialize for VarUint64 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0;
         let mut shift = 0;
-        let mut u8buf = [0u8; 1];
+        let mut buf = [0u8; 1];
         loop {
             if shift > 63 {
                 return Err(Error::InvalidVarUint64);
             }
 
-            reader.read(&mut u8buf)?;
-            let b = u8buf[0] as u64;
+            reader.read(&mut buf)?;
+            let b = buf[0] as u64;
             res |= (b & 0x7f)
                 .checked_shl(shift)
                 .ok_or(Error::InvalidVarUint64)?;
@@ -121,69 +129,9 @@ impl From<u8> for VarUint7 {
 
 impl Deserialize for VarUint7 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let mut u8buf = [0u8; 1];
-        reader.read(&mut u8buf)?;
-        Ok(VarUint7(u8buf[0]))
-    }
-}
-
-/// 7-bit signed integer, encoded in LEB128 (always 1 byte length)
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct VarInt7(i8);
-
-impl From<VarInt7> for i8 {
-    fn from(v: VarInt7) -> i8 {
-        v.0
-    }
-}
-
-impl From<i8> for VarInt7 {
-    fn from(v: i8) -> VarInt7 {
-        VarInt7(v)
-    }
-}
-
-impl Deserialize for VarInt7 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let mut u8buf = [0u8; 1];
-        reader.read(&mut u8buf)?;
-
-        // check if number is not continued!
-        if u8buf[0] & 0b1000_0000 != 0 {
-            return Err(Error::InvalidVarInt7(u8buf[0]));
-        }
-
-        // expand sign
-        if u8buf[0] & 0b0100_0000 == 0b0100_0000 {
-            u8buf[0] |= 0b1000_0000
-        }
-
-        Ok(VarInt7(u8buf[0] as i8))
-    }
-}
-
-/// 8-bit unsigned integer, NOT encoded in LEB128;
-/// it's just a single byte.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Uint8(u8);
-
-impl From<Uint8> for u8 {
-    fn from(v: Uint8) -> u8 {
-        v.0
-    }
-}
-
-impl From<u8> for Uint8 {
-    fn from(v: u8) -> Self {
-        Uint8(v)
-    }
-}
-
-impl Deserialize for Uint8 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let mut u8buf = [0u8; 1];
-        reader.read(&mut u8buf)?;
-        Ok(Uint8(u8buf[0]))
+        let mut buf = [0u8; 1];
+        reader.read(&mut buf)?;
+        Ok(VarUint7(buf[0]))
     }
 }
 
@@ -207,20 +155,20 @@ impl Deserialize for VarInt32 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0;
         let mut shift = 0;
-        let mut u8buf = [0u8; 1];
+        let mut buf = [0u8; 1];
         loop {
             if shift > 31 {
                 return Err(Error::InvalidVarInt32);
             }
-            reader.read(&mut u8buf)?;
-            let b = u8buf[0];
+            reader.read(&mut buf)?;
+            let b = buf[0];
 
             res |= ((b & 0b0111_1111) as i32)
                 .checked_shl(shift)
                 .ok_or(Error::InvalidVarInt32)?;
 
             shift += 7;
-            if (b >> 7) == 0 {
+            if b >> 7 == 0 {
                 if shift < 32 && b & 0b0100_0000 == 0b0100_0000 {
                     res |= (1i32 << shift).wrapping_neg();
                 } else if shift >= 32 && b & 0b0100_0000 == 0b0100_0000 {
@@ -257,14 +205,14 @@ impl Deserialize for VarInt64 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0i64;
         let mut shift = 0;
-        let mut u8buf = [0u8; 1];
+        let mut buf = [0u8; 1];
 
         loop {
             if shift > 63 {
                 return Err(Error::InvalidVarInt64);
             }
-            reader.read(&mut u8buf)?;
-            let b = u8buf[0];
+            reader.read(&mut buf)?;
+            let b = buf[0];
 
             res |= ((b & 0b0111_1111) as i64)
                 .checked_shl(shift)
@@ -356,9 +304,9 @@ impl From<bool> for VarUint1 {
 
 impl Deserialize for VarUint1 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let mut u8buf = [0u8; 1];
-        reader.read(&mut u8buf)?;
-        match u8buf[0] {
+        let mut buf = [0u8; 1];
+        reader.read(&mut buf)?;
+        match buf[0] {
             0 => Ok(VarUint1(false)),
             1 => Ok(VarUint1(true)),
             v => Err(Error::InvalidVarUint1(v)),
@@ -376,13 +324,11 @@ impl Deserialize for String {
     }
 }
 
-/// List for reading sequence of elements typed `T`, given
-/// they are preceded by length (serialized as VarUint32).
+/// A list of things, serialized with a `VarUint32` length prefix.
 #[derive(Debug, Clone)]
 pub struct CountedList<T: Deserialize>(Vec<T>);
 
 impl<T: Deserialize> CountedList<T> {
-    /// Destroy counted list returing inner vector.
     pub fn into_inner(self) -> Vec<T> {
         self.0
     }
@@ -401,9 +347,7 @@ impl<T: Deserialize> Deserialize for CountedList<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        deserialize_buffer, CountedList, Error, VarInt32, VarInt64, VarInt7, VarUint32, VarUint64,
-    };
+    use crate::{deserialize_buffer, CountedList, Error, VarInt32, VarInt64, VarUint32, VarUint64};
 
     fn varuint32_de_test(dt: Vec<u8>, expected: u32) {
         let val: VarUint32 = deserialize_buffer(&dt).expect("buf to be serialized");
@@ -586,28 +530,12 @@ mod tests {
     }
 
     #[test]
-    fn varint7_invalid() {
-        match deserialize_buffer::<VarInt7>(&[240]) {
-            Err(Error::InvalidVarInt7(_)) => {}
-            _ => panic!("Should be invalid varint7 error!"),
-        }
-    }
-
-    #[test]
-    fn varint7_neg() {
-        assert_eq!(
-            -0x10i8,
-            deserialize_buffer::<VarInt7>(&[0x70]).expect("fail").into()
-        );
-    }
-
-    #[test]
     fn varuint32_too_long_nulled() {
         match deserialize_buffer::<VarUint32>(&[
             0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x78,
         ]) {
             Err(Error::InvalidVarUint32) => {}
-            _ => panic!("Should be invalid varuint32"),
+            _ => panic!("Should be invalid VarUint32"),
         }
     }
 
@@ -618,18 +546,15 @@ mod tests {
 
     #[test]
     fn counted_list() {
+        #[rustfmt::skip]
         let payload = [
-            133u8, //(128+5), length is 5
-            0x80, 0x80, 0x80, 0x0, // padding
+            // 5 with padding:
+            0b1000_0101, 0b1000_0000, 0b1000_0000, 0b1000_0000, 0,
+            // Contents:
             0x01, 0x7d, 0x05, 0x07, 0x09,
         ];
-
-        let list: CountedList<VarInt7> =
-            deserialize_buffer(&payload).expect("type_section be deserialized");
-
+        let list: CountedList<u8> = deserialize_buffer(&payload).unwrap();
         let vars = list.into_inner();
-        assert_eq!(5, vars.len());
-        let v3: i8 = (*vars.get(1).unwrap()).into();
-        assert_eq!(-0x03i8, v3);
+        assert_eq!(vars, vec![1, 125, 5, 7, 9]);
     }
 }

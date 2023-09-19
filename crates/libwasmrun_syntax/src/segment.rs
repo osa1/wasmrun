@@ -1,6 +1,4 @@
-use crate::{
-    io, CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, Uint8, VarUint32,
-};
+use crate::{io, CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, VarUint32};
 
 const VALUES_BUFFER_LENGTH: usize = 16384;
 
@@ -172,7 +170,7 @@ impl Deserialize for ElementSegment {
 
 impl Deserialize for ElementKind {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let kind: u8 = Uint8::deserialize(reader)?.into();
+        let kind: u8 = u8::deserialize(reader)?;
         match kind {
             0 => Ok(ElementKind::FuncRef),
             _ => Err(Error::UnknownElementKind(kind)),

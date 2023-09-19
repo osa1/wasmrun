@@ -1,6 +1,6 @@
 use crate::{
-    io, Deserialize, Error, ReferenceType, TagType, Uint8, ValueType, VarUint1, VarUint32,
-    VarUint64, VarUint7,
+    io, Deserialize, Error, ReferenceType, TagType, ValueType, VarUint1, VarUint32, VarUint64,
+    VarUint7,
 };
 
 /// Global definition struct
@@ -181,7 +181,7 @@ impl Limits64 {
 
 impl Deserialize for Limits {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let flags: u8 = Uint8::deserialize(reader)?.into();
+        let flags: u8 = u8::deserialize(reader)?;
 
         if flags >> 3 != 0 {
             return Err(Error::InvalidLimitsFlags(flags));
@@ -225,7 +225,7 @@ impl Limits32 {
 
 impl Deserialize for Limits32 {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let flags: u8 = Uint8::deserialize(reader)?.into();
+        let flags: u8 = u8::deserialize(reader)?;
 
         if flags >> 2 != 0 {
             return Err(Error::InvalidLimitsFlags(flags));
