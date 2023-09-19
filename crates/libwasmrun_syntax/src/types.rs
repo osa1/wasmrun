@@ -1,8 +1,10 @@
+#![allow(unused)] // temporary while implementing GC stuff
+
 use crate::{io, CountedList, Deserialize, Error, Uint8, VarInt32, VarUint7};
 
 use std::fmt;
 
-/// Type definition in types section. Currently can be only of the function type.
+/// A type definition in a types section. (pre-GC version)
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Type {
     Function(FunctionType),
@@ -12,6 +14,69 @@ impl Deserialize for Type {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(Type::Function(FunctionType::deserialize(reader)?))
     }
+}
+
+/// An entry in a types section, defining a set of recursive types. (GC version)
+#[derive(Debug, Clone)]
+pub struct DefType {
+    rec: Vec<SubType>,
+}
+
+/// A single type in a recursion group, possibly a subtype of others.
+#[derive(Debug, Clone)]
+pub struct SubType {
+    /// Whether the type is final. Final types can't have subtypes.
+    final_: bool,
+
+    /// Type indices of the type's super types.
+    ///
+    /// Note: In the MVP GC spec at most one super type is allowed.
+    supers: Vec<u32>,
+
+    /// The type.
+    ty: CompType,
+}
+
+/// A composite type.
+#[derive(Debug, Clone)]
+pub enum CompType {
+    Func(FunctionType),
+    Struct(StructType),
+    Array(ArrayType),
+}
+
+#[derive(Debug, Clone)]
+pub struct StructType {
+    fields: Vec<FieldType>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ArrayType {
+    field: FieldType,
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldType {
+    mutability: Mutability,
+    storage_ty: StorageType,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Mutability {
+    Mutable,
+    Immutable,
+}
+
+#[derive(Debug, Clone)]
+pub enum StorageType {
+    Val(ValueType),
+    Packed(PackedType),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PackedType {
+    I8,
+    I16,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
