@@ -32,27 +32,24 @@ impl Deserialize for Internal {
 /// Export entry.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportEntry {
-    field_str: String,
+    field: String,
     internal: Internal,
 }
 
 impl ExportEntry {
     /// New export entry.
-    pub fn new(field_str: String, internal: Internal) -> Self {
-        ExportEntry {
-            field_str,
-            internal,
-        }
+    pub fn new(field: String, internal: Internal) -> Self {
+        ExportEntry { field, internal }
     }
 
     /// Public name.
     pub fn field(&self) -> &str {
-        &self.field_str
+        &self.field
     }
 
     /// Public name (mutable).
     pub fn field_mut(&mut self) -> &mut String {
-        &mut self.field_str
+        &mut self.field
     }
 
     /// Internal reference of the export entry.
@@ -72,7 +69,7 @@ impl Deserialize for ExportEntry {
         let internal = Internal::deserialize(reader)?;
 
         Ok(ExportEntry {
-            field_str,
+            field: field_str,
             internal,
         })
     }

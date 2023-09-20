@@ -45,7 +45,6 @@ pub use self::{
 };
 
 use core::fmt;
-use core::fmt::Write;
 
 pub trait Deserialize: Sized {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error>;
@@ -72,11 +71,8 @@ pub enum Error {
         actual: usize,
     },
 
-    /// Other static error.
-    Other(&'static str),
-
-    /// Other allocated error.
-    HeapOther(String),
+    /// Other error.
+    Other(String),
 
     /// Invalid/unknown value type declaration.
     UnknownValueType(u8),
@@ -169,7 +165,6 @@ impl fmt::Display for Error {
                 write!(f, "Expected length {}, found {}", expected, actual)
             }
             Error::Other(msg) => write!(f, "{}", msg),
-            Error::HeapOther(msg) => write!(f, "{}", msg),
             Error::UnknownValueType(ty) => write!(f, "Invalid or unknown value type {}", ty),
             Error::UnknownBlockType(ty) => write!(f, "Invalid or unknown block type {}", ty),
             Error::UnknownTableElementType(ty) => write!(f, "Unknown table element type {}", ty),
@@ -206,7 +201,7 @@ impl fmt::Display for Error {
     }
 }
 
-impl ::std::error::Error for Error {
+impl std::error::Error for Error {
     fn description(&self) -> &str {
         match self {
             Error::UnexpectedEof => "Unexpected end of input",
@@ -214,7 +209,6 @@ impl ::std::error::Error for Error {
             Error::UnsupportedVersion(_) => "Unsupported wasm version",
             Error::InconsistentLength { .. } => "Inconsistent length",
             Error::Other(msg) => msg,
-            Error::HeapOther(msg) => &msg[..],
             Error::UnknownValueType(_) => "Invalid or unknown value type",
             Error::UnknownBlockType(_) => "Invalid or unknown block type",
             Error::UnknownTableElementType(_) => "Unknown table element type",
@@ -250,36 +244,7 @@ impl ::std::error::Error for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        Error::HeapOther(format!("I/O Error: {:?}", err))
-    }
-}
-
-// These are emitted by section parsers, such as `parse_names` and `parse_reloc`.
-impl From<(Vec<(usize, Error)>, Module)> for Error {
-    fn from(err: (Vec<(usize, Error)>, Module)) -> Self {
-        let ret = err.0.iter().fold(String::new(), |mut acc, item| {
-            writeln!(&mut acc, "In section {}: {}", item.0, item.1).unwrap();
-            acc
-        });
-        Error::HeapOther(ret)
-    }
-}
-
-/// Unparsed part of the module/section.
-pub struct Unparsed(pub Vec<u8>);
-
-impl Deserialize for Unparsed {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let len = VarUint32::deserialize(reader)?.into();
-        let mut vec = vec![0u8; len];
-        reader.read(&mut vec[..])?;
-        Ok(Unparsed(vec))
-    }
-}
-
-impl From<Unparsed> for Vec<u8> {
-    fn from(u: Unparsed) -> Vec<u8> {
-        u.0
+        Error::Other(format!("I/O Error: {:?}", err))
     }
 }
 
@@ -287,15 +252,15 @@ impl From<Unparsed> for Vec<u8> {
 pub fn deserialize_buffer<T: Deserialize>(mut contents: &[u8]) -> Result<T, Error> {
     let result = T::deserialize(&mut contents)?;
     if !contents.is_empty() {
-        return Err(io::Error::TrailingData.into());
+        return Err(Error::Other("Trailing data after module".to_string()));
     }
     Ok(result)
 }
 
 /// Deserialize module from file.
-pub fn deserialize_file<P: AsRef<::std::path::Path>>(p: P) -> Result<Module, Error> {
-    let mut f = ::std::fs::File::open(p)
-        .map_err(|e| Error::HeapOther(format!("Can't read from the file: {:?}", e)))?;
+pub fn deserialize_file<P: AsRef<std::path::Path>>(p: P) -> Result<Module, Error> {
+    let mut f = std::fs::File::open(p)
+        .map_err(|e| Error::Other(format!("Can't read from the file: {:?}", e)))?;
 
     Module::deserialize(&mut f)
 }

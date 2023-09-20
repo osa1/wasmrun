@@ -13,7 +13,7 @@ impl Deserialize for Table {
         if val_u8 == 0x40 {
             let val: u8 = u8::deserialize(reader)?;
             if val != 0 {
-                return Err(Error::Other("")); // TODO
+                return Err(Error::Other(String::new())); // TODO
             }
             let elem_type = ReferenceType::deserialize(reader)?;
             let limits = Limits32::deserialize(reader)?;
