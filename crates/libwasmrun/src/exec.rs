@@ -2992,6 +2992,40 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::Atomics(_) => {
             exec_panic!("Instruction not implemented: {:?}", instr);
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::RefEq
+        | Instruction::StructNew(_)
+        | Instruction::StructNewDefault(_)
+        | Instruction::StructGet(_, _)
+        | Instruction::StructGetS(_, _)
+        | Instruction::StructGetU(_, _)
+        | Instruction::StructSet(_, _)
+        | Instruction::ArrayNew(_)
+        | Instruction::ArrayNewDefault(_)
+        | Instruction::ArrayNewFixed(_, _)
+        | Instruction::ArrayNewData(_, _)
+        | Instruction::ArrayNewElem(_, _)
+        | Instruction::ArrayGet(_)
+        | Instruction::ArrayGetS(_)
+        | Instruction::ArrayGetU(_)
+        | Instruction::ArraySet(_)
+        | Instruction::ArrayLen
+        | Instruction::ArrayFill(_)
+        | Instruction::ArrayCopy(_, _)
+        | Instruction::ArrayInitData(_, _)
+        | Instruction::ArrayInitElem(_, _)
+        | Instruction::RefTest(_)
+        | Instruction::RefTestNull(_)
+        | Instruction::RefCast(_)
+        | Instruction::RefCastNull(_)
+        | Instruction::BrOnCast
+        | Instruction::BrOnCastFail
+        | Instruction::ExternInternalize
+        | Instruction::ExternExternalize
+        | Instruction::RefI31
+        | Instruction::I31GetS
+        | Instruction::I31GetU => todo!(),
     }
 
     Ok(())

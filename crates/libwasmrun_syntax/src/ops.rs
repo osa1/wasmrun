@@ -348,9 +348,43 @@ pub enum Instruction {
     RefNull(HeapType),
     RefIsNull,
     RefFunc(u32), // func idx
+    RefEq,
     RefAsNonNull,
     BrOnNull(u32),
     BrOnNonNull(u32),
+
+    // GC instructions.
+    StructNew(u32),          // type idx
+    StructNewDefault(u32),   // type idx
+    StructGet(u32, u32),     // type idx, field idx
+    StructGetS(u32, u32),    // type idx, field idx
+    StructGetU(u32, u32),    // type idx, field idx
+    StructSet(u32, u32),     // type idx, field idx
+    ArrayNew(u32),           // type idx
+    ArrayNewDefault(u32),    // type idx
+    ArrayNewFixed(u32, u32), // type idx, length
+    ArrayNewData(u32, u32),  // type idx, data idx
+    ArrayNewElem(u32, u32),  // type idx, elem idx
+    ArrayGet(u32),           // type idx
+    ArrayGetS(u32),          // type idx
+    ArrayGetU(u32),          // type idx
+    ArraySet(u32),           // type idx
+    ArrayLen,
+    ArrayFill(u32),          // type idx
+    ArrayCopy(u32, u32),     // type idx, type idx
+    ArrayInitData(u32, u32), // type idx, data idx
+    ArrayInitElem(u32, u32), // type idx, elem idx
+    RefTest(HeapType),
+    RefTestNull(HeapType),
+    RefCast(HeapType),
+    RefCastNull(HeapType),
+    BrOnCast,
+    BrOnCastFail,
+    ExternInternalize,
+    ExternExternalize,
+    RefI31,
+    I31GetS,
+    I31GetU,
 
     // Exception handling instructions
     Try(BlockType),
@@ -1314,9 +1348,43 @@ mod opcodes {
     pub const REF_NULL: u8 = 0xD0;
     pub const REF_IS_NULL: u8 = 0xD1;
     pub const REF_FUNC: u8 = 0xD2;
+    pub const REF_EQ: u8 = 0xD3;
     pub const REF_AS_NON_NULL: u8 = 0xD4;
     pub const BR_ON_NULL: u8 = 0xD5;
     pub const BR_ON_NON_NULL: u8 = 0xD6;
+
+    pub const GC_PREFIX: u8 = 0xFB;
+    pub const STRUCT_NEW: u8 = 0x00; // GC_PREFIX
+    pub const STRUCT_NEW_DEFAULT: u8 = 0x01; // GC_PREFIX
+    pub const STRUCT_GET: u8 = 0x02; // GC_PREFIX
+    pub const STRUCT_GET_S: u8 = 0x03; // GC_PREFIX
+    pub const STRUCT_GET_U: u8 = 0x04; // GC_PREFIX
+    pub const STRUCT_SET: u8 = 0x05; // GC_PREFIX
+    pub const ARRAY_NEW: u8 = 0x06; // GC_PREFIX
+    pub const ARRAY_NEW_DEFAULT: u8 = 0x07; // GC_PREFIX
+    pub const ARRAY_NEW_FIXED: u8 = 0x08; // GC_PREFIX
+    pub const ARRAY_NEW_DATA: u8 = 0x09; // GC_PREFIX
+    pub const ARRAY_NEW_ELEM: u8 = 0x0A; // GC_PREFIX
+    pub const ARRAY_GET: u8 = 0x0B; // GC_PREFIX
+    pub const ARRAY_GET_S: u8 = 0x0C; // GC_PREFIX
+    pub const ARRAY_GET_U: u8 = 0x0D; // GC_PREFIX
+    pub const ARRAY_SET: u8 = 0x0E; // GC_PREFIX
+    pub const ARRAY_LEN: u8 = 0x0F; // GC_PREFIX
+    pub const ARRAY_FILL: u8 = 0x10; // GC_PREFIX
+    pub const ARRAY_COPY: u8 = 0x11; // GC_PREFIX
+    pub const ARRAY_INIT_DATA: u8 = 0x12; // GC_PREFIX
+    pub const ARRAY_INIT_ELEM: u8 = 0x13; // GC_PREFIX
+    pub const REF_TEST: u8 = 0x14; // GC_PREFIX
+    pub const REF_TEST_NULL: u8 = 0x15; // GC_PREFIX
+    pub const REF_CAST: u8 = 0x16; // GC_PREFIX
+    pub const REF_CAST_NULL: u8 = 0x17; // GC_PREFIX
+    pub const BR_ON_CAST: u8 = 0x18; // GC_PREFIX
+    pub const BR_ON_CAST_FAIL: u8 = 0x19; // GC_PREFIX
+    pub const EXTERN_INTERNALIZE: u8 = 0x1A; // GC_PREFIX
+    pub const EXTERN_EXTERNALIZE: u8 = 0x1B; // GC_PREFIX
+    pub const REF_I31: u8 = 0x1C; // GC_PREFIX
+    pub const I31_GET_S: u8 = 0x1D; // GC_PREFIX
+    pub const I31_GET_U: u8 = 0x1E; // GC_PREFIX
 
     pub const TRY: u8 = 0x06;
     pub const CATCH: u8 = 0x07;
@@ -1570,9 +1638,12 @@ impl Deserialize for Instruction {
             REF_NULL => RefNull(HeapType::deserialize(reader)?),
             REF_IS_NULL => RefIsNull,
             REF_FUNC => RefFunc(VarUint32::deserialize(reader)?.into()),
+            REF_EQ => RefEq,
             REF_AS_NON_NULL => RefAsNonNull,
             BR_ON_NULL => BrOnNull(VarUint32::deserialize(reader)?.into()),
             BR_ON_NON_NULL => BrOnNonNull(VarUint32::deserialize(reader)?.into()),
+
+            GC_PREFIX => return deserialize_gc(reader),
 
             TRY => Try(BlockType::deserialize(reader)?),
             CATCH => Catch(VarUint32::deserialize(reader)?.into()),
@@ -2024,6 +2095,75 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     })
 }
 
+fn deserialize_gc<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
+    use self::{opcodes::*, Instruction::*};
+    let val: u8 = u8::deserialize(reader)?;
+    Ok(match val {
+        STRUCT_NEW => StructNew(VarUint32::deserialize(reader)?.into()),
+        STRUCT_NEW_DEFAULT => StructNewDefault(VarUint32::deserialize(reader)?.into()),
+        STRUCT_GET => StructGet(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        STRUCT_GET_S => StructGetS(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        STRUCT_GET_U => StructGetU(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        STRUCT_SET => StructSet(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        ARRAY_NEW => ArrayNew(VarUint32::deserialize(reader)?.into()),
+        ARRAY_NEW_DEFAULT => ArrayNewDefault(VarUint32::deserialize(reader)?.into()),
+        ARRAY_NEW_FIXED => ArrayNewFixed(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        ARRAY_NEW_DATA => ArrayNewData(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        ARRAY_NEW_ELEM => ArrayNewElem(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        ARRAY_GET => ArrayGet(VarUint32::deserialize(reader)?.into()),
+        ARRAY_GET_S => ArrayGetS(VarUint32::deserialize(reader)?.into()),
+        ARRAY_GET_U => ArrayGetU(VarUint32::deserialize(reader)?.into()),
+        ARRAY_SET => ArraySet(VarUint32::deserialize(reader)?.into()),
+        ARRAY_LEN => ArrayLen,
+        ARRAY_FILL => ArrayFill(VarUint32::deserialize(reader)?.into()),
+        ARRAY_COPY => ArrayCopy(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        ARRAY_INIT_DATA => ArrayInitData(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        ARRAY_INIT_ELEM => ArrayInitElem(
+            VarUint32::deserialize(reader)?.into(),
+            VarUint32::deserialize(reader)?.into(),
+        ),
+        REF_TEST => RefTest(HeapType::deserialize(reader)?),
+        REF_TEST_NULL => RefTestNull(HeapType::deserialize(reader)?),
+        REF_CAST => RefCast(HeapType::deserialize(reader)?),
+        REF_CAST_NULL => RefCastNull(HeapType::deserialize(reader)?),
+        // TODO: BR_ON_CAST
+        // TODO: BR_ON_CAST_FAIL
+        EXTERN_INTERNALIZE => ExternInternalize,
+        EXTERN_EXTERNALIZE => ExternExternalize,
+        REF_I31 => RefI31,
+        I31_GET_S => I31GetS,
+        I31_GET_U => I31GetU,
+        other => return Err(Error::UnknownOpcode(u32::from(other))),
+    })
+}
+
 impl Deserialize for MemArg {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let align: u32 = VarUint32::deserialize(reader)?.into();
@@ -2303,9 +2443,42 @@ impl fmt::Display for Instruction {
             RefNull(ty) => write!(f, "ref.null {}", ty),
             RefIsNull => write!(f, "ref.is_null"),
             RefFunc(func_idx) => fmt_op!(f, "ref.func", func_idx),
+            RefEq => fmt_op!(f, "ref.eq"),
             RefAsNonNull => fmt_op!(f, "ref.as_non_null"),
             BrOnNull(_) => fmt_op!(f, "br_on_null"),
             BrOnNonNull(_) => fmt_op!(f, "br_on_non_null"),
+
+            StructNew(_) => todo!(),
+            StructNewDefault(_) => todo!(),
+            StructGet(_, _) => todo!(),
+            StructGetS(_, _) => todo!(),
+            StructGetU(_, _) => todo!(),
+            StructSet(_, _) => todo!(),
+            ArrayNew(_) => todo!(),
+            ArrayNewDefault(_) => todo!(),
+            ArrayNewFixed(_, _) => todo!(),
+            ArrayNewData(_, _) => todo!(),
+            ArrayNewElem(_, _) => todo!(),
+            ArrayGet(_) => todo!(),
+            ArrayGetS(_) => todo!(),
+            ArrayGetU(_) => todo!(),
+            ArraySet(_) => todo!(),
+            ArrayLen => todo!(),
+            ArrayFill(_) => todo!(),
+            ArrayCopy(_, _) => todo!(),
+            ArrayInitData(_, _) => todo!(),
+            ArrayInitElem(_, _) => todo!(),
+            RefTest(_) => todo!(),
+            RefTestNull(_) => todo!(),
+            RefCast(_) => todo!(),
+            RefCastNull(_) => todo!(),
+            BrOnCast => todo!(),
+            BrOnCastFail => todo!(),
+            ExternInternalize => todo!(),
+            ExternExternalize => todo!(),
+            RefI31 => todo!(),
+            I31GetS => todo!(),
+            I31GetU => todo!(),
 
             Try(BlockType::Empty) => fmt_op!(f, "try"),
             Try(BlockType::Value(value_type)) => fmt_op!(f, "try", value_type),

@@ -281,7 +281,7 @@ impl ValueType {
                 }))
             }
 
-            _ => Err(Error::UnknownValueType(val.into())),
+            _ => Err(Error::UnknownValueType(val)),
         }
     }
 }
