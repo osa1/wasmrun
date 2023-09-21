@@ -41,7 +41,9 @@ pub use self::{
     },
     segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
     table::Table,
-    types::{BlockType, FunctionType, HeapType, ReferenceType, Type, ValueType},
+    types::{
+        BlockType, CompType, FunctionType, HeapType, RecType, ReferenceType, SubType, ValueType,
+    },
 };
 
 use core::fmt;
@@ -128,8 +130,7 @@ pub enum Error {
     /// Invalid value used for flags in limits type.
     InvalidLimitsFlags(u8),
 
-    /// Unknown function form (should be 0x60).
-    UnknownFunctionForm(u8),
+    UnknownCompTypeForm(u8),
 
     /// Number of function body entries and signatures does not match.
     InconsistentCode,
@@ -185,7 +186,7 @@ impl fmt::Display for Error {
             Error::SectionsOutOfOrder => write!(f, "Sections out of order"),
             Error::DuplicatedSections(id) => write!(f, "Duplicated sections ({})", id),
             Error::InvalidLimitsFlags(flags) => write!(f, "Invalid limits flags ({})", flags),
-            Error::UnknownFunctionForm(form) => write!(f, "Unknown function form ({})", form),
+            Error::UnknownCompTypeForm(form) => write!(f, "Unknown composite type form: {}", form),
             Error::InconsistentCode => {
                 write!(
                     f,
@@ -230,7 +231,7 @@ impl std::error::Error for Error {
             Error::SectionsOutOfOrder => "Sections out of order",
             Error::DuplicatedSections(_) => "Duplicated section",
             Error::InvalidLimitsFlags(_) => "Invalid limits flags",
-            Error::UnknownFunctionForm(_) => "Unknown function form",
+            Error::UnknownCompTypeForm(_) => "Unknown composite type form",
             Error::InconsistentCode => {
                 "Number of function body entries and signatures does not match"
             }

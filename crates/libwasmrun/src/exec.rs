@@ -380,10 +380,15 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     let module_addr = rt.store.allocate_module(Module::default());
 
     if let Some(type_section) = parsed_module.type_section_mut() {
-        for ty in type_section.entries_mut().drain(..) {
-            match ty {
-                wasm::Type::Function(fun_ty) => {
-                    rt.store.get_module_mut(module_addr).add_type(fun_ty);
+        for rec in type_section.entries_mut().drain(..) {
+            for sub_ty in &rec.tys {
+                match &sub_ty.comp_ty {
+                    wasm::CompType::Func(fun_ty) => {
+                        rt.store
+                            .get_module_mut(module_addr)
+                            .add_type(fun_ty.clone());
+                    }
+                    _ => todo!(),
                 }
             }
         }

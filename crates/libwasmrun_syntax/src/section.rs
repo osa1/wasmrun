@@ -1,5 +1,5 @@
 use crate::{
-    io, name_section::NameSection, reloc_section::RelocSection, types::Type, CountedList,
+    io, name_section::NameSection, reloc_section::RelocSection, types::RecType, CountedList,
     DataSegment, Deserialize, ElementSegment, Error, ExportEntry, Func, FuncBody, GlobalEntry,
     ImportEntry, MemoryType, Table, VarUint32, VarUint7,
 };
@@ -197,18 +197,18 @@ impl Deserialize for CustomSection {
 
 /// Section with type declarations.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct TypeSection(Vec<Type>);
+pub struct TypeSection(Vec<RecType>);
 
 impl TypeSection {
-    pub fn with_entries(types: Vec<Type>) -> Self {
+    pub fn with_entries(types: Vec<RecType>) -> Self {
         TypeSection(types)
     }
 
-    pub fn entries(&self) -> &[Type] {
+    pub fn entries(&self) -> &[RecType] {
         &self.0
     }
 
-    pub fn entries_mut(&mut self) -> &mut Vec<Type> {
+    pub fn entries_mut(&mut self) -> &mut Vec<RecType> {
         &mut self.0
     }
 }
@@ -485,7 +485,10 @@ impl Deserialize for TagType {
 
 #[cfg(test)]
 mod tests {
-    use crate::{deserialize_buffer, deserialize_file, Section, Type, TypeSection, ValueType};
+    use crate::{
+        deserialize_buffer, deserialize_file, CompType, FunctionType, RecType, Section, SubType,
+        TypeSection, ValueType,
+    };
 
     #[test]
     fn import_section() {
@@ -563,20 +566,44 @@ mod tests {
 
     #[test]
     fn type_section_len() {
-        let type_section: TypeSection =
-            deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
+        let type_section: TypeSection = deserialize_buffer(&TYPE_PAYLOAD).unwrap();
 
         assert_eq!(type_section.entries().len(), 2);
     }
 
     #[test]
     fn type_section_infer() {
-        let type_section: TypeSection =
-            deserialize_buffer(&TYPE_PAYLOAD).expect("type_section be deserialized");
+        let type_section: TypeSection = deserialize_buffer(&TYPE_PAYLOAD).unwrap();
 
-        let Type::Function(t1) = &type_section.entries()[1];
-        assert_eq!(vec![ValueType::I64], t1.results());
-        assert_eq!(2, t1.params().len());
+        let entries: &[RecType] = type_section.entries();
+        assert_eq!(entries.len(), 2);
+
+        let rec_tys: &[SubType] = &entries[0].tys;
+        assert_eq!(rec_tys.len(), 1);
+
+        assert_eq!(
+            rec_tys[0],
+            SubType {
+                final_: true,
+                supers: vec![],
+                comp_ty: CompType::Func(FunctionType::new(vec![ValueType::I64], vec![])),
+            }
+        );
+
+        let rec_tys: &[SubType] = &entries[1].tys;
+        assert_eq!(rec_tys.len(), 1);
+
+        assert_eq!(
+            rec_tys[0],
+            SubType {
+                final_: true,
+                supers: vec![],
+                comp_ty: CompType::Func(FunctionType::new(
+                    vec![ValueType::I64, ValueType::F32],
+                    vec![ValueType::I64]
+                )),
+            }
+        );
     }
 
     #[test]
@@ -594,8 +621,7 @@ mod tests {
             0x01, 0x46, 0x01, 0x02, // func "F", index 2
         ];
 
-        let section: Section =
-            deserialize_buffer(&export_payload).expect("section to be deserialized");
+        let section: Section = deserialize_buffer(&export_payload).unwrap();
 
         assert!(
             matches!(section, Section::Export(_)),
@@ -630,8 +656,7 @@ mod tests {
             0x0B, // end expr
         ];
 
-        let section: Section =
-            deserialize_buffer(&code_payload).expect("section to be deserialized");
+        let section: Section = deserialize_buffer(&code_payload).unwrap();
 
         assert!(
             matches!(section, Section::Code(_)),
@@ -654,8 +679,7 @@ mod tests {
 
     #[test]
     fn data_section_detect() {
-        let section: Section =
-            deserialize_buffer(data_payload()).expect("section to be deserialized");
+        let section: Section = deserialize_buffer(data_payload()).unwrap();
 
         assert!(
             matches!(section, Section::Data(_)),

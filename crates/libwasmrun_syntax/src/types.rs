@@ -1,79 +1,158 @@
 #![allow(unused)] // temporary while implementing GC stuff
 
-use crate::{io, CountedList, Deserialize, Error, VarInt32, VarUint7};
+use crate::{io, CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
 
 use std::fmt;
 
-/// A type definition in a types section. (pre-GC version)
-#[derive(Debug, Clone, PartialEq, Hash, Eq)]
-pub enum Type {
-    Function(FunctionType),
+/// An entry in a types section, defining a set of recursive types. (GC version)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RecType {
+    pub tys: Vec<SubType>,
 }
 
-impl Deserialize for Type {
+impl Deserialize for RecType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        Ok(Type::Function(FunctionType::deserialize(reader)?))
+        let form: u8 = VarUint7::deserialize(reader)?.into();
+        match form {
+            0x4E => {
+                let tys: Vec<SubType> = CountedList::deserialize(reader)?.into_inner();
+                Ok(RecType { tys })
+            }
+            other => {
+                let ty: SubType = SubType::deserialize_val(other, reader)?;
+                Ok(RecType { tys: vec![ty] })
+            }
+        }
     }
 }
 
-/// An entry in a types section, defining a set of recursive types. (GC version)
-#[derive(Debug, Clone)]
-pub struct DefType {
-    rec: Vec<SubType>,
-}
-
 /// A single type in a recursion group, possibly a subtype of others.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SubType {
     /// Whether the type is final. Final types can't have subtypes.
-    final_: bool,
+    pub final_: bool,
 
     /// Type indices of the type's super types.
     ///
     /// Note: In the MVP GC spec at most one super type is allowed.
-    supers: Vec<u32>,
+    pub supers: Vec<u32>,
 
     /// The type.
-    ty: CompType,
+    pub comp_ty: CompType,
+}
+
+impl Deserialize for SubType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let form: u8 = VarUint7::deserialize(reader)?.into();
+        SubType::deserialize_val(form, reader)
+    }
+}
+
+impl SubType {
+    fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
+        match val {
+            0x50 => {
+                let supers: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
+                    .into_inner()
+                    .into_iter()
+                    .map(|i| i.into())
+                    .collect();
+
+                let comp_ty = CompType::deserialize(reader)?;
+
+                Ok(SubType {
+                    final_: false,
+                    supers,
+                    comp_ty,
+                })
+            }
+
+            0x4F => {
+                let supers: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
+                    .into_inner()
+                    .into_iter()
+                    .map(|i| i.into())
+                    .collect();
+
+                let comp_ty = CompType::deserialize(reader)?;
+
+                Ok(SubType {
+                    final_: true,
+                    supers,
+                    comp_ty,
+                })
+            }
+
+            other => {
+                let comp_ty = CompType::deserialize_val(other, reader)?;
+                Ok(SubType {
+                    final_: true,
+                    supers: vec![],
+                    comp_ty,
+                })
+            }
+        }
+    }
 }
 
 /// A composite type.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CompType {
     Func(FunctionType),
     Struct(StructType),
     Array(ArrayType),
 }
 
-#[derive(Debug, Clone)]
+impl Deserialize for CompType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let form: u8 = VarUint7::deserialize(reader)?.into();
+        CompType::deserialize_val(form, reader)
+    }
+}
+
+impl CompType {
+    fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
+        match val {
+            0x5e => todo!("Array comptype"),
+
+            0x5f => todo!("Struct comptype"),
+
+            0x60 => Ok(CompType::Func(FunctionType::deserialize(reader)?)),
+
+            other => todo!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructType {
     fields: Vec<FieldType>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ArrayType {
     field: FieldType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldType {
     mutability: Mutability,
     storage_ty: StorageType,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mutability {
     Mutable,
     Immutable,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StorageType {
     Val(ValueType),
     Packed(PackedType),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PackedType {
     I8,
     I16,
@@ -275,15 +354,8 @@ impl FunctionType {
 
 impl Deserialize for FunctionType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let form: u8 = VarUint7::deserialize(reader)?.into();
-
-        if form != 0x60 {
-            return Err(Error::UnknownFunctionForm(form));
-        }
-
         let params: Vec<ValueType> = CountedList::deserialize(reader)?.into_inner();
         let results: Vec<ValueType> = CountedList::deserialize(reader)?.into_inner();
-
         Ok(FunctionType { params, results })
     }
 }

@@ -452,10 +452,7 @@ impl Module {
 
         for i in 0..self.sections.len() {
             if let Some(name_section) = {
-                let section = self
-                    .sections
-                    .get(i)
-                    .expect("cannot fail because i in range 0..len; qed");
+                let section = &self.sections[i];
                 if let Section::Custom(custom) = section {
                     if custom.name() == "name" {
                         let mut rdr = custom.payload();
@@ -479,11 +476,7 @@ impl Module {
                 }
             } {
                 // todo: according to the spec a Wasm binary can contain only one name section
-                *self
-                    .sections
-                    .get_mut(i)
-                    .expect("cannot fail because i in range 0..len; qed") =
-                    Section::Name(name_section);
+                self.sections[i] = Section::Name(name_section);
             }
         }
 

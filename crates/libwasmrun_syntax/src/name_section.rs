@@ -1,4 +1,4 @@
-use crate::{index_map::IndexMap, io, Deserialize, Error, Module, Type, VarUint32, VarUint7};
+use crate::{index_map::IndexMap, io, CompType, Deserialize, Error, Module, VarUint32, VarUint7};
 
 const NAME_TYPE_MODULE: u8 = 0;
 const NAME_TYPE_FUNCTION: u8 = 1;
@@ -201,9 +201,13 @@ impl LocalNameSubsection {
             .map(|ts| {
                 ts.entries()
                     .iter()
-                    .map(|x| {
-                        let Type::Function(func) = x;
-                        func.params().len()
+                    .map(|rec_ty| {
+                        for sub_ty in &rec_ty.tys {
+                            if let CompType::Func(func) = &sub_ty.comp_ty {
+                                return func.params().len();
+                            }
+                        }
+                        0
                     })
                     .max()
                     .unwrap_or(0)
