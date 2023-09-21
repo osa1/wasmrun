@@ -378,8 +378,8 @@ pub enum Instruction {
     RefTestNull(HeapType),
     RefCast(HeapType),
     RefCastNull(HeapType),
-    BrOnCast,
-    BrOnCastFail,
+    BrOnCast(bool, bool, u32, HeapType, HeapType), // first null, second null, label idx
+    BrOnCastFail(bool, bool, u32, HeapType, HeapType), // first null, second null, label idx
     ExternInternalize,
     ExternExternalize,
     RefI31,
@@ -2153,8 +2153,39 @@ fn deserialize_gc<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         REF_TEST_NULL => RefTestNull(HeapType::deserialize(reader)?),
         REF_CAST => RefCast(HeapType::deserialize(reader)?),
         REF_CAST_NULL => RefCastNull(HeapType::deserialize(reader)?),
-        // TODO: BR_ON_CAST
-        // TODO: BR_ON_CAST_FAIL
+        BR_ON_CAST => {
+            let flags = u8::deserialize(reader)?;
+            let (first_null, second_null) = match flags {
+                0 => (false, false),
+                1 => (true, false),
+                2 => (false, true),
+                3 => (true, true),
+                other => return Err(Error::Other(format!("Invalid br_on_cast flag: {}", other))),
+            };
+            let label_idx = VarUint32::deserialize(reader)?.into();
+            let ht1 = HeapType::deserialize(reader)?;
+            let ht2 = HeapType::deserialize(reader)?;
+            BrOnCast(first_null, second_null, label_idx, ht1, ht2)
+        }
+        BR_ON_CAST_FAIL => {
+            let flags = u8::deserialize(reader)?;
+            let (first_null, second_null) = match flags {
+                0 => (false, false),
+                1 => (true, false),
+                2 => (false, true),
+                3 => (true, true),
+                other => {
+                    return Err(Error::Other(format!(
+                        "Invalid br_on_cast_fail flag: {}",
+                        other
+                    )))
+                }
+            };
+            let label_idx = VarUint32::deserialize(reader)?.into();
+            let ht1 = HeapType::deserialize(reader)?;
+            let ht2 = HeapType::deserialize(reader)?;
+            BrOnCastFail(first_null, second_null, label_idx, ht1, ht2)
+        }
         EXTERN_INTERNALIZE => ExternInternalize,
         EXTERN_EXTERNALIZE => ExternExternalize,
         REF_I31 => RefI31,
@@ -2472,8 +2503,8 @@ impl fmt::Display for Instruction {
             RefTestNull(_) => todo!(),
             RefCast(_) => todo!(),
             RefCastNull(_) => todo!(),
-            BrOnCast => todo!(),
-            BrOnCastFail => todo!(),
+            BrOnCast(_, _, _, _, _) => todo!(),
+            BrOnCastFail(_, _, _, _, _) => todo!(),
             ExternInternalize => todo!(),
             ExternExternalize => todo!(),
             RefI31 => todo!(),

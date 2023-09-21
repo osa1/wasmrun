@@ -3019,8 +3019,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         | Instruction::RefTestNull(_)
         | Instruction::RefCast(_)
         | Instruction::RefCastNull(_)
-        | Instruction::BrOnCast
-        | Instruction::BrOnCastFail
+        | Instruction::BrOnCast(_, _, _, _, _)
+        | Instruction::BrOnCastFail(_, _, _, _, _)
         | Instruction::ExternInternalize
         | Instruction::ExternExternalize
         | Instruction::RefI31
