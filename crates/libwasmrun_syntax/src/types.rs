@@ -113,9 +113,9 @@ impl Deserialize for CompType {
 impl CompType {
     fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
         match val {
-            0x5e => todo!("Array comptype"),
+            0x5e => Ok(CompType::Array(ArrayType::deserialize(reader)?)),
 
-            0x5f => todo!("Struct comptype"),
+            0x5f => Ok(CompType::Struct(StructType::deserialize(reader)?)),
 
             0x60 => Ok(CompType::Func(FunctionType::deserialize(reader)?)),
 
@@ -129,9 +129,23 @@ pub struct StructType {
     fields: Vec<FieldType>,
 }
 
+impl Deserialize for StructType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let fields: Vec<FieldType> = CountedList::<FieldType>::deserialize(reader)?.into_inner();
+        Ok(StructType { fields })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ArrayType {
     field: FieldType,
+}
+
+impl Deserialize for ArrayType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let field = FieldType::deserialize(reader)?;
+        Ok(ArrayType { field })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -140,16 +154,54 @@ pub struct FieldType {
     storage_ty: StorageType,
 }
 
+impl Deserialize for FieldType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let storage_ty = StorageType::deserialize(reader)?;
+        let mutability = Mutability::deserialize(reader)?;
+        Ok(FieldType {
+            mutability,
+            storage_ty,
+        })
+    }
+}
+
+// TODO: Use this type in `GlobalType`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mutability {
     Mutable,
     Immutable,
 }
 
+impl Deserialize for Mutability {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        match u8::deserialize(reader)? {
+            0x00 => Ok(Mutability::Immutable),
+            0x01 => Ok(Mutability::Mutable),
+            _ => todo!(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StorageType {
     Val(ValueType),
     Packed(PackedType),
+}
+
+impl Deserialize for StorageType {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let val: u8 = VarUint7::deserialize(reader)?.into();
+        match val {
+            0x78 => Ok(StorageType::Packed(PackedType::I8)),
+
+            0x77 => Ok(StorageType::Packed(PackedType::I16)),
+
+            other => {
+                // TODO: Convert error vlaue
+                Ok(StorageType::Val(ValueType::deserialize_val(other, reader)?))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -181,7 +233,13 @@ pub enum ValueType {
 
 impl Deserialize for ValueType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        let val = VarUint7::deserialize(reader)?;
+        let val = VarUint7::deserialize(reader)?.into();
+        ValueType::deserialize_val(val, reader)
+    }
+}
+
+impl ValueType {
+    fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
         match val.into() {
             // -0x01
             0x7f => Ok(ValueType::I32),
