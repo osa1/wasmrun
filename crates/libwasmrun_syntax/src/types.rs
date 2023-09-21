@@ -104,10 +104,19 @@ impl Deserialize for ValueType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = VarUint7::deserialize(reader)?;
         match val.into() {
+            // -0x01
             0x7f => Ok(ValueType::I32),
+
+            // -0x02
             0x7e => Ok(ValueType::I64),
+
+            // -0x03
             0x7d => Ok(ValueType::F32),
+
+            // -0x04
             0x7c => Ok(ValueType::F64),
+
+            // -0x05
             0x7b => Ok(ValueType::V128),
 
             // TODO: duplicate reftype parsing
@@ -184,24 +193,33 @@ impl Deserialize for BlockType {
         match val.into() {
             -0x40 => Ok(BlockType::Empty),
             // TODO: Duplicate valtype parsing
+            // 0x7f
             -0x01 => Ok(BlockType::Value(ValueType::I32)),
+
+            // 0x7e
             -0x02 => Ok(BlockType::Value(ValueType::I64)),
+
+            // 0x7d
             -0x03 => Ok(BlockType::Value(ValueType::F32)),
+
+            // 0x7c
             -0x04 => Ok(BlockType::Value(ValueType::F64)),
+
+            // 0x7b
             -0x05 => Ok(BlockType::Value(ValueType::V128)),
 
             // TODO: duplicate reftype parsing
-            // -0x10
+            // -0x70
             -0x10 => Ok(BlockType::Value(ValueType::Reference(
                 ReferenceType::funcref(),
             ))),
 
-            // -0x11
+            // -0x6f
             -0x11 => Ok(BlockType::Value(ValueType::Reference(
                 ReferenceType::externref(),
             ))),
 
-            // -0x1D
+            // -0x63
             -0x1D => {
                 let heap_ty = HeapType::deserialize(reader)?;
                 Ok(BlockType::Value(ValueType::Reference(ReferenceType {
@@ -210,7 +228,7 @@ impl Deserialize for BlockType {
                 })))
             }
 
-            // -0x1C
+            // -0x64
             -0x1C => {
                 let heap_ty = HeapType::deserialize(reader)?;
                 Ok(BlockType::Value(ValueType::Reference(ReferenceType {
@@ -369,26 +387,50 @@ impl Deserialize for ReferenceType {
 impl ReferenceType {
     pub(crate) fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val {
+            // -0x0D
+            0x73 => Ok(ReferenceType::nullfuncref()),
+
+            // -0x0E
+            0x72 => Ok(ReferenceType::nullexternref()),
+
+            // -0x0F
+            0x71 => Ok(ReferenceType::nullref()),
+
             // -0x10
             0x70 => Ok(ReferenceType::funcref()),
 
             // -0x11
             0x6F => Ok(ReferenceType::externref()),
 
-            // -0x1D
-            0x63 => {
-                let heap_ty = HeapType::deserialize(reader)?;
-                Ok(ReferenceType {
-                    nullable: true,
-                    heap_ty,
-                })
-            }
+            // -0x12
+            0x6E => Ok(ReferenceType::anyref()),
+
+            // -0x13
+            0x6D => Ok(ReferenceType::eqref()),
+
+            // -0x14
+            0x6C => Ok(ReferenceType::i31ref()),
+
+            // -0x15
+            0x6B => Ok(ReferenceType::structref()),
+
+            // -0x16
+            0x6A => Ok(ReferenceType::arrayref()),
 
             // -0x1C
             0x64 => {
                 let heap_ty = HeapType::deserialize(reader)?;
                 Ok(ReferenceType {
                     nullable: false,
+                    heap_ty,
+                })
+            }
+
+            // -0x1D
+            0x63 => {
+                let heap_ty = HeapType::deserialize(reader)?;
+                Ok(ReferenceType {
+                    nullable: true,
                     heap_ty,
                 })
             }
@@ -451,9 +493,43 @@ impl Deserialize for HeapType {
         let val = VarInt32::deserialize(reader)?.into();
 
         Ok(match val {
-            -0x11 => HeapType::Extern,
+            // 0x73
+            -0x0d => HeapType::NoFunc,
+
+            // 0x72
+            -0x0e => HeapType::NoExtern,
+
+            // 0x71
+            -0x0f => HeapType::None,
+
+            // 0x70
             -0x10 => HeapType::Func,
-            other => HeapType::TypeIdx(other as u32),
+
+            // 0x6f
+            -0x11 => HeapType::Extern,
+
+            // 0x6e
+            -0x12 => HeapType::Any,
+
+            // 0x6d
+            -0x13 => HeapType::Eq,
+
+            // 0x6c
+            -0x14 => HeapType::I31,
+
+            // 0x6b
+            -0x15 => HeapType::Struct,
+
+            // 0x6a
+            -0x16 => HeapType::Array,
+
+            other => {
+                let idx = match u32::try_from(other) {
+                    Ok(idx) => idx,
+                    Err(_) => return Err(Error::InvalidHeapType(other)),
+                };
+                HeapType::TypeIdx(idx)
+            }
         })
     }
 }

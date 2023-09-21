@@ -152,6 +152,8 @@ pub enum Error {
     /// Unknown element kind.
     UnknownElementKind(u8),
 
+    InvalidHeapType(i32),
+
     InvalidTagAttribute(u8),
 }
 
@@ -196,6 +198,7 @@ impl fmt::Display for Error {
             Error::UnknownNameSubsectionType(n) => write!(f, "Unknown subsection type: {}", n),
             Error::UnknownReferenceType(n) => write!(f, "Unknown reference type: {}", n),
             Error::UnknownElementKind(n) => write!(f, "Unknown element kind: {}", n),
+            Error::InvalidHeapType(n) => write!(f, "Invalid heap type: {}", n),
             Error::InvalidTagAttribute(n) => write!(f, "Invalid tag attribute: {}", n),
         }
     }
@@ -237,6 +240,7 @@ impl std::error::Error for Error {
             Error::UnknownNameSubsectionType(_) => "Unknown name subsections type",
             Error::UnknownReferenceType(_) => "Unknown reference type",
             Error::UnknownElementKind(_) => "Unknown element kind",
+            Error::InvalidHeapType(_) => "Invalid heap type",
             Error::InvalidTagAttribute(_) => "Invalid tag attribute",
         }
     }
