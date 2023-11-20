@@ -39,8 +39,8 @@ enum Error {
     /// An "assert trap" test failed with unexpected error
     AssertTrapUnexpectedError(Box<Error>),
 
-    /// Test used stuff from Wasm component proposal. We skip these for now.
-    ComponentStuff,
+    /// Test used stuff we don't support yet, such as components and threads.
+    UnsupportedStuff,
 
     /// Can't pop return value of an invocation. Execution probably pushed less number of values
     /// than expected.
@@ -154,7 +154,7 @@ impl<'a> TestFileRunner<'a> {
                     for result in results {
                         match result {
                             wast::WastRet::Core(value) => expected_vals.push(value),
-                            wast::WastRet::Component(_) => return Err(Error::ComponentStuff),
+                            wast::WastRet::Component(_) => return Err(Error::UnsupportedStuff),
                         }
                     }
 
@@ -186,7 +186,7 @@ impl<'a> TestFileRunner<'a> {
                     let module_addr = self.get_module_addr(&module)?;
                     let expected_val = match &results[0] {
                         wast::WastRet::Core(val) => val,
-                        wast::WastRet::Component(_) => return Err(Error::ComponentStuff),
+                        wast::WastRet::Component(_) => return Err(Error::UnsupportedStuff),
                     };
                     match self.rt.get_global(module_addr, global) {
                         Some(value) => {
@@ -219,6 +219,8 @@ impl<'a> TestFileRunner<'a> {
 
                 Ok(())
             }
+
+            WastDirective::Thread(_) | WastDirective::Wait { .. } => Err(Error::UnsupportedStuff),
         }
     }
 
@@ -231,7 +233,7 @@ impl<'a> TestFileRunner<'a> {
             ),
             QuoteWat::QuoteModule(span, _) => (*span, None, module.encode().unwrap()),
             QuoteWat::QuoteComponent(_, _) | QuoteWat::Wat(Wat::Component(_)) => {
-                return Err(Error::ComponentStuff);
+                return Err(Error::UnsupportedStuff);
             }
         };
 
@@ -247,7 +249,7 @@ impl<'a> TestFileRunner<'a> {
     fn run_wat_directive(&mut self, module: &mut Wat) -> Result<()> {
         let module = match module {
             Wat::Module(module) => module,
-            Wat::Component(_) => return Err(Error::ComponentStuff),
+            Wat::Component(_) => return Err(Error::UnsupportedStuff),
         };
 
         let _span = module.span;
@@ -316,7 +318,7 @@ impl<'a> TestFileRunner<'a> {
     fn eval_value(&mut self, value: &WastArg) -> Result<Value> {
         match value {
             WastArg::Core(value) => self.eval_value_(value),
-            WastArg::Component(_) => Err(Error::ComponentStuff),
+            WastArg::Component(_) => Err(Error::UnsupportedStuff),
         }
     }
 
@@ -380,9 +382,10 @@ impl<'a> TestFileRunner<'a> {
                 | wast::core::HeapType::Struct
                 | wast::core::HeapType::Array
                 | wast::core::HeapType::I31
-                | wast::core::HeapType::Index(_)
                 | wast::core::HeapType::NoFunc
                 | wast::core::HeapType::NoExtern
+                | wast::core::HeapType::Exn
+                | wast::core::HeapType::Concrete(_)
                 | wast::core::HeapType::None => todo!(),
             },
 
@@ -589,5 +592,7 @@ fn directive_span(directive: &WastDirective) -> Span {
         WastDirective::AssertExhaustion { span, .. } => *span,
         WastDirective::AssertUnlinkable { span, .. } => *span,
         WastDirective::AssertException { span, .. } => *span,
+        WastDirective::Thread(wast::WastThread { span, .. }) => *span,
+        WastDirective::Wait { span, .. } => *span,
     }
 }
