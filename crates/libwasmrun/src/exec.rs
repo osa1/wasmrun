@@ -1727,7 +1727,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         Instruction::I32WrapI64 => {
-            op1::<i64, i32, _>(rt, |i| (i % 2i64.pow(32)) as i32)?;
+            op1::<i64, i32, _>(rt, |i| i as i32)?;
         }
 
         Instruction::I32RemS => {
