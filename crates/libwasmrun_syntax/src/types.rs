@@ -263,6 +263,9 @@ impl ValueType {
             // -0x11
             0x6F => Ok(ValueType::Reference(ReferenceType::externref())),
 
+            // -0x17
+            0x69 => Ok(ValueType::Reference(ReferenceType::exnref())),
+
             // -0x1D
             0x63 => {
                 let heap_ty = HeapType::deserialize(reader)?;
@@ -353,6 +356,11 @@ impl Deserialize for BlockType {
 
             // -0x6f
             -0x11 => Ok(BlockType::Value(ValueType::Reference(
+                ReferenceType::externref(),
+            ))),
+
+            // -0x69
+            -0x17 => Ok(BlockType::Value(ValueType::Reference(
                 ReferenceType::externref(),
             ))),
 
@@ -447,6 +455,14 @@ impl ReferenceType {
         ReferenceType {
             nullable: true,
             heap_ty: HeapType::Extern,
+        }
+    }
+
+    /// `ref null exn`: nullable top type of all exception types.
+    pub fn exnref() -> Self {
+        ReferenceType {
+            nullable: true,
+            heap_ty: HeapType::Exn,
         }
     }
 
@@ -547,6 +563,9 @@ impl ReferenceType {
             // -0x16
             0x6A => Ok(ReferenceType::arrayref()),
 
+            // -0x17
+            0x69 => Ok(ReferenceType::exnref()),
+
             // -0x1C
             0x64 => {
                 let heap_ty = HeapType::deserialize(reader)?;
@@ -589,6 +608,9 @@ pub enum HeapType {
 
     /// The bottom type for all internal types.
     None,
+
+    /// The top type for all exception types.
+    Exn,
 
     /// The top type for all extern types.
     Extern,
@@ -653,6 +675,9 @@ impl Deserialize for HeapType {
             // 0x6a
             -0x16 => HeapType::Array,
 
+            // 0x69
+            -0x17 => HeapType::Exn,
+
             other => {
                 let idx = match u32::try_from(other) {
                     Ok(idx) => idx,
@@ -669,6 +694,7 @@ impl fmt::Display for HeapType {
         match self {
             HeapType::Any => write!(f, "any"),
             HeapType::None => write!(f, "none"),
+            HeapType::Exn => write!(f, "exn"),
             HeapType::Extern => write!(f, "extern"),
             HeapType::NoExtern => write!(f, "noextern"),
             HeapType::Func => write!(f, "func"),

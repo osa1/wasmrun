@@ -507,7 +507,8 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
             (None, _) => true,
             (Some(HeapType::Func), wasm::HeapType::Func) => true,
             (Some(HeapType::Extern), wasm::HeapType::Extern) => true,
-            (_, _) => todo!(),
+            (Some(HeapType::Exn), wasm::HeapType::Exn) => true,
+            (_, _) => todo!("test_val(expected={:?}, found={:?})", expected, found),
         },
 
         (WastRetCore::RefFunc(Some(Index::Num(idx, _span))), Value::Ref(Ref::Func(addr))) => {

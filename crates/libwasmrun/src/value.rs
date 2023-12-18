@@ -1,6 +1,6 @@
 #![allow(clippy::unusual_byte_groupings)]
 
-use crate::store::{ExternAddr, FunAddr};
+use crate::store::{ExnAddr, ExternAddr, FunAddr};
 
 use libwasmrun_syntax as wasm;
 
@@ -20,6 +20,7 @@ pub enum Value {
 pub enum Ref {
     Null(wasm::HeapType),
     Func(FunAddr),
+    Exn(ExnAddr),
     Extern(ExternAddr),
 }
 
@@ -27,7 +28,7 @@ impl Ref {
     pub fn is_null(&self) -> bool {
         match self {
             Ref::Null(_) => true,
-            Ref::Func(_) | Ref::Extern(_) => false,
+            Ref::Func(_) | Ref::Exn(_) | Ref::Extern(_) => false,
         }
     }
 }

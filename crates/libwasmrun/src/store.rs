@@ -19,6 +19,9 @@ pub struct ModuleAddr(u32);
 pub struct FunAddr(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ExnAddr(pub u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExternAddr(pub u32);
 
 #[derive(Debug, Clone, Copy)]

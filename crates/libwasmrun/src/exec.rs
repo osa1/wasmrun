@@ -2489,7 +2489,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::CallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) => exec_panic!("call_ref: extern ref"),
+                Ref::Extern(_) | Ref::Exn(_) => exec_panic!("call_ref: extern or exn ref"),
                 Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
             };
@@ -2502,7 +2502,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::ReturnCallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) => exec_panic!("call_ref: extern ref"),
+                Ref::Extern(_) | Ref::Exn(_) => exec_panic!("call_ref: extern or exn ref"),
                 Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
             };
@@ -3138,8 +3138,9 @@ fn get_fun_addr_from_table(
     match rt.store.get_table(table_addr).get(elem_idx as usize) {
         Some(Ref::Func(fun_addr)) => Ok(*fun_addr),
         Some(Ref::Null(_ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
-        Some(Ref::Extern(_extern_addr)) => {
+        Some(Ref::Extern(_) | Ref::Exn(_)) => {
             // TODO: Check table type to help with debugging
+            // TODO: Incorrect trap kind.
             Err(ExecError::Trap(Trap::CallIndirectOnExternRef))
         }
         None => Err(ExecError::Trap(Trap::UndefinedElement)),
