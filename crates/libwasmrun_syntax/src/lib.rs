@@ -31,8 +31,8 @@ pub use self::{
         FunctionNameSubsection, LocalNameSubsection, ModuleNameSubsection, NameMap, NameSection,
     },
     ops::{
-        AtomicsInstruction, BrTableData, InitExpr, Instruction, Instructions, MemArg,
-        SignExtInstruction, SimdInstruction,
+        AtomicsInstruction, BrTableData, CatchKind, InitExpr, Instruction, Instructions, MemArg,
+        SignExtInstruction, SimdInstruction, TryTableData,
     },
     reloc_section::{RelocSection, RelocationEntry},
     section::{

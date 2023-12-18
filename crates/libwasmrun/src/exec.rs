@@ -6,12 +6,13 @@ use crate::collections::Map;
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
+use crate::heap::{Exception, ExnAddr, Heap};
 use crate::mem::Mem;
 use crate::module::{
     DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
 };
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{FunAddr, Global, ModuleAddr, Store, Table, TagAddr};
+use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
 use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
@@ -93,49 +94,42 @@ impl fmt::Display for Trap {
 }
 
 pub struct Runtime {
-    /// The heap
+    /// Stores modules, functions, tables etc.
     pub store: Store,
 
-    /// Value and continuation stack
+    /// The heap. Currently only stores exceptions.
+    pub heap: Heap,
+
+    /// Value and continuation stack.
     pub(crate) stack: Stack,
 
     /// Call stack. Frames hold locals.
     pub(crate) frames: FrameStack,
 
-    /// WASI state
+    /// WASI state.
     pub(crate) wasi_ctx: WasiCtx,
 
-    /// Maps registered modules to their module addresses
+    /// Maps registered modules to their module addresses.
     module_names: Map<String, ModuleAddr>,
 
-    /// Instruction pointer in the current function
+    /// Instruction pointer in the current function.
     ip: u32,
 
-    /// Stack of exceptions that can be re-thrown with a `rethrow` instruction in `catch` blocks.
-    /// One exception per nested `catch`.
-    // TODO: Maybe add an `Exception` field to `BlockKind::Catch`?
-    exceptions: Vec<Exception>,
-}
-
-#[derive(Debug)]
-pub struct Exception {
-    /// Address of the exception in the store.
-    addr: TagAddr,
-
-    /// Arguments of the exception. Used by `throw` blocks.
-    args: Vec<Value>,
+    /// The exception when the execution ends with an unhandled exception.
+    pub unhandled_exception: Option<ExnAddr>,
 }
 
 impl Runtime {
     pub fn new() -> Self {
         Runtime {
             store: Default::default(),
+            heap: Default::default(),
             stack: Default::default(),
             frames: Default::default(),
             wasi_ctx: WasiCtx::new(iter::empty::<String>()).unwrap(),
             module_names: Default::default(),
             ip: Default::default(),
-            exceptions: Vec::new(),
+            unhandled_exception: None,
         }
     }
 
@@ -203,10 +197,6 @@ impl Runtime {
 
     pub fn push_value(&mut self, value: Value) {
         self.stack.push_value(value).unwrap()
-    }
-
-    pub fn pop_exception(&mut self) -> Option<Exception> {
-        self.exceptions.pop()
     }
 
     pub fn register_module(&mut self, name: String, module_addr: ModuleAddr) {
@@ -2900,7 +2890,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Exception handling instructions
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::Try(block_ty) => {
+        Instruction::TryTable(block_ty, try_table) => {
             // Same as 'block'
             let (n_args, n_rets) = block_arity(rt, module_addr, block_ty);
             let mut args = Vec::with_capacity(n_args as usize);
@@ -2908,12 +2898,13 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 args.push(rt.stack.pop_value()?);
             }
 
-            let end_ip = match current_fun.try_to_catch.get(&rt.ip) {
+            let end_ip = match current_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of block"),
-                Some(conts) => conts.last().unwrap(),
+                Some(cont) => cont,
             };
 
-            rt.stack.push_try(rt.ip, end_ip + 1, n_args, n_rets);
+            rt.stack
+                .push_try(try_table.clone(), end_ip + 1, n_args, n_rets);
 
             for arg in args.into_iter().rev() {
                 rt.stack.push_value(arg)?;
@@ -2922,38 +2913,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
-        Instruction::Catch(_) | Instruction::CatchAll | Instruction::Delegate(_) => {
-            // Same as 'end'
-            let return_arity = rt.stack.return_arity(0, EndOrBreak::End)?;
-            let mut vals = Vec::with_capacity(return_arity as usize);
-            for _ in 0..return_arity {
-                vals.push(rt.stack.pop_value()?);
-            }
-
-            let Block { kind, cont, .. } = rt.stack.pop_block()?;
-
-            for val in vals.into_iter().rev() {
-                rt.stack.push_value(val)?;
-            }
-
-            // The previous block should be either a `try` block or a previous `catch`
-            match kind {
-                BlockKind::Try { ip } => {
-                    let cont = match current_fun.try_to_catch.get(&ip) {
-                        Some(conts) => conts.last().unwrap() + 1,
-                        None => exec_panic!("`try` instruction continuation missing"),
-                    };
-                    rt.ip = cont;
-                }
-                BlockKind::Catch => {
-                    rt.ip = cont;
-                }
-                _ => exec_panic!("`catch` instruction outside `try`"),
-            };
-        }
-
         Instruction::Throw(tag_idx) => {
-            // Pop blocks until we find a `try` block with a catch block for the tag or a catch-all
+            // Pop blocks until we find a `try` block with a catch block for the tag or a
+            // catch-all.
             let exception_tag_addr = rt.store.get_module(module_addr).get_tag(TagIdx(tag_idx));
             let exception_tag = rt.store.get_tag(exception_tag_addr);
             let exception_n_args = exception_tag.ty.params().len();
@@ -2963,25 +2925,31 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 exception_args.push(rt.stack.pop_value()?);
             }
 
-            throw(
-                rt,
-                Exception {
-                    addr: exception_tag_addr,
-                    args: exception_args,
-                },
-            )?;
+            let exn_addr = rt.heap.allocate_exn(Exception {
+                addr: exception_tag_addr,
+                args: exception_args,
+            });
+
+            throw(rt, exn_addr)?;
         }
 
-        Instruction::Rethrow(n_blocks) => {
-            for _ in 1..n_blocks {
-                let block = rt.stack.pop_block().unwrap();
-                if block.kind == BlockKind::Catch {
-                    rt.exceptions.pop().unwrap();
-                }
+        Instruction::ThrowRef => {
+            let ref_ = rt.stack.pop_ref()?;
+            if ref_.is_null() {
+                return Err(ExecError::Trap(Trap::NullReference));
             }
 
-            let exc = rt.exceptions.pop().unwrap();
-            throw(rt, exc)?;
+            let exn_addr = match ref_ {
+                Ref::Null(_) => {
+                    return Err(ExecError::Trap(Trap::NullReference));
+                }
+                Ref::Func(_) | Ref::Extern(_) => {
+                    return Err(ExecError::Trap(Trap::NullReference)); // FIXME: trap kind
+                }
+                Ref::Exn(exn_addr) => exn_addr,
+            };
+
+            throw(rt, exn_addr)?;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -3031,7 +2999,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     Ok(())
 }
 
-fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
+fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
     let mut current_fun_addr = rt.frames.current().unwrap().fun_addr;
 
     let mut current_fun = match &rt.store.get_fun(current_fun_addr) {
@@ -3040,15 +3008,15 @@ fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
     };
 
     'unwind: while let Ok(block) = rt.stack.pop_block() {
-        let ip = match block.kind {
+        let try_table: wasm::TryTableData = match block.kind {
             BlockKind::Top => todo!("Uncaught exception"),
-            BlockKind::Block | BlockKind::Loop | BlockKind::Catch => continue,
+            BlockKind::Block | BlockKind::Loop => continue,
             BlockKind::Fun => {
                 rt.frames.pop();
                 current_fun_addr = match rt.frames.current() {
                     Ok(frame) => frame.fun_addr,
                     Err(_) => {
-                        rt.exceptions.push(exc);
+                        rt.unhandled_exception = Some(exn_addr);
                         return Ok(());
                     }
                 };
@@ -3058,66 +3026,90 @@ fn throw(rt: &mut Runtime, exc: Exception) -> Result<()> {
                 };
                 continue;
             }
-            BlockKind::Try { ip } => ip,
+            BlockKind::Try(table) => *table,
         };
 
-        let conts = match current_fun.try_to_catch.get(&ip) {
-            Some(conts) => conts,
-            None => exec_panic!("`try` instruction continuation missing"),
-        };
+        let exn = rt.heap.get_exn(exn_addr);
 
-        for block_idx in conts {
-            let instr = current_fun.fun.code().elements()[*block_idx as usize].clone();
-            match instr {
-                Instruction::Catch(catch_tag_idx) => {
-                    let catch_tag_addr = rt
+        for (catch_kind, n_blocks) in try_table.table.iter() {
+            match catch_kind {
+                wasm::CatchKind::Catch(tag_idx) => {
+                    let tag_addr = rt
                         .store
                         .get_module(current_fun.module_addr)
-                        .get_tag(TagIdx(catch_tag_idx));
+                        .get_tag(TagIdx(*tag_idx));
 
-                    if catch_tag_addr == exc.addr {
-                        // `try` block already popped, so no need to adjust the stack. Continue
-                        // with the `catch` block with empty stack.
-                        let cont = conts.last().unwrap() + 1;
+                    if tag_addr == exn.addr {
+                        // Pop blocks.
+                        for _ in 0..*n_blocks {
+                            let Block { kind, .. } = rt.stack.pop_block()?;
+                            assert!(kind != BlockKind::Fun);
+                        }
+                        let Block { cont, .. } = rt.stack.pop_block()?;
 
-                        // `catch` block takes exception arguments as arguments, and returns same
-                        // number of values as the `try` block
-                        rt.stack
-                            .push_catch(cont, exc.args.len() as u32, block.n_rets);
-
-                        for value in exc.args.iter().rev() {
+                        // Push tag values.
+                        for value in exn.args.iter().rev() {
                             rt.stack.push_value(*value)?;
                         }
 
-                        rt.ip = block_idx + 1;
-
-                        rt.exceptions.push(exc);
-
+                        rt.ip = cont;
                         break 'unwind;
                     }
                 }
 
-                Instruction::CatchAll => {
-                    // Similar to `catch`, but does not use exception arguments
-                    rt.exceptions.push(exc);
-                    rt.ip = block_idx + 1;
-                    break 'unwind;
-                }
+                wasm::CatchKind::CatchRef(tag_idx) => {
+                    let tag_addr = rt
+                        .store
+                        .get_module(current_fun.module_addr)
+                        .get_tag(TagIdx(*tag_idx));
 
-                Instruction::Delegate(n_blocks) => {
-                    for _ in 0..n_blocks {
-                        let block = rt.stack.pop_block().unwrap();
-                        if block.kind == BlockKind::Catch {
-                            rt.exceptions.pop().unwrap();
+                    if tag_addr == exn.addr {
+                        // Pop blocks.
+                        for _ in 0..*n_blocks {
+                            let Block { kind, .. } = rt.stack.pop_block()?;
+                            assert!(kind != BlockKind::Fun);
                         }
+                        let Block { cont, .. } = rt.stack.pop_block()?;
+
+                        // Push tag values.
+                        for value in exn.args.iter().rev() {
+                            rt.stack.push_value(*value)?;
+                        }
+
+                        // Push exnref.
+                        rt.stack.push_value(Value::Ref(Ref::Exn(exn_addr)))?;
+
+                        rt.ip = cont;
+                        break 'unwind;
                     }
-                    throw(rt, exc)?;
+                }
+
+                wasm::CatchKind::CatchAll => {
+                    // Pop blocks.
+                    for _ in 0..*n_blocks {
+                        let Block { kind, .. } = rt.stack.pop_block()?;
+                        assert!(kind != BlockKind::Fun);
+                    }
+                    let Block { cont, .. } = rt.stack.pop_block()?;
+
+                    rt.ip = cont;
                     break 'unwind;
                 }
 
-                Instruction::End => {}
+                wasm::CatchKind::CatchAllRef => {
+                    // Pop blocks.
+                    for _ in 0..*n_blocks {
+                        let Block { kind, .. } = rt.stack.pop_block()?;
+                        assert!(kind != BlockKind::Fun);
+                    }
+                    let Block { cont, .. } = rt.stack.pop_block()?;
 
-                other => exec_panic!("Invalid `try` continuation: {}", other),
+                    // Push exnref.
+                    rt.stack.push_value(Value::Ref(Ref::Exn(exn_addr)))?;
+
+                    rt.ip = cont;
+                    break 'unwind;
+                }
             }
         }
     }
@@ -3459,7 +3451,7 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
 
     match kind {
         BlockKind::Top => panic!(),
-        BlockKind::Block | BlockKind::Loop | BlockKind::Try { .. } | BlockKind::Catch => {
+        BlockKind::Block | BlockKind::Loop | BlockKind::Try { .. } => {
             rt.ip = cont;
         }
         BlockKind::Fun => {

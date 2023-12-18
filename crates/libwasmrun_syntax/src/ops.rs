@@ -28,49 +28,28 @@ impl Instructions {
 
 impl Deserialize for Instructions {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-        // All block types can end with `end`, but `try` can end with `delegate` in addition to
-        // `end`
-        enum BlockTerminator {
-            End,
-            EndOrDelegate,
-        }
-
         let mut instructions = Vec::new();
-        let mut block_terminators = Vec::new();
+        let mut depth: u32 = 1;
 
-        loop {
+        while depth != 0 {
             let instruction = Instruction::deserialize(reader)?;
 
-            let break_ = match instruction {
-                Instruction::Block(_) | Instruction::Loop(_) | Instruction::If(_) => {
-                    block_terminators.push(BlockTerminator::End);
-                    false
+            match instruction {
+                Instruction::Block(_)
+                | Instruction::Loop(_)
+                | Instruction::If(_)
+                | Instruction::TryTable(_, _) => {
+                    depth += 1;
                 }
 
-                Instruction::Try(_) => {
-                    block_terminators.push(BlockTerminator::EndOrDelegate);
-                    false
+                Instruction::End => {
+                    depth -= 1;
                 }
 
-                Instruction::End => block_terminators.pop().is_none(),
-
-                Instruction::Delegate(_) => {
-                    match block_terminators.pop() {
-                        // TODO: make this an error value
-                        Some(BlockTerminator::End) => panic!("Unexpected block terminator"),
-                        Some(BlockTerminator::EndOrDelegate) => false,
-                        None => true,
-                    }
-                }
-
-                _ => false,
-            };
+                _ => {}
+            }
 
             instructions.push(instruction);
-
-            if break_ {
-                break;
-            }
         }
 
         Ok(Instructions(instructions))
@@ -387,12 +366,9 @@ pub enum Instruction {
     I31GetU,
 
     // Exception handling instructions
-    Try(BlockType),
-    Catch(u32), // tag index
-    CatchAll,
-    Delegate(u32), // relative depth
-    Throw(u32),    // tag index
-    Rethrow(u32),  // relative depth
+    TryTable(BlockType, Box<TryTableData>),
+    Throw(u32), // tag
+    ThrowRef,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -758,21 +734,53 @@ pub struct BrTableData {
     pub default: u32,
 }
 
-impl Instruction {
-    /// Is this instruction starts the new block (which should end with terminal instruction).
-    pub fn is_block(&self) -> bool {
-        matches!(
-            self,
-            Instruction::Block(_) | Instruction::Loop(_) | Instruction::If(_) | Instruction::Try(_)
-        )
-    }
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct TryTableData {
+    pub table: Box<[(CatchKind, u32)]>, // (catch kind, label)
+}
 
-    /// Is this instruction determines the termination of instruction sequence?
-    ///
-    /// `true` for `Instruction::End`
-    pub fn is_terminal(&self) -> bool {
-        matches!(self, Instruction::End | Instruction::Delegate(_))
+impl Deserialize for TryTableData {
+    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        let table: Vec<(CatchKind, u32)> =
+            CountedList::<(CatchKind, u32)>::deserialize_with(reader, |reader| {
+                let op = u8::deserialize(reader)?;
+                use self::opcodes::*;
+                match op {
+                    CATCH => {
+                        let tag_idx: u32 = VarUint32::deserialize(reader)?.into();
+                        let label_idx: u32 = VarUint32::deserialize(reader)?.into();
+                        Ok((CatchKind::Catch(tag_idx), label_idx))
+                    }
+                    CATCH_REF => {
+                        let tag_idx: u32 = VarUint32::deserialize(reader)?.into();
+                        let label_idx: u32 = VarUint32::deserialize(reader)?.into();
+                        Ok((CatchKind::CatchRef(tag_idx), label_idx))
+                    }
+                    CATCH_ALL => {
+                        let label_idx: u32 = VarUint32::deserialize(reader)?.into();
+                        Ok((CatchKind::CatchAll, label_idx))
+                    }
+                    CATCH_ALL_REF => {
+                        let label_idx: u32 = VarUint32::deserialize(reader)?.into();
+                        Ok((CatchKind::CatchAllRef, label_idx))
+                    }
+                    _ => Err(Error::UnknownOpcode(u32::from(op))),
+                }
+            })?
+            .into_inner();
+
+        Ok(TryTableData {
+            table: table.into(),
+        })
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum CatchKind {
+    Catch(u32),    // tag
+    CatchRef(u32), // tag
+    CatchAll,
+    CatchAllRef,
 }
 
 mod opcodes {
@@ -1386,12 +1394,13 @@ mod opcodes {
     pub const I31_GET_S: u8 = 0x1D; // GC_PREFIX
     pub const I31_GET_U: u8 = 0x1E; // GC_PREFIX
 
-    pub const TRY: u8 = 0x06;
-    pub const CATCH: u8 = 0x07;
-    pub const CATCH_ALL: u8 = 0x19;
-    pub const DELEGATE: u8 = 0x18;
     pub const THROW: u8 = 0x08;
-    pub const RETHROW: u8 = 0x09;
+    pub const THROW_REF: u8 = 0x0A;
+    pub const TRY_TABLE: u8 = 0x1F;
+    pub const CATCH: u8 = 0x00;
+    pub const CATCH_REF: u8 = 0x01;
+    pub const CATCH_ALL: u8 = 0x02;
+    pub const CATCH_ALL_REF: u8 = 0x03;
 }
 
 impl Deserialize for Instruction {
@@ -1645,12 +1654,12 @@ impl Deserialize for Instruction {
 
             GC_PREFIX => return deserialize_gc(reader),
 
-            TRY => Try(BlockType::deserialize(reader)?),
-            CATCH => Catch(VarUint32::deserialize(reader)?.into()),
-            CATCH_ALL => CatchAll,
-            DELEGATE => Delegate(VarUint32::deserialize(reader)?.into()),
+            TRY_TABLE => TryTable(
+                BlockType::deserialize(reader)?,
+                Box::new(TryTableData::deserialize(reader)?),
+            ),
             THROW => Throw(VarUint32::deserialize(reader)?.into()),
-            RETHROW => Rethrow(VarUint32::deserialize(reader)?.into()),
+            THROW_REF => ThrowRef,
 
             other => return Err(Error::UnknownOpcode(u32::from(other))),
         })
@@ -2511,14 +2520,9 @@ impl fmt::Display for Instruction {
             I31GetS => todo!(),
             I31GetU => todo!(),
 
-            Try(BlockType::Empty) => fmt_op!(f, "try"),
-            Try(BlockType::Value(value_type)) => fmt_op!(f, "try", value_type),
-            Try(BlockType::TypeIndex(idx)) => write!(f, "try type_idx={}", idx),
-            Catch(tag_idx) => write!(f, "catch {}", tag_idx),
-            CatchAll => write!(f, "catch_all"),
-            Delegate(depth) => write!(f, "delegate {}", depth),
-            Throw(tag_idx) => write!(f, "throw {}", tag_idx),
-            Rethrow(depth) => write!(f, "rethrow {}", depth),
+            TryTable(_, _) => todo!(),
+            Throw(label) => fmt_op!(f, "throw", label),
+            ThrowRef => fmt_op!(f, "throw_ref"),
         }
     }
 }

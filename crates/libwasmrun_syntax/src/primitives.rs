@@ -326,9 +326,9 @@ impl Deserialize for String {
 
 /// A list of things, serialized with a `VarUint32` length prefix.
 #[derive(Debug, Clone)]
-pub struct CountedList<T: Deserialize>(Vec<T>);
+pub struct CountedList<T>(Vec<T>);
 
-impl<T: Deserialize> CountedList<T> {
+impl<T> CountedList<T> {
     pub fn into_inner(self) -> Vec<T> {
         self.0
     }
@@ -336,10 +336,20 @@ impl<T: Deserialize> CountedList<T> {
 
 impl<T: Deserialize> Deserialize for CountedList<T> {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+        CountedList::<T>::deserialize_with(reader, T::deserialize)
+    }
+}
+
+impl<T> CountedList<T> {
+    pub fn deserialize_with<R, F>(reader: &mut R, deserialize_element: F) -> Result<Self, Error>
+    where
+        R: io::Read,
+        F: Fn(&mut R) -> Result<T, Error>,
+    {
         let count: usize = VarUint32::deserialize(reader)?.into();
         let mut result = Vec::new();
         for _ in 0..count {
-            result.push(T::deserialize(reader)?);
+            result.push(deserialize_element(reader)?);
         }
         Ok(CountedList(result))
     }

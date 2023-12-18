@@ -1,6 +1,8 @@
 use crate::value::{Ref, Value};
 use crate::{ExecError, Result};
 
+use libwasmrun_syntax as wasm;
+
 #[derive(Debug)]
 pub(crate) struct Stack(Vec<Block>);
 
@@ -37,15 +39,7 @@ pub(crate) enum BlockKind {
 
     Fun,
 
-    Try {
-        /// Index of the `try` instruction. This is used to find catch blocks of the `try` in
-        /// `WasmFun.try_to_catch` map.
-        ip: u32,
-    },
-
-    /// A catch block. We need to distinguish catch blocks from others to be able to pop catch
-    /// blocks in `rethrow`.
-    Catch,
+    Try(Box<wasm::TryTableData>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -178,23 +172,19 @@ impl Stack {
         })
     }
 
-    pub(crate) fn push_try(&mut self, ip: u32, cont: u32, n_args: u32, n_rets: u32) {
+    pub(crate) fn push_try(
+        &mut self,
+        table: Box<wasm::TryTableData>,
+        cont: u32,
+        n_args: u32,
+        n_rets: u32,
+    ) {
         self.0.push(Block {
             values: vec![],
             cont,
             n_args,
             n_rets,
-            kind: BlockKind::Try { ip },
-        })
-    }
-
-    pub(crate) fn push_catch(&mut self, cont: u32, n_args: u32, n_rets: u32) {
-        self.0.push(Block {
-            values: vec![],
-            cont,
-            n_args,
-            n_rets,
-            kind: BlockKind::Catch,
+            kind: BlockKind::Try(table),
         })
     }
 
@@ -249,9 +239,7 @@ impl Stack {
                 BlockKind::Top => Err(ExecError::Panic(
                     "Stack::return_arity of top frame".to_string(),
                 )),
-                BlockKind::Block | BlockKind::Fun | BlockKind::Try { .. } | BlockKind::Catch => {
-                    Ok(*n_rets)
-                }
+                BlockKind::Block | BlockKind::Fun | BlockKind::Try { .. } => Ok(*n_rets),
                 BlockKind::Loop => match end_or_break {
                     EndOrBreak::End => Ok(*n_rets),
                     EndOrBreak::Break => Ok(*n_args),

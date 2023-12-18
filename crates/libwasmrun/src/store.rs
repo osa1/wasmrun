@@ -19,9 +19,6 @@ pub struct ModuleAddr(u32);
 pub struct FunAddr(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExnAddr(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExternAddr(pub u32);
 
 #[derive(Debug, Clone, Copy)]
@@ -40,7 +37,7 @@ pub(crate) struct DataAddr(u32);
 pub(crate) struct ElemAddr(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct TagAddr(u32);
+pub struct TagAddr(u32);
 
 #[derive(Default)]
 pub struct Store {

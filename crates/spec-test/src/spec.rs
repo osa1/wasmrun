@@ -204,7 +204,7 @@ impl<'a> TestFileRunner<'a> {
                 match exec {
                     WastExecute::Invoke(invoke) => {
                         self.run_invoke_directive(&invoke)?;
-                        if self.rt.pop_exception().is_none() {
+                        if self.rt.unhandled_exception.is_none() {
                             return Err(Error::IncorrectResult);
                         }
                     }
