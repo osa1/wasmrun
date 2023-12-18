@@ -24,14 +24,6 @@ pub enum Ref {
 }
 
 impl Ref {
-    pub fn heap_ty(&self) -> wasm::HeapType {
-        match self {
-            Ref::Null(heap_ty) => *heap_ty,
-            Ref::Func(_) => wasm::HeapType::Func,
-            Ref::Extern(_) => wasm::HeapType::Extern,
-        }
-    }
-
     pub fn is_null(&self) -> bool {
         match self {
             Ref::Null(_) => true,
