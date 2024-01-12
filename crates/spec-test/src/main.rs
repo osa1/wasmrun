@@ -3,6 +3,7 @@ mod spec;
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 
 static TEST_DIRS: [&str; 5] = [
     "tests/spec",
@@ -18,6 +19,14 @@ fn main() {
     let cli::Args { mut files } = cli::parse();
 
     if files.is_empty() {
+        for dir in TEST_DIRS {
+            if let Err(err) = fs::read_dir(dir) {
+                eprintln!("Unable to read test directory {}", dir);
+                eprintln!("Error: {}", err);
+                eprintln!("Try `git submodule update --init`");
+                exit(1);
+            }
+        }
         files = TEST_DIRS.iter().map(|s| s.to_string()).collect();
     }
 
@@ -28,7 +37,7 @@ fn main() {
     }
 
     if fails != 0 {
-        std::process::exit(1);
+        exit(1);
     }
 }
 
