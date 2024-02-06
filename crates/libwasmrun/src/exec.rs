@@ -378,7 +378,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                             .get_module_mut(module_addr)
                             .add_type(fun_ty.clone());
                     }
-                    _ => todo!(),
+                    other => todo!("Type section type not handled yet: {:?}", other),
                 }
             }
         }

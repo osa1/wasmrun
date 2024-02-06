@@ -256,35 +256,10 @@ impl ValueType {
             // -0x05
             0x7b => Ok(ValueType::V128),
 
-            // TODO: duplicate reftype parsing
-            // -0x10
-            0x70 => Ok(ValueType::Reference(ReferenceType::funcref())),
-
-            // -0x11
-            0x6F => Ok(ValueType::Reference(ReferenceType::externref())),
-
-            // -0x17
-            0x69 => Ok(ValueType::Reference(ReferenceType::exnref())),
-
-            // -0x1D
-            0x63 => {
-                let heap_ty = HeapType::deserialize(reader)?;
-                Ok(ValueType::Reference(ReferenceType {
-                    nullable: true,
-                    heap_ty,
-                }))
-            }
-
-            // -0x1C
-            0x64 => {
-                let heap_ty = HeapType::deserialize(reader)?;
-                Ok(ValueType::Reference(ReferenceType {
-                    nullable: false,
-                    heap_ty,
-                }))
-            }
-
-            _ => Err(Error::UnknownValueType(val)),
+            other => match ReferenceType::deserialize_val(reader, val) {
+                Ok(ref_ty) => Ok(ValueType::Reference(ref_ty)),
+                Err(_) => Err(Error::UnknownValueType(val)),
+            },
         }
     }
 }
