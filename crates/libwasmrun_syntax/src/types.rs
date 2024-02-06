@@ -19,7 +19,7 @@ impl Deserialize for RecType {
                 Ok(RecType { tys })
             }
             other => {
-                let ty: SubType = SubType::deserialize_val(other, reader)?;
+                let ty: SubType = SubType::deserialize_val(reader, other)?;
                 Ok(RecType { tys: vec![ty] })
             }
         }
@@ -44,12 +44,12 @@ pub struct SubType {
 impl Deserialize for SubType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let form: u8 = VarUint7::deserialize(reader)?.into();
-        SubType::deserialize_val(form, reader)
+        SubType::deserialize_val(reader, form)
     }
 }
 
 impl SubType {
-    fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
+    fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val {
             0x50 => {
                 let supers: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
@@ -84,7 +84,7 @@ impl SubType {
             }
 
             other => {
-                let comp_ty = CompType::deserialize_val(other, reader)?;
+                let comp_ty = CompType::deserialize_val(reader, other)?;
                 Ok(SubType {
                     final_: true,
                     supers: vec![],
@@ -106,12 +106,12 @@ pub enum CompType {
 impl Deserialize for CompType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let form: u8 = VarUint7::deserialize(reader)?.into();
-        CompType::deserialize_val(form, reader)
+        CompType::deserialize_val(reader, form)
     }
 }
 
 impl CompType {
-    fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
+    fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val {
             0x5e => Ok(CompType::Array(ArrayType::deserialize(reader)?)),
 
@@ -198,7 +198,7 @@ impl Deserialize for StorageType {
 
             other => {
                 // TODO: Convert error vlaue
-                Ok(StorageType::Val(ValueType::deserialize_val(other, reader)?))
+                Ok(StorageType::Val(ValueType::deserialize_val(reader, other)?))
             }
         }
     }
@@ -234,12 +234,12 @@ pub enum ValueType {
 impl Deserialize for ValueType {
     fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = VarUint7::deserialize(reader)?.into();
-        ValueType::deserialize_val(val, reader)
+        ValueType::deserialize_val(reader, val)
     }
 }
 
 impl ValueType {
-    fn deserialize_val<R: io::Read>(val: u8, reader: &mut R) -> Result<Self, Error> {
+    fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val.into() {
             // -0x01
             0x7f => Ok(ValueType::I32),
