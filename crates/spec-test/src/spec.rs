@@ -21,22 +21,23 @@ pub struct TestFileRunner<'a> {
 
 #[derive(Debug)]
 enum Error {
-    /// A wasmrun execution error
+    /// A wasmrun execution error.
     Exec(ExecError),
 
-    /// Deserialization of a module failed
+    /// Deserialization of a module failed.
     Deserialize(wasm::Error),
 
     /// A used was missing. This probably means that a module registration before the test failed.
     MissingModule,
 
-    /// A global was missing
+    /// A global was missing.
     MissingGlobal,
 
-    /// An "assert trap" test succeeded without trapping
+    /// An "assert trap" test succeeded without trapping.
     AssertTrapWorked,
 
-    /// An "assert trap" test failed with unexpected error
+    /// An "assert trap" test failed with unexpected error.
+    #[allow(clippy::enum_variant_names)]
     AssertTrapUnexpectedError(Box<Error>),
 
     /// Test used stuff we don't support yet, such as components and threads.
@@ -46,7 +47,7 @@ enum Error {
     /// than expected.
     CantPopReturnValue,
 
-    /// Execution returned incorrect result
+    /// Execution returned incorrect result.
     IncorrectResult,
 }
 
