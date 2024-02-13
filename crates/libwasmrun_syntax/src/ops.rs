@@ -2488,8 +2488,8 @@ impl fmt::Display for Instruction {
             BrOnNull(_) => fmt_op!(f, "br_on_null"),
             BrOnNonNull(_) => fmt_op!(f, "br_on_non_null"),
 
-            StructNew(_) => todo!(),
-            StructNewDefault(_) => todo!(),
+            StructNew(ty) => fmt_op!(f, "struct.new", ty),
+            StructNewDefault(ty) => fmt_op!(f, "struct.new_default", ty),
             StructGet(_, _) => todo!(),
             StructGetS(_, _) => todo!(),
             StructGetU(_, _) => todo!(),

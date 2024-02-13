@@ -2989,25 +2989,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .as_struct_type()
                 .unwrap();
 
-            fn storage_type_size(ty: &wasm::StorageType) -> usize {
-                match ty {
-                    wasm::StorageType::Val(val_ty) => match val_ty {
-                        wasm::ValueType::I32
-                        | wasm::ValueType::F32
-                        | wasm::ValueType::Reference(_) => 4,
-
-                        wasm::ValueType::I64 | wasm::ValueType::F64 => 8,
-
-                        wasm::ValueType::V128 => 16,
-                    },
-
-                    wasm::StorageType::Packed(packed_ty) => match packed_ty {
-                        wasm::PackedType::I8 => 1,
-                        wasm::PackedType::I16 => 2,
-                    },
-                }
-            }
-
             let struct_payload_size = struct_type
                 .fields
                 .iter()
@@ -3095,7 +3076,10 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                         // TODO: Check reference type.
                         payload_idx -= 4;
                         match value.to_u32() {
-                            None => todo!(),
+                            None => {
+                                // Null is represented as 0 and the payload is already zeroed, so
+                                // nothing to do.
+                            }
                             Some(value) => {
                                 let [b1, b2, b3, b4] = value.to_le_bytes();
                                 payload[payload_idx] = b1;
@@ -3133,9 +3117,33 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::StructNewDefault(ty_idx) => {
+            let struct_type = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_struct_type()
+                .unwrap();
+
+            let struct_payload_size = struct_type
+                .fields
+                .iter()
+                .map(|field_ty| storage_type_size(&field_ty.storage_ty))
+                .sum();
+
+            let payload: Vec<u8> = vec![0; struct_payload_size];
+
+            let struct_addr = rt
+                .store
+                .allocate_struct(struct_type.fields.clone(), payload);
+
+            rt.stack.push_ref(Ref::Struct(struct_addr))?;
+
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::StructNewDefault(_)
         | Instruction::StructGet(_, _)
         | Instruction::StructGetS(_, _)
         | Instruction::StructGetU(_, _)
@@ -3168,6 +3176,23 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn storage_type_size(ty: &wasm::StorageType) -> usize {
+    match ty {
+        wasm::StorageType::Val(val_ty) => match val_ty {
+            wasm::ValueType::I32 | wasm::ValueType::F32 | wasm::ValueType::Reference(_) => 4,
+
+            wasm::ValueType::I64 | wasm::ValueType::F64 => 8,
+
+            wasm::ValueType::V128 => 16,
+        },
+
+        wasm::StorageType::Packed(packed_ty) => match packed_ty {
+            wasm::PackedType::I8 => 1,
+            wasm::PackedType::I16 => 2,
+        },
+    }
 }
 
 fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
