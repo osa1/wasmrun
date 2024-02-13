@@ -13,7 +13,6 @@ pub mod exec;
 mod export;
 mod frame;
 mod fun;
-mod heap;
 mod mem;
 mod module;
 mod stack;

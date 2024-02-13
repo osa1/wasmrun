@@ -39,6 +39,9 @@ pub(crate) struct ElemAddr(u32);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TagAddr(u32);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ExnAddr(u32);
+
 #[derive(Default)]
 pub struct Store {
     modules: Vec<Module>,
@@ -49,6 +52,16 @@ pub struct Store {
     tags: Vec<Tag>,
     datas: Vec<wasm::DataSegment>,
     elems: Vec<wasm::ElementSegment>,
+    exceptions: Vec<Exception>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Exception {
+    /// Address of the exception in the store.
+    pub addr: TagAddr,
+
+    /// Arguments of the exception. Used by `throw` blocks.
+    pub args: Vec<Value>,
 }
 
 impl Store {
@@ -191,6 +204,16 @@ impl Store {
 
     pub(crate) fn get_tag(&self, tag_addr: TagAddr) -> &Tag {
         &self.tags[tag_addr.0 as usize]
+    }
+
+    pub fn allocate_exn(&mut self, exn: Exception) -> ExnAddr {
+        let idx = self.exceptions.len() as u32;
+        self.exceptions.push(exn);
+        ExnAddr(idx)
+    }
+
+    pub fn get_exn(&self, exn_addr: ExnAddr) -> &Exception {
+        &self.exceptions[exn_addr.0 as usize]
     }
 }
 

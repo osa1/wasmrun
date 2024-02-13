@@ -1,7 +1,6 @@
 #![allow(clippy::unusual_byte_groupings)]
 
-use crate::heap::ExnAddr;
-use crate::store::{ExternAddr, FunAddr};
+use crate::store::{ExnAddr, ExternAddr, FunAddr};
 
 use libwasmrun_syntax as wasm;
 

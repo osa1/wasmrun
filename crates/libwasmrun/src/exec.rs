@@ -6,13 +6,12 @@ use crate::collections::Map;
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
-use crate::heap::{Exception, ExnAddr, Heap};
 use crate::mem::Mem;
 use crate::module::{
     DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
 };
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{FunAddr, Global, ModuleAddr, Store, Table};
+use crate::store::{Exception, ExnAddr, FunAddr, Global, ModuleAddr, Store, Table};
 use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
@@ -97,9 +96,6 @@ pub struct Runtime {
     /// Stores modules, functions, tables etc.
     pub store: Store,
 
-    /// The heap. Currently only stores exceptions.
-    pub heap: Heap,
-
     /// Value and continuation stack.
     pub(crate) stack: Stack,
 
@@ -123,7 +119,6 @@ impl Runtime {
     pub fn new() -> Self {
         Runtime {
             store: Default::default(),
-            heap: Default::default(),
             stack: Default::default(),
             frames: Default::default(),
             wasi_ctx: WasiCtx::new(iter::empty::<String>()).unwrap(),
@@ -2945,7 +2940,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 exception_args.push(rt.stack.pop_value()?);
             }
 
-            let exn_addr = rt.heap.allocate_exn(Exception {
+            let exn_addr = rt.store.allocate_exn(Exception {
                 addr: exception_tag_addr,
                 args: exception_args,
             });
@@ -3049,7 +3044,7 @@ fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
             BlockKind::Try(table) => *table,
         };
 
-        let exn = rt.heap.get_exn(exn_addr);
+        let exn = rt.store.get_exn(exn_addr);
 
         for (catch_kind, n_blocks) in try_table.table.iter() {
             match catch_kind {
