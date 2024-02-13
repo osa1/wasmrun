@@ -122,6 +122,27 @@ impl CompType {
             other => todo!(),
         }
     }
+
+    pub fn as_function_type(&self) -> Option<&FunctionType> {
+        match self {
+            CompType::Func(func_ty) => Some(func_ty),
+            CompType::Struct(_) | CompType::Array(_) => None,
+        }
+    }
+
+    pub fn as_struct_type(&self) -> Option<&StructType> {
+        match self {
+            CompType::Struct(struct_ty) => Some(struct_ty),
+            CompType::Func(_) | CompType::Array(_) => None,
+        }
+    }
+
+    pub fn as_array_type(&self) -> Option<&ArrayType> {
+        match self {
+            CompType::Array(array_ty) => Some(array_ty),
+            CompType::Func(_) | CompType::Struct(_) => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

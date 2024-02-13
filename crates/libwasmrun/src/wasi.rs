@@ -91,7 +91,10 @@ fn allocate_fn(
     fun: fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>,
 ) {
     // TODO: This allocates same types multiple times
-    let ty_idx = module.add_type(wasm::FunctionType::new(arg_tys, vec![ret_ty]));
+    let ty_idx = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+        arg_tys,
+        vec![ret_ty],
+    )));
     let addr = store.allocate_host_fun(module_addr, ty_idx, Rc::new(fun));
     let idx = module.add_fun(addr);
     module.add_export(Export::new_fun(name.to_owned(), idx));

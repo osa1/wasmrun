@@ -30,7 +30,7 @@ pub(crate) struct TagIdx(pub u32);
 
 #[derive(Debug, Default)]
 pub(crate) struct Module {
-    types: Vec<wasm::FunctionType>,
+    types: Vec<wasm::CompType>,
     func_addrs: Vec<FunAddr>,
     table_addrs: Vec<TableAddr>,
     mem_addrs: Vec<MemAddr>,
@@ -44,13 +44,13 @@ pub(crate) struct Module {
 }
 
 impl Module {
-    pub(crate) fn add_type(&mut self, ty: wasm::FunctionType) -> TypeIdx {
+    pub(crate) fn add_type(&mut self, ty: wasm::CompType) -> TypeIdx {
         let ret = self.types.len();
         self.types.push(ty);
         TypeIdx(ret as u32)
     }
 
-    pub(crate) fn get_type(&self, ty_idx: TypeIdx) -> &wasm::FunctionType {
+    pub(crate) fn get_type(&self, ty_idx: TypeIdx) -> &wasm::CompType {
         &self.types[ty_idx.0 as usize]
     }
 

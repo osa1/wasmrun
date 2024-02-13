@@ -235,7 +235,9 @@ impl Runtime {
                 fun,
             } = host_fn;
 
-            let ty_idx = module.add_type(wasm::FunctionType::new(arg_tys, ret_tys));
+            let ty_idx = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+                arg_tys, ret_tys,
+            )));
             let fun_addr = self.store.allocate_host_fun(module_addr, ty_idx, fun);
             let fun_idx = module.add_fun(fun_addr);
             module.add_export(Export::new_fun(host_fn_name, fun_idx));
@@ -295,31 +297,40 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let global_f64_idx = module.add_global(global_f64_addr);
     module.add_export(Export::new_global("global_f64".to_owned(), global_f64_idx));
 
-    let print_ty = module.add_type(wasm::FunctionType::new(vec![], vec![]));
+    let print_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+        vec![],
+        vec![],
+    )));
     let print_addr = rt
         .store
         .allocate_host_fun(module_addr, print_ty, Rc::new(|_, _| Ok(vec![])));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
-    let print_i32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I32], vec![]));
+    let print_i32_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+        vec![wasm::ValueType::I32],
+        vec![],
+    )));
     let print_i32_addr =
         rt.store
             .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
-    let print_i64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::I64], vec![]));
+    let print_i64_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+        vec![wasm::ValueType::I64],
+        vec![],
+    )));
     let print_i64_addr =
         rt.store
             .allocate_host_fun(module_addr, print_i64_ty, Rc::new(|_, _| Ok(vec![])));
     let print_i64_idx = module.add_fun(print_i64_addr);
     module.add_export(Export::new_fun("print_i64".to_owned(), print_i64_idx));
 
-    let print_i32_f32_ty = module.add_type(wasm::FunctionType::new(
+    let print_i32_f32_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
         vec![wasm::ValueType::I32, wasm::ValueType::F32],
         vec![],
-    ));
+    )));
     let print_i32_f32_addr =
         rt.store
             .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_, _| Ok(vec![])));
@@ -329,10 +340,10 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
         print_i32_f32_idx,
     ));
 
-    let print_f64_f64_ty = module.add_type(wasm::FunctionType::new(
+    let print_f64_f64_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
         vec![wasm::ValueType::F64, wasm::ValueType::F64],
         vec![],
-    ));
+    )));
     let print_f64_f64_addr =
         rt.store
             .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_, _| Ok(vec![])));
@@ -342,14 +353,20 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
         print_f64_f64_idx,
     ));
 
-    let print_f32_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F32], vec![]));
+    let print_f32_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+        vec![wasm::ValueType::F32],
+        vec![],
+    )));
     let print_f32_addr =
         rt.store
             .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
-    let print_f64_ty = module.add_type(wasm::FunctionType::new(vec![wasm::ValueType::F64], vec![]));
+    let print_f64_ty = module.add_type(wasm::CompType::Func(wasm::FunctionType::new(
+        vec![wasm::ValueType::F64],
+        vec![],
+    )));
     let print_f64_addr =
         rt.store
             .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_, _| Ok(vec![])));
@@ -371,15 +388,10 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
     if let Some(type_section) = parsed_module.type_section_mut() {
         for rec in type_section.entries_mut().drain(..) {
-            for sub_ty in &rec.tys {
-                match &sub_ty.comp_ty {
-                    wasm::CompType::Func(fun_ty) => {
-                        rt.store
-                            .get_module_mut(module_addr)
-                            .add_type(fun_ty.clone());
-                    }
-                    other => todo!("Type section type not handled yet: {:?}", other),
-                }
+            for sub_ty in rec.tys {
+                rt.store
+                    .get_module_mut(module_addr)
+                    .add_type(sub_ty.comp_ty);
             }
         }
     }
@@ -439,7 +451,9 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
             let tag_type = rt
                 .store
                 .get_module(module_addr)
-                .get_type(TypeIdx(tag.type_));
+                .get_type(TypeIdx(tag.type_))
+                .as_function_type()
+                .unwrap();
             let tag_addr = rt.store.allocate_tag(tag_type.clone());
             rt.store.get_module_mut(module_addr).add_tag(tag_addr);
         }
@@ -727,7 +741,9 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun_ty = rt
         .store
         .get_module(fun.module_addr())
-        .get_type(fun.ty_idx());
+        .get_type(fun.ty_idx())
+        .as_function_type()
+        .unwrap();
 
     let n_args = fun_ty.params().len();
     let n_rets = fun_ty.results().len();
@@ -785,7 +801,9 @@ fn tail_call(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let callee_fun_ty = rt
         .store
         .get_module(callee_fun.module_addr())
-        .get_type(callee_fun.ty_idx());
+        .get_type(callee_fun.ty_idx())
+        .as_function_type()
+        .unwrap();
     let callee_n_args = callee_fun_ty.params().len();
     let callee_n_rets = callee_fun_ty.results().len();
 
@@ -2653,6 +2671,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .store
                 .get_module(module_addr)
                 .get_type(ty_idx)
+                .as_function_type()
+                .unwrap()
                 .results()
                 .len();
 
@@ -3140,13 +3160,20 @@ fn get_fun_addr_from_table(
 }
 
 fn check_fun_type(rt: &Runtime, sig: u32, module_addr: ModuleAddr, fun_addr: FunAddr) -> bool {
-    let call_instr_ty = rt.store.get_module(module_addr).get_type(TypeIdx(sig));
+    let call_instr_ty = rt
+        .store
+        .get_module(module_addr)
+        .get_type(TypeIdx(sig))
+        .as_function_type()
+        .unwrap();
     let fun_module_addr = rt.store.get_fun(fun_addr).module_addr();
     let actual_fun_ty_idx = rt.store.get_fun(fun_addr).ty_idx();
     let actual_ty = &rt
         .store
         .get_module(fun_module_addr)
-        .get_type(actual_fun_ty_idx);
+        .get_type(actual_fun_ty_idx)
+        .as_function_type()
+        .unwrap();
 
     use wasm::{FunctionType, HeapType, ReferenceType, ValueType};
 
@@ -3165,8 +3192,18 @@ fn check_fun_type(rt: &Runtime, sig: u32, module_addr: ModuleAddr, fun_addr: Fun
             (HeapType::Func, HeapType::Func) => true,
             (HeapType::TypeIdx(_), HeapType::Func) | (HeapType::Func, HeapType::TypeIdx(_)) => true,
             (HeapType::TypeIdx(i1), HeapType::TypeIdx(i2)) => {
-                let i1_t = rt.store.get_module(module_addr).get_type(TypeIdx(i1));
-                let i2_t = rt.store.get_module(module_addr).get_type(TypeIdx(i2));
+                let i1_t = rt
+                    .store
+                    .get_module(module_addr)
+                    .get_type(TypeIdx(i1))
+                    .as_function_type()
+                    .unwrap();
+                let i2_t = rt
+                    .store
+                    .get_module(module_addr)
+                    .get_type(TypeIdx(i2))
+                    .as_function_type()
+                    .unwrap();
                 compare_fun_tys(rt, module_addr, i1_t, i2_t)
             }
             (_, _) => false,
@@ -3405,7 +3442,12 @@ fn block_arity(rt: &Runtime, module_addr: ModuleAddr, ty: wasm::BlockType) -> (u
         wasm::BlockType::Value(_) => (0, 1),
         wasm::BlockType::Empty => (0, 0),
         wasm::BlockType::TypeIndex(ty_idx) => {
-            let ty = &rt.store.get_module(module_addr).get_type(TypeIdx(ty_idx));
+            let ty = &rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_function_type()
+                .unwrap();
             (ty.params().len() as u32, ty.results().len() as u32)
         }
     }
