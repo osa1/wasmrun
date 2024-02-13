@@ -2492,7 +2492,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::CallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) | Ref::Exn(_) => exec_panic!("call_ref: extern or exn ref"),
+                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) => {
+                    exec_panic!("call_ref: reference is not a function")
+                }
                 Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
             };
@@ -2505,7 +2507,9 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::ReturnCallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) | Ref::Exn(_) => exec_panic!("call_ref: extern or exn ref"),
+                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) => {
+                    exec_panic!("return_call_ref: reference is not a function")
+                }
                 Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
             };
@@ -2958,7 +2962,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 Ref::Null(_) => {
                     return Err(ExecError::Trap(Trap::NullReference));
                 }
-                Ref::Func(_) | Ref::Extern(_) => {
+                Ref::Func(_) | Ref::Extern(_) | Ref::Struct(_) | Ref::Array(_) => {
                     return Err(ExecError::Trap(Trap::NullReference)); // FIXME: trap kind
                 }
                 Ref::Exn(exn_addr) => exn_addr,
@@ -2977,8 +2981,160 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
+        Instruction::StructNew(ty_idx) => {
+            let struct_type = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_struct_type()
+                .unwrap();
+
+            fn storage_type_size(ty: &wasm::StorageType) -> usize {
+                match ty {
+                    wasm::StorageType::Val(val_ty) => match val_ty {
+                        wasm::ValueType::I32
+                        | wasm::ValueType::F32
+                        | wasm::ValueType::Reference(_) => 4,
+
+                        wasm::ValueType::I64 | wasm::ValueType::F64 => 8,
+
+                        wasm::ValueType::V128 => 16,
+                    },
+
+                    wasm::StorageType::Packed(packed_ty) => match packed_ty {
+                        wasm::PackedType::I8 => 1,
+                        wasm::PackedType::I16 => 2,
+                    },
+                }
+            }
+
+            let struct_payload_size = struct_type
+                .fields
+                .iter()
+                .map(|field_ty| storage_type_size(&field_ty.storage_ty))
+                .sum();
+
+            let mut payload: Vec<u8> = vec![0; struct_payload_size];
+
+            let mut payload_idx = struct_payload_size;
+
+            for wasm::FieldType {
+                storage_ty,
+                mutability: _,
+            } in struct_type.fields.iter().rev()
+            {
+                let value = rt.stack.pop_value().unwrap();
+                match (storage_ty, value) {
+                    (wasm::StorageType::Val(wasm::ValueType::I32), Value::I32(value)) => {
+                        payload_idx -= 4;
+                        let [b1, b2, b3, b4] = value.to_le_bytes();
+                        payload[payload_idx] = b1;
+                        payload[payload_idx + 1] = b2;
+                        payload[payload_idx + 2] = b3;
+                        payload[payload_idx + 3] = b4;
+                    }
+
+                    (wasm::StorageType::Val(wasm::ValueType::I64), Value::I64(value)) => {
+                        payload_idx -= 8;
+                        let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
+                        payload[payload_idx] = b1;
+                        payload[payload_idx + 1] = b2;
+                        payload[payload_idx + 2] = b3;
+                        payload[payload_idx + 3] = b4;
+                        payload[payload_idx + 4] = b5;
+                        payload[payload_idx + 5] = b6;
+                        payload[payload_idx + 6] = b7;
+                        payload[payload_idx + 7] = b8;
+                    }
+
+                    (wasm::StorageType::Val(wasm::ValueType::F32), Value::F32(value)) => {
+                        payload_idx -= 4;
+                        let [b1, b2, b3, b4] = value.to_le_bytes();
+                        payload[payload_idx] = b1;
+                        payload[payload_idx + 1] = b2;
+                        payload[payload_idx + 2] = b3;
+                        payload[payload_idx + 3] = b4;
+                    }
+
+                    (wasm::StorageType::Val(wasm::ValueType::F64), Value::F64(value)) => {
+                        payload_idx -= 8;
+                        let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
+                        payload[payload_idx] = b1;
+                        payload[payload_idx + 1] = b2;
+                        payload[payload_idx + 2] = b3;
+                        payload[payload_idx + 3] = b4;
+                        payload[payload_idx + 4] = b5;
+                        payload[payload_idx + 5] = b6;
+                        payload[payload_idx + 6] = b7;
+                        payload[payload_idx + 7] = b8;
+                    }
+
+                    (wasm::StorageType::Val(wasm::ValueType::V128), Value::I128(value)) => {
+                        payload_idx -= 16;
+                        let [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16] =
+                            value.to_le_bytes();
+                        payload[payload_idx] = b1;
+                        payload[payload_idx + 1] = b2;
+                        payload[payload_idx + 2] = b3;
+                        payload[payload_idx + 3] = b4;
+                        payload[payload_idx + 4] = b5;
+                        payload[payload_idx + 5] = b6;
+                        payload[payload_idx + 6] = b7;
+                        payload[payload_idx + 7] = b8;
+                        payload[payload_idx + 8] = b9;
+                        payload[payload_idx + 9] = b10;
+                        payload[payload_idx + 10] = b11;
+                        payload[payload_idx + 11] = b12;
+                        payload[payload_idx + 12] = b13;
+                        payload[payload_idx + 13] = b14;
+                        payload[payload_idx + 14] = b15;
+                        payload[payload_idx + 15] = b16;
+                    }
+
+                    (wasm::StorageType::Val(wasm::ValueType::Reference(_)), Value::Ref(value)) => {
+                        // TODO: Check reference type.
+                        payload_idx -= 4;
+                        match value.to_u32() {
+                            None => todo!(),
+                            Some(value) => {
+                                let [b1, b2, b3, b4] = value.to_le_bytes();
+                                payload[payload_idx] = b1;
+                                payload[payload_idx + 1] = b2;
+                                payload[payload_idx + 2] = b3;
+                                payload[payload_idx + 3] = b4;
+                            }
+                        }
+                    }
+
+                    (wasm::StorageType::Packed(wasm::PackedType::I8), Value::I32(value)) => {
+                        payload_idx -= 1;
+                        payload[payload_idx] = value as i8 as u8;
+                    }
+
+                    (wasm::StorageType::Packed(wasm::PackedType::I16), Value::I32(value)) => {
+                        payload_idx -= 2;
+                        let [b1, b2] = (value as i16).to_le_bytes();
+                        payload[payload_idx] = b1;
+                        payload[payload_idx + 1] = b2;
+                    }
+
+                    _ => todo!(),
+                }
+            }
+
+            assert_eq!(payload_idx, 0);
+
+            let struct_addr = rt
+                .store
+                .allocate_struct(struct_type.fields.clone(), payload);
+
+            rt.stack.push_ref(Ref::Struct(struct_addr))?;
+
+            rt.ip += 1;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::StructNew(_)
         | Instruction::StructNewDefault(_)
         | Instruction::StructGet(_, _)
         | Instruction::StructGetS(_, _)
@@ -3145,7 +3301,7 @@ fn get_fun_addr_from_table(
     match rt.store.get_table(table_addr).get(elem_idx as usize) {
         Some(Ref::Func(fun_addr)) => Ok(*fun_addr),
         Some(Ref::Null(_ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
-        Some(Ref::Extern(_) | Ref::Exn(_)) => {
+        Some(Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_)) => {
             // TODO: Check table type to help with debugging
             // TODO: Incorrect trap kind.
             Err(ExecError::Trap(Trap::CallIndirectOnExternRef))

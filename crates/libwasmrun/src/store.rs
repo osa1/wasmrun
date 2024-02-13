@@ -16,7 +16,7 @@ use std::rc::Rc;
 pub struct ModuleAddr(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FunAddr(u32);
+pub struct FunAddr(pub(crate) u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExternAddr(pub u32);
@@ -40,7 +40,13 @@ pub(crate) struct ElemAddr(u32);
 pub struct TagAddr(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExnAddr(u32);
+pub struct ExnAddr(pub(crate) u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ArrayAddr(pub(crate) u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct StructAddr(pub(crate) u32);
 
 #[derive(Default)]
 pub struct Store {
@@ -53,6 +59,8 @@ pub struct Store {
     datas: Vec<wasm::DataSegment>,
     elems: Vec<wasm::ElementSegment>,
     exceptions: Vec<Exception>,
+    arrays: Vec<Array>,
+    structs: Vec<Struct>,
 }
 
 #[derive(Debug, Clone)]
@@ -62,6 +70,18 @@ pub struct Exception {
 
     /// Arguments of the exception. Used by `throw` blocks.
     pub args: Vec<Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Array {
+    pub field_type: wasm::FieldType,
+    pub payload: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Struct {
+    pub field_types: Vec<wasm::FieldType>,
+    pub payload: Vec<u8>,
 }
 
 impl Store {
@@ -214,6 +234,36 @@ impl Store {
 
     pub fn get_exn(&self, exn_addr: ExnAddr) -> &Exception {
         &self.exceptions[exn_addr.0 as usize]
+    }
+
+    pub fn allocate_array(&mut self, field_type: wasm::FieldType, payload: Vec<u8>) -> ArrayAddr {
+        let idx = self.arrays.len() as u32;
+        self.arrays.push(Array {
+            field_type,
+            payload,
+        });
+        ArrayAddr(idx)
+    }
+
+    pub fn get_array(&self, array_addr: ArrayAddr) -> &Array {
+        &self.arrays[array_addr.0 as usize]
+    }
+
+    pub fn allocate_struct(
+        &mut self,
+        field_types: Vec<wasm::FieldType>,
+        payload: Vec<u8>,
+    ) -> StructAddr {
+        let idx = self.structs.len() as u32;
+        self.structs.push(Struct {
+            field_types,
+            payload,
+        });
+        StructAddr(idx)
+    }
+
+    pub fn get_struct(&self, struct_addr: StructAddr) -> &Struct {
+        &self.structs[struct_addr.0 as usize]
     }
 }
 

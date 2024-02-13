@@ -147,7 +147,7 @@ impl CompType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructType {
-    fields: Vec<FieldType>,
+    pub fields: Vec<FieldType>,
 }
 
 impl Deserialize for StructType {
@@ -171,8 +171,8 @@ impl Deserialize for ArrayType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldType {
-    mutability: Mutability,
-    storage_ty: StorageType,
+    pub mutability: Mutability,
+    pub storage_ty: StorageType,
 }
 
 impl Deserialize for FieldType {
