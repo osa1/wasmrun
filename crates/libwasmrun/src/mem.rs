@@ -133,11 +133,7 @@ impl Mem {
 
     pub(crate) fn load_16_le(&self, addr: u32) -> Result<u16> {
         self.check_range(addr, 2)?;
-
-        let b1 = self[addr];
-        let b2 = self[addr + 1];
-
-        Ok(u16::from_le_bytes([b1, b2]))
+        Ok(load_16_le_unchecked(&self.mem, addr as usize))
     }
 
     pub(crate) fn store_16_le(&mut self, addr: u32, value: u16) -> Result<()> {
@@ -152,13 +148,7 @@ impl Mem {
 
     pub(crate) fn load_32_le(&self, addr: u32) -> Result<u32> {
         self.check_range(addr, 4)?;
-
-        let b1 = self[addr];
-        let b2 = self[addr + 1];
-        let b3 = self[addr + 2];
-        let b4 = self[addr + 3];
-
-        Ok(u32::from_le_bytes([b1, b2, b3, b4]))
+        Ok(load_32_le_unchecked(&self.mem, addr as usize))
     }
 
     pub(crate) fn store_32_le(&mut self, addr: u32, value: u32) -> Result<()> {
@@ -175,17 +165,7 @@ impl Mem {
 
     pub(crate) fn load_64_le(&self, addr: u32) -> Result<u64> {
         self.check_range(addr, 8)?;
-
-        let b1 = self[addr];
-        let b2 = self[addr + 1];
-        let b3 = self[addr + 2];
-        let b4 = self[addr + 3];
-        let b5 = self[addr + 4];
-        let b6 = self[addr + 5];
-        let b7 = self[addr + 6];
-        let b8 = self[addr + 7];
-
-        Ok(u64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8]))
+        Ok(load_64_le_unchecked(&self.mem, addr as usize))
     }
 
     pub(crate) fn store_64_le(&mut self, addr: u32, value: u64) -> Result<()> {
@@ -206,27 +186,7 @@ impl Mem {
 
     pub(crate) fn load_128_le(&self, addr: u32) -> Result<u128> {
         self.check_range(addr, 16)?;
-
-        let b1 = self[addr];
-        let b2 = self[addr + 1];
-        let b3 = self[addr + 2];
-        let b4 = self[addr + 3];
-        let b5 = self[addr + 4];
-        let b6 = self[addr + 5];
-        let b7 = self[addr + 6];
-        let b8 = self[addr + 7];
-        let b9 = self[addr + 8];
-        let b10 = self[addr + 9];
-        let b11 = self[addr + 10];
-        let b12 = self[addr + 11];
-        let b13 = self[addr + 12];
-        let b14 = self[addr + 13];
-        let b15 = self[addr + 14];
-        let b16 = self[addr + 15];
-
-        Ok(u128::from_le_bytes([
-            b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16,
-        ]))
+        Ok(load_128_le_unchecked(&self.mem, addr as usize))
     }
 
     pub(crate) fn store_128_le(&mut self, addr: u32, value: u128) -> Result<()> {
@@ -253,4 +213,56 @@ impl Mem {
 
         Ok(())
     }
+}
+
+pub(crate) fn load_16_le_unchecked(mem: &[u8], addr: usize) -> u16 {
+    let b1 = mem[addr];
+    let b2 = mem[addr + 1];
+
+    u16::from_le_bytes([b1, b2])
+}
+
+pub(crate) fn load_32_le_unchecked(mem: &[u8], addr: usize) -> u32 {
+    let b1 = mem[addr];
+    let b2 = mem[addr + 1];
+    let b3 = mem[addr + 2];
+    let b4 = mem[addr + 3];
+
+    u32::from_le_bytes([b1, b2, b3, b4])
+}
+
+pub(crate) fn load_64_le_unchecked(mem: &[u8], addr: usize) -> u64 {
+    let b1 = mem[addr];
+    let b2 = mem[addr + 1];
+    let b3 = mem[addr + 2];
+    let b4 = mem[addr + 3];
+    let b5 = mem[addr + 4];
+    let b6 = mem[addr + 5];
+    let b7 = mem[addr + 6];
+    let b8 = mem[addr + 7];
+
+    u64::from_le_bytes([b1, b2, b3, b4, b5, b6, b7, b8])
+}
+
+pub(crate) fn load_128_le_unchecked(mem: &[u8], addr: usize) -> u128 {
+    let b1 = mem[addr];
+    let b2 = mem[addr + 1];
+    let b3 = mem[addr + 2];
+    let b4 = mem[addr + 3];
+    let b5 = mem[addr + 4];
+    let b6 = mem[addr + 5];
+    let b7 = mem[addr + 6];
+    let b8 = mem[addr + 7];
+    let b9 = mem[addr + 8];
+    let b10 = mem[addr + 9];
+    let b11 = mem[addr + 10];
+    let b12 = mem[addr + 11];
+    let b13 = mem[addr + 12];
+    let b14 = mem[addr + 13];
+    let b15 = mem[addr + 14];
+    let b16 = mem[addr + 15];
+
+    u128::from_le_bytes([
+        b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16,
+    ])
 }
