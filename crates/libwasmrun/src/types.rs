@@ -152,11 +152,15 @@ fn canonicalize_value_type(
 
             wasm::HeapType::TypeIdx(idx) => {
                 if *idx >= recursive_group_start {
+                    // Indices to the types to the current recursive group becomes relative.
+                    // TODO: We need to mark these type indices as "relative".
                     wasm::ValueType::Reference(wasm::ReferenceType {
                         nullable: *nullable,
                         heap_ty: wasm::HeapType::TypeIdx(idx - recursive_group_start),
                     })
                 } else {
+                    // Indices to a previously defined type is replaced with the canonical type
+                    // index of the type.
                     wasm::ValueType::Reference(wasm::ReferenceType {
                         nullable: *nullable,
                         heap_ty: wasm::HeapType::TypeIdx(
