@@ -270,6 +270,7 @@ impl Store {
 #[derive(Debug)]
 pub(crate) struct Global {
     pub(crate) value: Value,
+
     #[allow(unused)]
     pub(crate) mutable: bool, // Only needed for validation
 }
@@ -277,11 +278,10 @@ pub(crate) struct Global {
 // NB. Currently there is one type of tag which is for exceptions
 #[derive(Debug)]
 pub(crate) struct Tag {
-    /// Unique id of the tag
+    /// Unique id of the tag.
     #[allow(unused)]
     pub(crate) id: u32,
 
-    /// Type of the exception tag
-    #[allow(unused)]
+    /// Type of the exception tag.
     pub(crate) ty: FunctionType,
 }
