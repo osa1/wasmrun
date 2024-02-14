@@ -159,7 +159,7 @@ impl Deserialize for StructType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ArrayType {
-    field: FieldType,
+    pub field: FieldType,
 }
 
 impl Deserialize for ArrayType {
@@ -203,7 +203,7 @@ impl Deserialize for Mutability {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StorageType {
     Val(ValueType),
     Packed(PackedType),
@@ -388,8 +388,8 @@ impl Deserialize for BlockType {
 
 #[derive(Debug, Default, Clone, PartialEq, Hash, Eq)]
 pub struct FunctionType {
-    params: Vec<ValueType>,
-    results: Vec<ValueType>,
+    pub params: Vec<ValueType>,
+    pub results: Vec<ValueType>,
 }
 
 impl FunctionType {

@@ -41,6 +41,9 @@ pub(crate) struct Module {
     datas: Vec<DataAddr>,
     elems: Vec<ElemAddr>,
     tag_addrs: Vec<TagAddr>,
+
+    /// Maps type indices of the module to their global canonical index.
+    pub(crate) isorecursive_canonical_type_ids: Vec<u32>,
 }
 
 impl Module {

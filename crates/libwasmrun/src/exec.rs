@@ -12,6 +12,7 @@ use crate::module::{
 };
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{Exception, ExnAddr, FunAddr, Global, ModuleAddr, Store, Table};
+use crate::types::TypeCanonicalizer;
 use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
@@ -113,6 +114,9 @@ pub struct Runtime {
 
     /// The exception when the execution ends with an unhandled exception.
     pub unhandled_exception: Option<ExnAddr>,
+
+    #[allow(unused)]
+    type_canonicalizer: TypeCanonicalizer,
 }
 
 impl Runtime {
@@ -125,6 +129,7 @@ impl Runtime {
             module_names: Default::default(),
             ip: Default::default(),
             unhandled_exception: None,
+            type_canonicalizer: TypeCanonicalizer::default(),
         }
     }
 

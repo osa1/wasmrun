@@ -17,6 +17,7 @@ mod mem;
 mod module;
 mod stack;
 pub mod store;
+mod types;
 mod value;
 pub mod wasi;
 

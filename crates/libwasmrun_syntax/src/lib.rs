@@ -42,8 +42,8 @@ pub use self::{
     segment::{DataSegment, DataSegmentMode, ElementSegment, ElementSegmentMode},
     table::Table,
     types::{
-        BlockType, CompType, FieldType, FunctionType, HeapType, PackedType, RecType, ReferenceType,
-        StorageType, SubType, ValueType,
+        ArrayType, BlockType, CompType, FieldType, FunctionType, HeapType, PackedType, RecType,
+        ReferenceType, StorageType, StructType, SubType, ValueType,
     },
 };
 
