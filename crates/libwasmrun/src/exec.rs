@@ -502,6 +502,34 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         }
     }
 
+    // Allocate memories
+    if let Some(memory_section) = parsed_module.memory_section_mut() {
+        for mem in memory_section.entries_mut().drain(..) {
+            let (initial, max) = match mem.limits() {
+                wasm::Limits::Limits32(limits) => (limits.initial(), limits.maximum()),
+                wasm::Limits::Limits64(_) => exec_panic!("64-bit memories not implements"),
+            };
+            let mem_addr = rt.store.allocate_mem(Mem::new(initial, max));
+            rt.store.get_module_mut(module_addr).add_mem(mem_addr);
+        }
+    }
+
+    // Allcoate globals
+    if let Some(global_section) = parsed_module.global_section_mut() {
+        for global in global_section.entries_mut().drain(..) {
+            let value = eval_const_expr(
+                rt,
+                rt.store.get_module(module_addr),
+                global.init_expr().code(),
+            )?;
+            let global_addr = rt.store.allocate_global(Global {
+                value,
+                mutable: global.global_type().is_mutable(),
+            });
+            rt.store.get_module_mut(module_addr).add_global(global_addr);
+        }
+    }
+
     // Allocate table elements
     if let Some(element_section) = parsed_module.elements_section() {
         for elem @ wasm::ElementSegment {
@@ -585,34 +613,6 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     rt.store.get_elem_mut(elem_addr).init.clear();
                 }
             }
-        }
-    }
-
-    // Allocate memories
-    if let Some(memory_section) = parsed_module.memory_section_mut() {
-        for mem in memory_section.entries_mut().drain(..) {
-            let (initial, max) = match mem.limits() {
-                wasm::Limits::Limits32(limits) => (limits.initial(), limits.maximum()),
-                wasm::Limits::Limits64(_) => exec_panic!("64-bit memories not implements"),
-            };
-            let mem_addr = rt.store.allocate_mem(Mem::new(initial, max));
-            rt.store.get_module_mut(module_addr).add_mem(mem_addr);
-        }
-    }
-
-    // Allcoate globals
-    if let Some(global_section) = parsed_module.global_section_mut() {
-        for global in global_section.entries_mut().drain(..) {
-            let value = eval_const_expr(
-                rt,
-                rt.store.get_module(module_addr),
-                global.init_expr().code(),
-            )?;
-            let global_addr = rt.store.allocate_global(Global {
-                value,
-                mutable: global.global_type().is_mutable(),
-            });
-            rt.store.get_module_mut(module_addr).add_global(global_addr);
         }
     }
 
