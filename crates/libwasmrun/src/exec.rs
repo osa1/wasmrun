@@ -3,6 +3,7 @@
 mod simd;
 
 use crate::collections::Map;
+use crate::const_eval::eval_const_expr;
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
@@ -491,9 +492,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     if let Some(table_section) = parsed_module.table_section_mut() {
         for wasm::Table { ty, init } in table_section.entries_mut().drain(..) {
             let elem = match init {
-                Some(init) => {
-                    eval_const_expr(rt, rt.store.get_module(module_addr), init.code())?.expect_ref()
-                }
+                Some(init) => eval_const_expr(rt, module_addr, init.code())?.expect_ref(),
                 None => Ref::Null(ty.elem_type.heap_ty),
             };
             let table = Table::new(elem, ty);
@@ -517,11 +516,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     // Allcoate globals
     if let Some(global_section) = parsed_module.global_section_mut() {
         for global in global_section.entries_mut().drain(..) {
-            let value = eval_const_expr(
-                rt,
-                rt.store.get_module(module_addr),
-                global.init_expr().code(),
-            )?;
+            let value = eval_const_expr(rt, module_addr, global.init_expr().code())?;
             let global_addr = rt.store.allocate_global(Global {
                 value,
                 mutable: global.global_type().is_mutable(),
@@ -548,8 +543,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                     // instantiation, as specified by a table index and a constant expression
                     // defining an offset into that table."
                     let offset =
-                        eval_const_expr(rt, rt.store.get_module(module_addr), offset.code())?
-                            .expect_i32() as usize;
+                        eval_const_expr(rt, module_addr, offset.code())?.expect_i32() as usize;
                     let table_addr = rt
                         .store
                         .get_module(module_addr)
@@ -642,8 +636,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                 wasm::DataSegmentMode::Passive => {}
                 wasm::DataSegmentMode::Active { mem_idx, offset } => {
                     let offset =
-                        eval_const_expr(rt, rt.store.get_module(module_addr), offset.code())?
-                            .expect_i32() as u32;
+                        eval_const_expr(rt, module_addr, offset.code())?.expect_i32() as u32;
                     let mem_addr = rt
                         .store
                         .get_module(module_addr)
@@ -708,14 +701,6 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     }
 
     Ok(module_addr)
-}
-
-fn eval_const_expr(rt: &Runtime, module: &Module, instrs: &[Instruction]) -> Result<Value> {
-    crate::const_eval::eval_const_expr(
-        |global_idx| rt.store.get_global(module.get_global(global_idx)).value,
-        |fun_idx| module.get_fun(fun_idx),
-        instrs,
-    )
 }
 
 pub fn invoke_by_name(rt: &mut Runtime, module_addr: ModuleAddr, fun_name: &str) -> Result<()> {

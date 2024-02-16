@@ -1,20 +1,17 @@
+use crate::exec::Runtime;
 use crate::module::{FunIdx, GlobalIdx};
 use crate::stack::Stack;
-use crate::store::FunAddr;
+use crate::store::ModuleAddr;
 use crate::value::{Ref, Value};
 use crate::Result;
 
 use libwasmrun_syntax::{Instruction, SimdInstruction};
 
-pub(crate) fn eval_const_expr<GetGlobal, GetFun>(
-    get_global: GetGlobal,
-    get_fun: GetFun,
+pub(crate) fn eval_const_expr(
+    rt: &mut Runtime,
+    module_addr: ModuleAddr,
     instrs: &[Instruction],
-) -> Result<Value>
-where
-    GetGlobal: Fn(GlobalIdx) -> Value,
-    GetFun: Fn(FunIdx) -> FunAddr,
-{
+) -> Result<Value> {
     let mut stack = Stack::default();
 
     for instr in instrs {
@@ -34,10 +31,17 @@ where
             Instruction::RefNull(heap_ty) => stack.push_ref(Ref::Null(*heap_ty))?,
 
             Instruction::RefFunc(fun_idx) => {
-                stack.push_ref(Ref::Func(get_fun(FunIdx(*fun_idx))))?
+                let module = rt.get_module(module_addr);
+                let fun_addr = module.get_fun(FunIdx(*fun_idx));
+                stack.push_ref(Ref::Func(fun_addr))?
             }
 
-            Instruction::GetGlobal(idx) => stack.push_value(get_global(GlobalIdx(*idx)))?,
+            Instruction::GetGlobal(idx) => {
+                let module = rt.get_module(module_addr);
+                let global_addr = module.get_global(GlobalIdx(*idx));
+                let global_value = rt.store.get_global(global_addr).value;
+                stack.push_value(global_value)?;
+            }
 
             Instruction::I32Add => {
                 let i2 = stack.pop_i32()?;
