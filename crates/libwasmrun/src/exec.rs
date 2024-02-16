@@ -2987,22 +2987,14 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::StructNew(ty_idx) => {
-            let struct_type = rt
+            let struct_type: &wasm::StructType = rt
                 .store
                 .get_module(module_addr)
                 .get_type(TypeIdx(ty_idx))
                 .as_struct_type()
                 .unwrap();
 
-            let struct_payload_size = struct_type
-                .fields
-                .iter()
-                .map(|field_ty| storage_type_size(&field_ty.storage_ty))
-                .sum();
-
-            let mut payload: Vec<u8> = vec![0; struct_payload_size];
-
-            let mut payload_idx = struct_payload_size;
+            let mut fields: Vec<Value> = Vec::with_capacity(struct_type.fields.len());
 
             for wasm::FieldType {
                 storage_ty,
@@ -3011,111 +3003,32 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             {
                 let value = rt.stack.pop_value().unwrap();
                 match (storage_ty, value) {
-                    (wasm::StorageType::Val(wasm::ValueType::I32), Value::I32(value)) => {
-                        payload_idx -= 4;
-                        let [b1, b2, b3, b4] = value.to_le_bytes();
-                        payload[payload_idx] = b1;
-                        payload[payload_idx + 1] = b2;
-                        payload[payload_idx + 2] = b3;
-                        payload[payload_idx + 3] = b4;
+                    (wasm::StorageType::Val(wasm::ValueType::I32), Value::I32(_))
+                    | (wasm::StorageType::Val(wasm::ValueType::I64), Value::I64(_))
+                    | (wasm::StorageType::Val(wasm::ValueType::F32), Value::F32(_))
+                    | (wasm::StorageType::Val(wasm::ValueType::F64), Value::F64(_))
+                    | (wasm::StorageType::Val(wasm::ValueType::V128), Value::I128(_)) => {
+                        fields.push(value);
                     }
 
-                    (wasm::StorageType::Val(wasm::ValueType::I64), Value::I64(value)) => {
-                        payload_idx -= 8;
-                        let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
-                        payload[payload_idx] = b1;
-                        payload[payload_idx + 1] = b2;
-                        payload[payload_idx + 2] = b3;
-                        payload[payload_idx + 3] = b4;
-                        payload[payload_idx + 4] = b5;
-                        payload[payload_idx + 5] = b6;
-                        payload[payload_idx + 6] = b7;
-                        payload[payload_idx + 7] = b8;
-                    }
-
-                    (wasm::StorageType::Val(wasm::ValueType::F32), Value::F32(value)) => {
-                        payload_idx -= 4;
-                        let [b1, b2, b3, b4] = value.to_le_bytes();
-                        payload[payload_idx] = b1;
-                        payload[payload_idx + 1] = b2;
-                        payload[payload_idx + 2] = b3;
-                        payload[payload_idx + 3] = b4;
-                    }
-
-                    (wasm::StorageType::Val(wasm::ValueType::F64), Value::F64(value)) => {
-                        payload_idx -= 8;
-                        let [b1, b2, b3, b4, b5, b6, b7, b8] = value.to_le_bytes();
-                        payload[payload_idx] = b1;
-                        payload[payload_idx + 1] = b2;
-                        payload[payload_idx + 2] = b3;
-                        payload[payload_idx + 3] = b4;
-                        payload[payload_idx + 4] = b5;
-                        payload[payload_idx + 5] = b6;
-                        payload[payload_idx + 6] = b7;
-                        payload[payload_idx + 7] = b8;
-                    }
-
-                    (wasm::StorageType::Val(wasm::ValueType::V128), Value::I128(value)) => {
-                        payload_idx -= 16;
-                        let [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16] =
-                            value.to_le_bytes();
-                        payload[payload_idx] = b1;
-                        payload[payload_idx + 1] = b2;
-                        payload[payload_idx + 2] = b3;
-                        payload[payload_idx + 3] = b4;
-                        payload[payload_idx + 4] = b5;
-                        payload[payload_idx + 5] = b6;
-                        payload[payload_idx + 6] = b7;
-                        payload[payload_idx + 7] = b8;
-                        payload[payload_idx + 8] = b9;
-                        payload[payload_idx + 9] = b10;
-                        payload[payload_idx + 10] = b11;
-                        payload[payload_idx + 11] = b12;
-                        payload[payload_idx + 12] = b13;
-                        payload[payload_idx + 13] = b14;
-                        payload[payload_idx + 14] = b15;
-                        payload[payload_idx + 15] = b16;
-                    }
-
-                    (wasm::StorageType::Val(wasm::ValueType::Reference(_)), Value::Ref(value)) => {
+                    (wasm::StorageType::Val(wasm::ValueType::Reference(_)), Value::Ref(_)) => {
                         // TODO: Check reference type.
-                        payload_idx -= 4;
-                        match value.to_u32() {
-                            None => {
-                                // Null is represented as 0 and the payload is already zeroed, so
-                                // nothing to do.
-                            }
-                            Some(value) => {
-                                let [b1, b2, b3, b4] = value.to_le_bytes();
-                                payload[payload_idx] = b1;
-                                payload[payload_idx + 1] = b2;
-                                payload[payload_idx + 2] = b3;
-                                payload[payload_idx + 3] = b4;
-                            }
-                        }
+                        fields.push(value);
                     }
 
                     (wasm::StorageType::Packed(wasm::PackedType::I8), Value::I32(value)) => {
-                        payload_idx -= 1;
-                        payload[payload_idx] = value as i8 as u8;
+                        fields.push(Value::I32((value as i8) as i32));
                     }
 
                     (wasm::StorageType::Packed(wasm::PackedType::I16), Value::I32(value)) => {
-                        payload_idx -= 2;
-                        let [b1, b2] = (value as i16).to_le_bytes();
-                        payload[payload_idx] = b1;
-                        payload[payload_idx + 1] = b2;
+                        fields.push(Value::I32((value as i16) as i32));
                     }
 
                     _ => todo!(),
                 }
             }
 
-            assert_eq!(payload_idx, 0);
-
-            let struct_addr = rt
-                .store
-                .allocate_struct(struct_type.fields.clone(), payload);
+            let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
 
             rt.stack.push_ref(Ref::Struct(struct_addr))?;
 
@@ -3130,17 +3043,38 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .as_struct_type()
                 .unwrap();
 
-            let struct_payload_size = struct_type
-                .fields
-                .iter()
-                .map(|field_ty| storage_type_size(&field_ty.storage_ty))
-                .sum();
+            let mut fields: Vec<Value> = Vec::with_capacity(struct_type.fields.len());
 
-            let payload: Vec<u8> = vec![0; struct_payload_size];
+            for wasm::FieldType {
+                storage_ty,
+                mutability: _,
+            } in struct_type.fields.iter().rev()
+            {
+                match storage_ty {
+                    wasm::StorageType::Val(wasm::ValueType::I32)
+                    | wasm::StorageType::Packed(wasm::PackedType::I8 | wasm::PackedType::I16) => {
+                        fields.push(Value::I32(0))
+                    }
 
-            let struct_addr = rt
-                .store
-                .allocate_struct(struct_type.fields.clone(), payload);
+                    wasm::StorageType::Val(wasm::ValueType::I64) => fields.push(Value::I64(0)),
+
+                    wasm::StorageType::Val(wasm::ValueType::F32) => fields.push(Value::F32(0.0)),
+
+                    wasm::StorageType::Val(wasm::ValueType::F64) => fields.push(Value::F64(0.0)),
+
+                    wasm::StorageType::Val(wasm::ValueType::V128) => fields.push(Value::I128(0)),
+
+                    wasm::StorageType::Val(wasm::ValueType::Reference(wasm::ReferenceType {
+                        nullable,
+                        heap_ty: _,
+                    })) => {
+                        assert!(nullable);
+                        todo!();
+                    }
+                }
+            }
+
+            let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
 
             rt.stack.push_ref(Ref::Struct(struct_addr))?;
 
@@ -3177,12 +3111,13 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         | Instruction::ExternExternalize
         | Instruction::RefI31
         | Instruction::I31GetS
-        | Instruction::I31GetU => todo!(),
+        | Instruction::I31GetU => exec_panic!("Instruction not implemented: {}", instr),
     }
 
     Ok(())
 }
 
+#[allow(unused)]
 fn storage_type_size(ty: &wasm::StorageType) -> usize {
     match ty {
         wasm::StorageType::Val(val_ty) => match val_ty {

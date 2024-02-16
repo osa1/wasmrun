@@ -80,8 +80,8 @@ pub struct Array {
 
 #[derive(Debug, Clone)]
 pub struct Struct {
-    pub field_types: Vec<wasm::FieldType>,
-    pub payload: Vec<u8>,
+    pub ty: wasm::StructType,
+    pub fields: Vec<Value>,
 }
 
 impl Store {
@@ -249,16 +249,9 @@ impl Store {
         &self.arrays[array_addr.0 as usize]
     }
 
-    pub fn allocate_struct(
-        &mut self,
-        field_types: Vec<wasm::FieldType>,
-        payload: Vec<u8>,
-    ) -> StructAddr {
+    pub fn allocate_struct(&mut self, ty: wasm::StructType, fields: Vec<Value>) -> StructAddr {
         let idx = self.structs.len() as u32;
-        self.structs.push(Struct {
-            field_types,
-            payload,
-        });
+        self.structs.push(Struct { ty, fields });
         StructAddr(idx)
     }
 
