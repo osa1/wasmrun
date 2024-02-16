@@ -375,24 +375,27 @@ impl<'a> TestFileRunner<'a> {
                 Value::I128(i128::from_le_bytes(bytes))
             }
 
-            WastArgCore::RefNull(ty) => match ty {
-                wast::core::HeapType::Func => Value::Ref(Ref::Null(wasm::HeapType::Func)),
-                wast::core::HeapType::Extern => Value::Ref(Ref::Null(wasm::HeapType::Extern)),
-                wast::core::HeapType::Any
-                | wast::core::HeapType::Eq
-                | wast::core::HeapType::Struct
-                | wast::core::HeapType::Array
-                | wast::core::HeapType::I31
-                | wast::core::HeapType::NoFunc
-                | wast::core::HeapType::NoExtern
-                | wast::core::HeapType::Exn
-                | wast::core::HeapType::Concrete(_)
-                | wast::core::HeapType::None => todo!(),
-            },
+            WastArgCore::RefNull(ty) => Value::Ref(Ref::Null(match ty {
+                wast::core::HeapType::Func => wasm::HeapType::Func,
+                wast::core::HeapType::Extern => wasm::HeapType::Extern,
+                wast::core::HeapType::Any => wasm::HeapType::Any,
+                wast::core::HeapType::Eq => wasm::HeapType::Eq,
+                wast::core::HeapType::Struct => wasm::HeapType::Struct,
+                wast::core::HeapType::Array => wasm::HeapType::Array,
+                wast::core::HeapType::I31 => wasm::HeapType::I31,
+                wast::core::HeapType::NoFunc => wasm::HeapType::NoFunc,
+                wast::core::HeapType::NoExtern => wasm::HeapType::NoExtern,
+                wast::core::HeapType::Exn => wasm::HeapType::Exn,
+                wast::core::HeapType::None => wasm::HeapType::None,
+                wast::core::HeapType::Concrete(wast::token::Index::Num(idx, _)) => {
+                    wasm::HeapType::TypeIdx(*idx)
+                }
+                wast::core::HeapType::Concrete(wast::token::Index::Id(_)) => todo!(),
+            })),
 
-            WastArgCore::RefExtern(addr) => Value::Ref(Ref::Extern(ExternAddr(*addr))),
-
-            WastArgCore::RefHost(_) => panic!("ref.host"),
+            WastArgCore::RefHost(addr) | WastArgCore::RefExtern(addr) => {
+                Value::Ref(Ref::Extern(ExternAddr(*addr)))
+            }
         })
     }
 }
@@ -506,9 +509,21 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefNull(heap_ty), Value::Ref(Ref::Null(ref_ty))) => match (heap_ty, ref_ty) {
             (None, _) => true,
-            (Some(HeapType::Func), wasm::HeapType::Func) => true,
-            (Some(HeapType::Extern), wasm::HeapType::Extern) => true,
+
+            (Some(HeapType::Func), wasm::HeapType::Func | wasm::HeapType::NoFunc) => true,
+
+            (Some(HeapType::NoFunc), wasm::HeapType::NoFunc) => true,
+
+            (Some(HeapType::Extern), wasm::HeapType::Extern | wasm::HeapType::NoExtern) => true,
+
+            (Some(HeapType::NoExtern), wasm::HeapType::NoExtern) => true,
+
             (Some(HeapType::Exn), wasm::HeapType::Exn) => true,
+
+            (Some(HeapType::Any), _) => true,
+
+            (Some(HeapType::None), wasm::HeapType::None) => true,
+
             (_, _) => todo!("test_val(expected={:?}, found={:?})", expected, found),
         },
 
