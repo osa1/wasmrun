@@ -2512,15 +2512,15 @@ impl fmt::Display for Instruction {
             RefTestNull(ty) => fmt_op!(f, "ref.test_null", ty),
             RefCast(ty) => fmt_op!(f, "ref.cast", ty),
             RefCastNull(ty) => fmt_op!(f, "ref.cast_null", ty),
-            BrOnCast(_, _, _, _, _) => todo!(),
-            BrOnCastFail(_, _, _, _, _) => todo!(),
+            BrOnCast(_, _, _, _, _) => fmt_op!(f, "br_on_cast"), // TODO: show args
+            BrOnCastFail(_, _, _, _, _) => fmt_op!(f, "br_on_cast_fail"), // TODO: show args
             ExternInternalize => fmt_op!(f, "extern.internalize"),
             ExternExternalize => fmt_op!(f, "extern.externalize"),
             RefI31 => fmt_op!(f, "ref.i31"),
             I31GetS => fmt_op!(f, "i31.get_s"),
             I31GetU => fmt_op!(f, "i31.get_u"),
 
-            TryTable(_, _) => todo!(),
+            TryTable(_, _) => fmt_op!(f, "try_table"), // TODO: show args
             Throw(label) => fmt_op!(f, "throw", label),
             ThrowRef => fmt_op!(f, "throw_ref"),
         }

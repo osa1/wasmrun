@@ -351,6 +351,21 @@ impl Deserialize for BlockType {
             // -0x6f
             -0x11 => BlockType::Value(ValueType::Reference(ReferenceType::externref())),
 
+            // 0x6e
+            -0x12 => BlockType::Value(ValueType::Reference(ReferenceType::anyref())),
+
+            // 0x6d
+            -0x13 => BlockType::Value(ValueType::Reference(ReferenceType::eqref())),
+
+            // 0x6c
+            -0x14 => BlockType::Value(ValueType::Reference(ReferenceType::i31ref())),
+
+            // 0x6b
+            -0x15 => BlockType::Value(ValueType::Reference(ReferenceType::structref())),
+
+            // 0x6a
+            -0x16 => BlockType::Value(ValueType::Reference(ReferenceType::arrayref())),
+
             // -0x69
             -0x17 => BlockType::Value(ValueType::Reference(ReferenceType::exnref())),
 
