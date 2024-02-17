@@ -357,7 +357,7 @@ impl Deserialize for BlockType {
 
             // -0x69
             -0x17 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::externref(),
+                ReferenceType::exnref(),
             ))),
 
             // -0x63
