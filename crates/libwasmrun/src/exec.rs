@@ -34,44 +34,47 @@ pub(crate) const MAX_PAGES: u32 = 65536; // (2**32 - 1 / PAGE_SIZE), or 0x10000
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Trap {
-    /// Undefined table element called
+    /// Undefined table element called.
     UndefinedElement,
 
-    /// Uninitialized table element called
+    /// Uninitialized table element called.
     UninitializedElement,
 
-    /// Indirect function call target doesn't have expected type
+    /// Indirect function call target doesn't have expected type.
     IndirectCallTypeMismatch,
 
-    /// Element out of bounds
+    /// Element out of bounds.
     ElementOOB,
 
-    /// Out of bounds memory access
+    /// Out of bounds memory access.
     OOBMemoryAccess,
 
-    /// Out of bounds table access
+    /// Out of bounds table access.
     OOBTableAccess,
 
-    /// Integer divide by zero
+    /// Integer divide by zero.
     IntDivideByZero,
 
-    /// Integer overflow
+    /// Integer overflow.
     IntOverflow,
 
-    /// Invalid conversion to integer
+    /// Invalid conversion to integer.
     InvalidConvToInt,
 
-    /// 'unreachable' instruction executed
+    /// 'unreachable' instruction executed.
     Unreachable,
 
-    /// `call_indirect` called with an extern reference table
+    /// `call_indirect` called with an extern reference table.
     CallIndirectOnExternRef,
 
-    /// Null reference in `call_ref` or `return_call_ref`
+    /// Null reference in `call_ref` or `return_call_ref`.
     NullFunction,
 
-    /// Null reference in `ref_as_non_null`
+    /// Null reference in `ref_as_non_null`.
     NullReference,
+
+    /// Null reference in a struct instruction.
+    NullStructReference,
 }
 
 impl fmt::Display for Trap {
@@ -90,6 +93,7 @@ impl fmt::Display for Trap {
             Trap::CallIndirectOnExternRef => "`call_indirect` with an extern ref table".fmt(f),
             Trap::NullFunction => "null reference in `call_ref` or `return_call_ref`".fmt(f),
             Trap::NullReference => "null reference in `ref_as_non_null`".fmt(f),
+            Trap::NullStructReference => "null struct reference in a struct instruction".fmt(f),
         }
     }
 }
@@ -3013,6 +3017,8 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 }
             }
 
+            fields.reverse();
+
             let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
 
             rt.stack.push_ref(Ref::Struct(struct_addr))?;
@@ -3047,12 +3053,97 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::StructSet(ty_idx, field_idx) => {
+            let mut field_value = rt.stack.pop_value()?;
+
+            // If the field is packed, truncate the value and sign extend to 32 bits.
+            let struct_type: &wasm::StructType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_struct_type()
+                .unwrap();
+
+            let field_type = &struct_type.fields[field_idx as usize];
+
+            match field_type.storage_ty {
+                wasm::StorageType::Val(_) => {}
+
+                wasm::StorageType::Packed(wasm::PackedType::I8) => {
+                    let i = field_value.expect_i32();
+                    field_value = Value::I32((i as i8) as i32);
+                }
+
+                wasm::StorageType::Packed(wasm::PackedType::I16) => {
+                    let i = field_value.expect_i32();
+                    field_value = Value::I32((i as i16) as i32);
+                }
+            }
+
+            let struct_ref = rt.stack.pop_ref()?;
+
+            // Struct ref can be null.
+            let struct_addr = match struct_ref {
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullStructReference)),
+                Ref::Struct(struct_addr) => struct_addr,
+                _ => {
+                    // Validation error.
+                    exec_panic!(
+                        "struct.get argument is not a struct reference: {:?}",
+                        struct_ref
+                    )
+                }
+            };
+
+            let struct_ = rt.store.get_struct_mut(struct_addr);
+            struct_.fields[field_idx as usize] = field_value;
+
+            rt.ip += 1;
+        }
+
+        // `get_s` is the same as `get` as we store packed values sign extended.
+        Instruction::StructGet(_ty_idx, field_idx)
+        | Instruction::StructGetS(_ty_idx, field_idx) => {
+            let value = struct_get(rt, field_idx)?;
+            rt.stack.push_value(value)?;
+            rt.ip += 1;
+        }
+
+        Instruction::StructGetU(ty_idx, field_idx) => {
+            let mut value = struct_get(rt, field_idx)?;
+
+            // If the value is packed then it's sign extended to 32 bits, convert it to zero
+            // extension.
+            let struct_type: &wasm::StructType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_struct_type()
+                .unwrap();
+
+            let field_type = &struct_type.fields[field_idx as usize];
+
+            match field_type.storage_ty {
+                wasm::StorageType::Val(_) => {}
+
+                wasm::StorageType::Packed(wasm::PackedType::I8) => {
+                    let i = value.expect_i32();
+                    value = Value::I32(((i as i8) as u8) as i32);
+                }
+
+                wasm::StorageType::Packed(wasm::PackedType::I16) => {
+                    let i = value.expect_i32();
+                    value = Value::I32(((i as i16) as u16) as i32);
+                }
+            }
+
+            rt.stack.push_value(value)?;
+
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::StructGet(_, _)
-        | Instruction::StructGetS(_, _)
-        | Instruction::StructGetU(_, _)
-        | Instruction::StructSet(_, _)
         | Instruction::ArrayNew(_)
         | Instruction::ArrayNewDefault(_)
         | Instruction::ArrayNewFixed(_, _)
@@ -3585,4 +3676,25 @@ fn br(rt: &mut Runtime, n_blocks: u32) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn struct_get(rt: &mut Runtime, field_idx: u32) -> Result<Value> {
+    let struct_ref = rt.stack.pop_ref()?;
+
+    // Struct ref can be null.
+    let struct_addr = match struct_ref {
+        Ref::Null(_) => return Err(ExecError::Trap(Trap::NullStructReference)),
+        Ref::Struct(struct_addr) => struct_addr,
+        _ => {
+            // Validation error.
+            exec_panic!(
+                "struct.get argument is not a struct reference: {:?}",
+                struct_ref
+            )
+        }
+    };
+
+    let struct_ = rt.store.get_struct(struct_addr);
+
+    Ok(struct_.fields[field_idx as usize])
 }

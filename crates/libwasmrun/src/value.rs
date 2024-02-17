@@ -44,6 +44,13 @@ impl Ref {
             Ref::Array(addr) => Some(addr.0),
         }
     }
+
+    pub fn as_struct_addr(&self) -> Option<StructAddr> {
+        match self {
+            Ref::Struct(addr) => Some(*addr),
+            _ => None,
+        }
+    }
 }
 
 // TODO: Make this a const once from_bits is a const fn

@@ -258,6 +258,10 @@ impl Store {
     pub fn get_struct(&self, struct_addr: StructAddr) -> &Struct {
         &self.structs[struct_addr.0 as usize]
     }
+
+    pub fn get_struct_mut(&mut self, struct_addr: StructAddr) -> &mut Struct {
+        &mut self.structs[struct_addr.0 as usize]
+    }
 }
 
 #[derive(Debug)]

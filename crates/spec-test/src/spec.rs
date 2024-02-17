@@ -539,6 +539,8 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
             ExternAddr(*extern1) == *extern2
         }
 
+        (WastRetCore::RefStruct, Value::Ref(Ref::Struct(_))) => true,
+
         (_, _) => false,
     }
 }
@@ -585,6 +587,7 @@ fn trap_expected_msg(trap: Trap) -> &'static str {
         Trap::CallIndirectOnExternRef => "TODO", // TODO
         Trap::NullFunction => "null function",
         Trap::NullReference => "null reference",
+        Trap::NullStructReference => "null structure reference",
     }
 }
 

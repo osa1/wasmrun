@@ -123,6 +123,8 @@ pub(crate) fn eval_const_expr(
                     }
                 }
 
+                fields.reverse();
+
                 let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
 
                 stack.push_ref(Ref::Struct(struct_addr))?;
