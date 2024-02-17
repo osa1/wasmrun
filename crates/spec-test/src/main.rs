@@ -5,29 +5,26 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-static TEST_DIRS: [&str; 5] = [
+#[rustfmt::skip]
+static TEST_FILES: [&str; 7] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
     "tests/spec/proposals/function-references",
     "tests/spec/proposals/multi-memory",
+
     // Tail call tests take a long time to run, disabled for now
     // "tests/spec/proposals/tail-call",
+
+    "tests/spec/proposals/gc/struct.wast",
+    "tests/spec/proposals/gc/i31.wast",
 ];
 
 fn main() {
     let cli::Args { mut files } = cli::parse();
 
     if files.is_empty() {
-        for dir in TEST_DIRS {
-            if let Err(err) = fs::read_dir(dir) {
-                eprintln!("Unable to read test directory {}", dir);
-                eprintln!("Error: {}", err);
-                eprintln!("Try `git submodule update --init`");
-                exit(1);
-            }
-        }
-        files = TEST_DIRS.iter().map(|s| s.to_string()).collect();
+        files = TEST_FILES.iter().map(|s| s.to_string()).collect();
     }
 
     let mut fails = 0;
@@ -90,6 +87,8 @@ fn run_dir(dir_path: &str) -> usize {
 fn run_file(file_path: &str) -> usize {
     let file_path: PathBuf = file_path.into();
 
+    println!("{}", file_path.file_name().unwrap().to_str().unwrap());
+
     match file_path.extension() {
         Some(ext) => {
             if ext != "wast" {
@@ -119,7 +118,7 @@ fn run_file(file_path: &str) -> usize {
     }
 }
 
-/// Run all .wast files in the given directory. Does not recursive into subdirectories.
+/// Run all .wast files in the given directory. Does not recurse into subdirectories.
 fn run_spec_dir(dir: &[PathBuf]) -> Vec<(PathBuf, Vec<usize>)> {
     let mut fails: Vec<(PathBuf, Vec<usize>)> = Default::default();
 
@@ -127,6 +126,8 @@ fn run_spec_dir(dir: &[PathBuf]) -> Vec<(PathBuf, Vec<usize>)> {
         if let Some(ext) = file_path.extension() {
             if ext == "wast" {
                 println!("{}", file_path.file_name().unwrap().to_str().unwrap());
+
+                // TODO: Why does this not call `run_file`?
 
                 match run_spec_test(file_path) {
                     Ok(failing_lines) => {
