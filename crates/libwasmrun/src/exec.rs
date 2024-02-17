@@ -75,6 +75,9 @@ pub enum Trap {
 
     /// Null reference in a struct instruction.
     NullStructReference,
+
+    /// Null reference in an i31 instruction.
+    NullI31Reference,
 }
 
 impl fmt::Display for Trap {
@@ -94,6 +97,7 @@ impl fmt::Display for Trap {
             Trap::NullFunction => "null reference in `call_ref` or `return_call_ref`".fmt(f),
             Trap::NullReference => "null reference in `ref_as_non_null`".fmt(f),
             Trap::NullStructReference => "null struct reference in a struct instruction".fmt(f),
+            Trap::NullI31Reference => "null reference in an i31 instruction".fmt(f),
         }
     }
 }
@@ -2486,7 +2490,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::CallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) => {
+                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
                     exec_panic!("call_ref: reference is not a function")
                 }
                 Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
@@ -2501,7 +2505,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         Instruction::ReturnCallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) => {
+                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
                     exec_panic!("return_call_ref: reference is not a function")
                 }
                 Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
@@ -2956,7 +2960,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 Ref::Null(_) => {
                     return Err(ExecError::Trap(Trap::NullReference));
                 }
-                Ref::Func(_) | Ref::Extern(_) | Ref::Struct(_) | Ref::Array(_) => {
+                Ref::Func(_) | Ref::Extern(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
                     return Err(ExecError::Trap(Trap::NullReference)); // FIXME: trap kind
                 }
                 Ref::Exn(exn_addr) => exn_addr,
@@ -3142,6 +3146,39 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::RefI31 => {
+            let value = rt.stack.pop_i32()?;
+            let i31 = (value as u32) & 0x7f_ff_ff_ff;
+            rt.stack.push_value(Value::Ref(Ref::I31(i31 as i32)))?;
+            rt.ip += 1;
+        }
+
+        Instruction::I31GetS => {
+            let mut value = match rt.stack.pop_ref()? {
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullI31Reference)),
+                Ref::I31(value) => value,
+                _ => panic!(),
+            };
+
+            if value & 0x40_00_00_00 != 0 {
+                // Sign extend.
+                value = ((value as u32) | 0x80_00_00_00) as i32;
+            }
+
+            rt.stack.push_value(Value::I32(value))?;
+            rt.ip += 1;
+        }
+
+        Instruction::I31GetU => {
+            let value = match rt.stack.pop_ref()? {
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullI31Reference)),
+                Ref::I31(value) => value as u32,
+                _ => panic!(),
+            };
+            rt.stack.push_value(Value::I32(value as i32))?;
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
         | Instruction::ArrayNew(_)
@@ -3165,10 +3202,7 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
         | Instruction::BrOnCast(_, _, _, _, _)
         | Instruction::BrOnCastFail(_, _, _, _, _)
         | Instruction::ExternInternalize
-        | Instruction::ExternExternalize
-        | Instruction::RefI31
-        | Instruction::I31GetS
-        | Instruction::I31GetU => exec_panic!("Instruction not implemented: {}", instr),
+        | Instruction::ExternExternalize => exec_panic!("Instruction not implemented: {}", instr),
     }
 
     Ok(())
@@ -3323,7 +3357,7 @@ fn get_fun_addr_from_table(
     match rt.store.get_table(table_addr).get(elem_idx as usize) {
         Some(Ref::Func(fun_addr)) => Ok(*fun_addr),
         Some(Ref::Null(_ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
-        Some(Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_)) => {
+        Some(Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_)) => {
             // TODO: Check table type to help with debugging
             // TODO: Incorrect trap kind.
             Err(ExecError::Trap(Trap::CallIndirectOnExternRef))

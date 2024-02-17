@@ -24,13 +24,21 @@ pub enum Ref {
     Extern(ExternAddr),
     Struct(StructAddr),
     Array(ArrayAddr),
+
+    /// A 31-bit integer disguised as a pointer.
+    I31(i32),
 }
 
 impl Ref {
     pub fn is_null(&self) -> bool {
         match self {
             Ref::Null(_) => true,
-            Ref::Func(_) | Ref::Exn(_) | Ref::Extern(_) | Ref::Struct(_) | Ref::Array(_) => false,
+            Ref::Func(_)
+            | Ref::Exn(_)
+            | Ref::Extern(_)
+            | Ref::Struct(_)
+            | Ref::Array(_)
+            | Ref::I31(_) => false,
         }
     }
 
@@ -42,6 +50,14 @@ impl Ref {
             Ref::Extern(addr) => Some(addr.0),
             Ref::Struct(addr) => Some(addr.0),
             Ref::Array(addr) => Some(addr.0),
+            Ref::I31(i) => Some(*i as u32),
+        }
+    }
+
+    pub fn to_i31(&self) -> Option<i32> {
+        match self {
+            Ref::I31(i) => Some(*i),
+            _ => None,
         }
     }
 

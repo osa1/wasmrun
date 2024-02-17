@@ -81,6 +81,17 @@ pub(crate) fn eval_const_expr(
                 stack.push_i64(i1.wrapping_mul(i2))?;
             }
 
+            Instruction::RefI31 => {
+                let value = stack.pop_i32()?;
+                let mut i31 = (value as u32) & 0x7f_ff_ff_ff;
+
+                if value < 0 {
+                    i31 |= 0x80_00_00_00;
+                }
+
+                stack.push_value(Value::Ref(Ref::I31(i31 as i32)))?;
+            }
+
             Instruction::StructNew(ty_idx) => {
                 let struct_type = rt
                     .store

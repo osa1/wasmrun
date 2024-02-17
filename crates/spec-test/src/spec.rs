@@ -541,6 +541,8 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefStruct, Value::Ref(Ref::Struct(_))) => true,
 
+        (WastRetCore::RefI31, Value::Ref(Ref::I31(_))) => true,
+
         (_, _) => false,
     }
 }
@@ -588,6 +590,7 @@ fn trap_expected_msg(trap: Trap) -> &'static str {
         Trap::NullFunction => "null function",
         Trap::NullReference => "null reference",
         Trap::NullStructReference => "null structure reference",
+        Trap::NullI31Reference => "null i31 reference",
     }
 }
 
