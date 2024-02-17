@@ -1,10 +1,11 @@
 use crate::exec::Runtime;
-use crate::module::{FunIdx, GlobalIdx};
+use crate::module::{FunIdx, GlobalIdx, TypeIdx};
 use crate::stack::Stack;
 use crate::store::ModuleAddr;
 use crate::value::{Ref, Value};
 use crate::Result;
 
+use libwasmrun_syntax as wasm;
 use libwasmrun_syntax::{Instruction, SimdInstruction};
 
 pub(crate) fn eval_const_expr(
@@ -12,6 +13,7 @@ pub(crate) fn eval_const_expr(
     module_addr: ModuleAddr,
     instrs: &[Instruction],
 ) -> Result<Value> {
+    // TODO FIXME: Now that we have access to `Runtime` maybe we should use `rt.stack`.
     let mut stack = Stack::default();
 
     for instr in instrs {
@@ -77,6 +79,78 @@ pub(crate) fn eval_const_expr(
                 let i2 = stack.pop_i64()?;
                 let i1 = stack.pop_i64()?;
                 stack.push_i64(i1.wrapping_mul(i2))?;
+            }
+
+            Instruction::StructNew(ty_idx) => {
+                let struct_type = rt
+                    .store
+                    .get_module(module_addr)
+                    .get_type(TypeIdx(*ty_idx))
+                    .as_struct_type()
+                    .unwrap();
+
+                let mut fields: Vec<Value> = Vec::with_capacity(struct_type.fields.len());
+
+                for wasm::FieldType {
+                    storage_ty,
+                    mutability: _,
+                } in struct_type.fields.iter().rev()
+                {
+                    let value = stack.pop_value().unwrap();
+                    match (storage_ty, value) {
+                        (wasm::StorageType::Val(wasm::ValueType::I32), Value::I32(_))
+                        | (wasm::StorageType::Val(wasm::ValueType::I64), Value::I64(_))
+                        | (wasm::StorageType::Val(wasm::ValueType::F32), Value::F32(_))
+                        | (wasm::StorageType::Val(wasm::ValueType::F64), Value::F64(_))
+                        | (wasm::StorageType::Val(wasm::ValueType::V128), Value::I128(_)) => {
+                            fields.push(value);
+                        }
+
+                        (wasm::StorageType::Val(wasm::ValueType::Reference(_)), Value::Ref(_)) => {
+                            // TODO: Check reference type.
+                            fields.push(value);
+                        }
+
+                        (wasm::StorageType::Packed(wasm::PackedType::I8), Value::I32(value)) => {
+                            fields.push(Value::I32((value as i8) as i32));
+                        }
+
+                        (wasm::StorageType::Packed(wasm::PackedType::I16), Value::I32(value)) => {
+                            fields.push(Value::I32((value as i16) as i32));
+                        }
+
+                        _ => todo!(),
+                    }
+                }
+
+                let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
+
+                stack.push_ref(Ref::Struct(struct_addr))?;
+            }
+
+            Instruction::StructNewDefault(ty_idx) => {
+                let struct_type = rt
+                    .store
+                    .get_module(module_addr)
+                    .get_type(TypeIdx(*ty_idx))
+                    .as_struct_type()
+                    .unwrap();
+
+                let fields: Vec<Value> = struct_type
+                    .fields
+                    .iter()
+                    .rev()
+                    .map(
+                        |wasm::FieldType {
+                             storage_ty,
+                             mutability: _,
+                         }| Value::default_from_storage_type(storage_ty),
+                    )
+                    .collect();
+
+                let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
+
+                stack.push_ref(Ref::Struct(struct_addr))?;
             }
 
             Instruction::End => break,

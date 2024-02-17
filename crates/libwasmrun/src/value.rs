@@ -72,6 +72,28 @@ pub(crate) fn canonicalize_f64_nan(f: f64) -> f64 {
 }
 
 impl Value {
+    pub(crate) fn default_from_storage_type(storage_ty: &wasm::StorageType) -> Self {
+        match storage_ty {
+            wasm::StorageType::Val(val_ty) => Self::default_from_value_type(val_ty),
+            wasm::StorageType::Packed(_) => Value::I32(0),
+        }
+    }
+
+    pub(crate) fn default_from_value_type(value_ty: &wasm::ValueType) -> Self {
+        match value_ty {
+            wasm::ValueType::I32 => Self::default_i32(),
+            wasm::ValueType::I64 => Self::default_i64(),
+            wasm::ValueType::F32 => Self::default_f32(),
+            wasm::ValueType::F64 => Self::default_f64(),
+            wasm::ValueType::V128 => Self::default_i128(),
+            wasm::ValueType::Reference(ref_ty) => Self::default_from_reference_type(ref_ty),
+        }
+    }
+
+    pub(crate) fn default_from_reference_type(_ref_ty: &wasm::ReferenceType) -> Self {
+        todo!()
+    }
+
     pub(crate) fn default_i32() -> Self {
         Value::I32(0)
     }

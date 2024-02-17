@@ -3028,36 +3028,17 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 .as_struct_type()
                 .unwrap();
 
-            let mut fields: Vec<Value> = Vec::with_capacity(struct_type.fields.len());
-
-            for wasm::FieldType {
-                storage_ty,
-                mutability: _,
-            } in struct_type.fields.iter().rev()
-            {
-                match storage_ty {
-                    wasm::StorageType::Val(wasm::ValueType::I32)
-                    | wasm::StorageType::Packed(wasm::PackedType::I8 | wasm::PackedType::I16) => {
-                        fields.push(Value::I32(0))
-                    }
-
-                    wasm::StorageType::Val(wasm::ValueType::I64) => fields.push(Value::I64(0)),
-
-                    wasm::StorageType::Val(wasm::ValueType::F32) => fields.push(Value::F32(0.0)),
-
-                    wasm::StorageType::Val(wasm::ValueType::F64) => fields.push(Value::F64(0.0)),
-
-                    wasm::StorageType::Val(wasm::ValueType::V128) => fields.push(Value::I128(0)),
-
-                    wasm::StorageType::Val(wasm::ValueType::Reference(wasm::ReferenceType {
-                        nullable,
-                        heap_ty: _,
-                    })) => {
-                        assert!(nullable);
-                        todo!();
-                    }
-                }
-            }
+            let fields: Vec<Value> = struct_type
+                .fields
+                .iter()
+                .rev()
+                .map(
+                    |wasm::FieldType {
+                         storage_ty,
+                         mutability: _,
+                     }| Value::default_from_storage_type(storage_ty),
+                )
+                .collect();
 
             let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
 
