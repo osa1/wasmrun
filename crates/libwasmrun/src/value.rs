@@ -137,21 +137,21 @@ impl Value {
         Value::I128(0i128)
     }
 
-    pub fn expect_i32(&self) -> i32 {
+    pub(crate) fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
             _ => panic!("expect_i32: found {:?}", self),
         }
     }
 
-    pub fn expect_i64(&self) -> i64 {
+    pub(crate) fn expect_i64(&self) -> i64 {
         match self {
             Value::I64(i) => *i,
             _ => panic!("expect_i64: found {:?}", self),
         }
     }
 
-    pub fn expect_ref(&self) -> Ref {
+    pub(crate) fn expect_ref(&self) -> Ref {
         match self {
             Value::Ref(ref_) => *ref_,
             _ => panic!("expect_ref: found {:?}", self),
