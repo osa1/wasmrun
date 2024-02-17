@@ -7,7 +7,7 @@ use crate::const_eval::eval_const_expr;
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
-use crate::mem::Mem;
+use crate::mem::{self, Mem};
 use crate::module::{
     DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
 };
@@ -76,6 +76,9 @@ pub enum Trap {
     /// Null reference in a struct instruction.
     NullStructReference,
 
+    /// Null reference in an array instruction.
+    NullArrayReference,
+
     /// Null reference in an i31 instruction.
     NullI31Reference,
 }
@@ -97,6 +100,7 @@ impl fmt::Display for Trap {
             Trap::NullFunction => "null reference in `call_ref` or `return_call_ref`".fmt(f),
             Trap::NullReference => "null reference in `ref_as_non_null`".fmt(f),
             Trap::NullStructReference => "null struct reference in a struct instruction".fmt(f),
+            Trap::NullArrayReference => "null array reference in an array instruction".fmt(f),
             Trap::NullI31Reference => "null reference in an i31 instruction".fmt(f),
         }
     }
@@ -3179,14 +3183,115 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             rt.ip += 1;
         }
 
+        Instruction::ArrayNew(ty_idx) => {
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
+
+            let elem_size = storage_type_size(array_elem_type);
+
+            let array_size = rt.stack.pop_i32()?;
+
+            let mut payload: Vec<u8> = vec![0; array_size as usize * elem_size];
+
+            let mut payload_idx = payload.len();
+
+            for _ in 0..array_size {
+                payload_idx -= elem_size;
+                let elem = rt.stack.pop_value()?;
+                elem.store_le(&mut payload[payload_idx..]);
+            }
+
+            assert_eq!(payload_idx, 0);
+
+            let array_addr = rt.store.allocate_array(array_type.field.clone(), payload);
+
+            rt.stack.push_ref(Ref::Array(array_addr))?;
+
+            rt.ip += 1;
+        }
+
+        Instruction::ArrayGet(ty_idx) => {
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
+
+            let elem_idx = rt.stack.pop_i32()?;
+
+            let array_ref = rt.stack.pop_ref()?;
+
+            let array_addr = match array_ref {
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(array_addr) => array_addr,
+                _ => exec_panic!(
+                    "array.get argument is not an array reference: {:?}",
+                    array_ref
+                ),
+            };
+
+            let array = rt.store.get_array(array_addr);
+
+            let elem_size = storage_type_size(array_elem_type);
+            let elem_offset = elem_size * elem_idx as usize;
+
+            // TODO: Check bounds.
+            let value = match array_elem_type {
+                wasm::StorageType::Val(val_ty) => match val_ty {
+                    wasm::ValueType::I32 => {
+                        Value::I32(mem::load_32_le_unchecked(&array.payload, elem_offset) as i32)
+                    }
+
+                    wasm::ValueType::I64 => {
+                        Value::I64(mem::load_64_le_unchecked(&array.payload, elem_offset) as i64)
+                    }
+
+                    wasm::ValueType::F32 => Value::F32(f32::from_bits(mem::load_32_le_unchecked(
+                        &array.payload,
+                        elem_offset,
+                    ))),
+
+                    wasm::ValueType::F64 => Value::F64(f64::from_bits(mem::load_64_le_unchecked(
+                        &array.payload,
+                        elem_offset,
+                    ))),
+
+                    wasm::ValueType::V128 => {
+                        Value::I128(mem::load_128_le_unchecked(&array.payload, elem_offset) as i128)
+                    }
+
+                    wasm::ValueType::Reference(_) => todo!(),
+                },
+
+                wasm::StorageType::Packed(packed_ty) => match packed_ty {
+                    wasm::PackedType::I8 => Value::I32(array.payload[elem_offset] as i32),
+
+                    wasm::PackedType::I16 => {
+                        Value::I32(mem::load_16_le_unchecked(&array.payload, elem_offset) as i32)
+                    }
+                },
+            };
+
+            rt.stack.push_value(value)?;
+
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::ArrayNew(_)
         | Instruction::ArrayNewDefault(_)
         | Instruction::ArrayNewFixed(_, _)
         | Instruction::ArrayNewData(_, _)
         | Instruction::ArrayNewElem(_, _)
-        | Instruction::ArrayGet(_)
         | Instruction::ArrayGetS(_)
         | Instruction::ArrayGetU(_)
         | Instruction::ArraySet(_)
@@ -3208,7 +3313,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     Ok(())
 }
 
-#[allow(unused)]
 fn storage_type_size(ty: &wasm::StorageType) -> usize {
     match ty {
         wasm::StorageType::Val(val_ty) => match val_ty {

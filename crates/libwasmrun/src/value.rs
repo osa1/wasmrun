@@ -68,6 +68,13 @@ impl Ref {
             _ => None,
         }
     }
+
+    pub fn as_array_addr(&self) -> Option<ArrayAddr> {
+        match self {
+            Ref::Array(addr) => Some(*addr),
+            _ => None,
+        }
+    }
 }
 
 // TODO: Make this a const once from_bits is a const fn
@@ -160,37 +167,30 @@ impl Value {
     }
 
     /// Store the value in little endian in `mem` and return the size of the serialized value.
-    #[allow(unused)]
-    pub(crate) fn store_le(&self, mem: &mut [u8]) -> usize {
+    pub(crate) fn store_le(&self, mem: &mut [u8]) {
         match self {
             Value::I32(i32) => {
                 mem::store_32_le_unchecked(*i32 as u32, mem, 0);
-                4
             }
 
             Value::I64(i64) => {
                 mem::store_64_le_unchecked(*i64 as u64, mem, 0);
-                8
             }
 
             Value::I128(i128) => {
                 mem::store_128_le_unchecked(*i128 as u128, mem, 0);
-                16
             }
 
             Value::F32(f32) => {
                 mem::store_32_le_unchecked(f32.to_bits(), mem, 0);
-                4
             }
 
             Value::F64(f64) => {
                 mem::store_64_le_unchecked(f64.to_bits(), mem, 0);
-                8
             }
 
             Value::Ref(ref_) => {
                 mem::store_32_le_unchecked(ref_.to_u32().unwrap(), mem, 0);
-                4
             }
         }
     }
