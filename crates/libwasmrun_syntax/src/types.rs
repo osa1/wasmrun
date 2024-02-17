@@ -326,63 +326,57 @@ impl Deserialize for BlockType {
         // NB. The byte 0x40 is 64 in unsigned LEB128, -64 in signed LEB128. Byte values of value
         // types are negative numbers when interpreted as signed LEB128. For example, the byte 0x7F
         // for value type `i32` is -1 when interpreted as signed LEB128.
-        match val.into() {
-            -0x40 => Ok(BlockType::Empty),
+        Ok(match val.into() {
+            -0x40 => BlockType::Empty,
             // TODO: Duplicate valtype parsing
             // 0x7f
-            -0x01 => Ok(BlockType::Value(ValueType::I32)),
+            -0x01 => BlockType::Value(ValueType::I32),
 
             // 0x7e
-            -0x02 => Ok(BlockType::Value(ValueType::I64)),
+            -0x02 => BlockType::Value(ValueType::I64),
 
             // 0x7d
-            -0x03 => Ok(BlockType::Value(ValueType::F32)),
+            -0x03 => BlockType::Value(ValueType::F32),
 
             // 0x7c
-            -0x04 => Ok(BlockType::Value(ValueType::F64)),
+            -0x04 => BlockType::Value(ValueType::F64),
 
             // 0x7b
-            -0x05 => Ok(BlockType::Value(ValueType::V128)),
+            -0x05 => BlockType::Value(ValueType::V128),
 
             // TODO: duplicate reftype parsing
             // -0x70
-            -0x10 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::funcref(),
-            ))),
+            -0x10 => BlockType::Value(ValueType::Reference(ReferenceType::funcref())),
 
             // -0x6f
-            -0x11 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::externref(),
-            ))),
+            -0x11 => BlockType::Value(ValueType::Reference(ReferenceType::externref())),
 
             // -0x69
-            -0x17 => Ok(BlockType::Value(ValueType::Reference(
-                ReferenceType::exnref(),
-            ))),
+            -0x17 => BlockType::Value(ValueType::Reference(ReferenceType::exnref())),
 
             // -0x63
             -0x1D => {
                 let heap_ty = HeapType::deserialize(reader)?;
-                Ok(BlockType::Value(ValueType::Reference(ReferenceType {
+                BlockType::Value(ValueType::Reference(ReferenceType {
                     nullable: true,
                     heap_ty,
-                })))
+                }))
             }
 
             // -0x64
             -0x1C => {
                 let heap_ty = HeapType::deserialize(reader)?;
-                Ok(BlockType::Value(ValueType::Reference(ReferenceType {
+                BlockType::Value(ValueType::Reference(ReferenceType {
                     nullable: false,
                     heap_ty,
-                })))
+                }))
             }
 
             idx => {
                 let idx = u32::try_from(idx).map_err(|_| Error::UnknownBlockType(idx))?;
-                Ok(BlockType::TypeIndex(idx))
+                BlockType::TypeIndex(idx)
             }
-        }
+        })
     }
 }
 
