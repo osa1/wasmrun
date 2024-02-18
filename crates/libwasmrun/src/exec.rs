@@ -3389,20 +3389,20 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
                 wasm::StorageType::Packed(packed_ty) => match packed_ty {
                     wasm::PackedType::I8 => {
-                        let i8 = array.payload[elem_offset];
+                        let u8 = array.payload[elem_offset];
                         Value::I32(if sign_extend {
-                            i8 as i32
+                            u8 as i8 as i32
                         } else {
-                            i8 as u32 as i32
+                            u8 as i32
                         })
                     }
 
                     wasm::PackedType::I16 => {
-                        let i16 = mem::load_16_le_unchecked(&array.payload, elem_offset);
+                        let u16 = mem::load_16_le_unchecked(&array.payload, elem_offset);
                         Value::I32(if sign_extend {
-                            i16 as i32
+                            u16 as i16 as i32
                         } else {
-                            i16 as u32 as i32
+                            u16 as i32
                         })
                     }
                 },
