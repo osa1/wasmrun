@@ -541,7 +541,11 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefStruct, Value::Ref(Ref::Struct(_))) => true,
 
+        (WastRetCore::RefArray, Value::Ref(Ref::Array(_))) => true,
+
         (WastRetCore::RefI31, Value::Ref(Ref::I31(_))) => true,
+
+        (WastRetCore::RefEq, Value::Ref(Ref::I31(_) | Ref::Array(_) | Ref::Struct(_))) => true,
 
         (_, _) => false,
     }
