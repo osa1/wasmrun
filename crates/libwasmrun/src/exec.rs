@@ -80,6 +80,8 @@ pub enum Trap {
 
     /// Null reference in an i31 instruction.
     NullI31Reference,
+
+    OOBArrayAccess,
 }
 
 impl fmt::Display for Trap {
@@ -101,6 +103,7 @@ impl fmt::Display for Trap {
             Trap::NullStructReference => "null struct reference in a struct instruction".fmt(f),
             Trap::NullArrayReference => "null array reference in an array instruction".fmt(f),
             Trap::NullI31Reference => "null reference in an i31 instruction".fmt(f),
+            Trap::OOBArrayAccess => "out of bounds array access".fmt(f),
         }
     }
 }
@@ -3286,6 +3289,10 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array(array_addr);
 
+            if elem_idx >= array.len {
+                return Err(ExecError::Trap(Trap::OOBArrayAccess));
+            }
+
             let elem_size = storage_type_size(array_elem_type);
             let elem_offset = elem_size * elem_idx as usize;
 
@@ -3356,6 +3363,10 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             };
 
             let array = rt.store.get_array_mut(array_addr);
+
+            if elem_idx >= array.len {
+                return Err(ExecError::Trap(Trap::OOBArrayAccess));
+            }
 
             let elem_size = storage_type_size(&array_elem_type);
             let elem_offset = elem_size * elem_idx as usize;

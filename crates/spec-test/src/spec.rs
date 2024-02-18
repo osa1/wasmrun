@@ -596,6 +596,7 @@ fn trap_expected_msg(trap: Trap) -> &'static str {
         Trap::NullStructReference => "null structure reference",
         Trap::NullArrayReference => "null array reference",
         Trap::NullI31Reference => "null i31 reference",
+        Trap::OOBArrayAccess => "out of bounds array access",
     }
 }
 
