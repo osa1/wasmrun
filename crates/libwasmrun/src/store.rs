@@ -76,6 +76,10 @@ pub struct Exception {
 pub struct Array {
     pub field_type: wasm::FieldType,
     pub payload: Vec<u8>,
+
+    // To be able to implement `array.len`, we either need the length (in number of elements) or
+    // element type here. For now let's store the length.
+    pub len: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -236,17 +240,27 @@ impl Store {
         &self.exceptions[exn_addr.0 as usize]
     }
 
-    pub fn allocate_array(&mut self, field_type: wasm::FieldType, payload: Vec<u8>) -> ArrayAddr {
+    pub fn allocate_array(
+        &mut self,
+        field_type: wasm::FieldType,
+        payload: Vec<u8>,
+        len: i32,
+    ) -> ArrayAddr {
         let idx = self.arrays.len() as u32;
         self.arrays.push(Array {
             field_type,
             payload,
+            len,
         });
         ArrayAddr(idx)
     }
 
     pub fn get_array(&self, array_addr: ArrayAddr) -> &Array {
         &self.arrays[array_addr.0 as usize]
+    }
+
+    pub fn get_array_mut(&mut self, array_addr: ArrayAddr) -> &mut Array {
+        &mut self.arrays[array_addr.0 as usize]
     }
 
     pub fn allocate_struct(&mut self, ty: wasm::StructType, fields: Vec<Value>) -> StructAddr {

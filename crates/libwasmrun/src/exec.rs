@@ -3235,7 +3235,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let elem_size = storage_type_size(array_elem_type);
 
-            let array_size = rt.stack.pop_i32()? as usize;
+            let array_size = rt.stack.pop_i32()?;
 
             let elem = if let Instruction::ArrayNewDefault(_) = instr {
                 Value::default_from_storage_type(array_elem_type)
@@ -3246,13 +3246,15 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let mut elem_encoding: Vec<u8> = vec![0; elem_size];
             elem.store_le(&mut elem_encoding);
 
-            let mut payload: Vec<u8> = vec![0; elem_size * array_size];
+            let mut payload: Vec<u8> = vec![0; elem_size * array_size as usize];
 
-            for i in 0..array_size {
+            for i in 0..array_size as usize {
                 payload[i * elem_size..(i + 1) * elem_size].clone_from_slice(&elem_encoding);
             }
 
-            let array_addr = rt.store.allocate_array(array_type.field.clone(), payload);
+            let array_addr = rt
+                .store
+                .allocate_array(array_type.field.clone(), payload, array_size);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3329,14 +3331,65 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ArraySet(ty_idx) => {
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let array_elem_type: wasm::StorageType = array_type.field.storage_ty.clone();
+
+            let elem = rt.stack.pop_value()?;
+            let elem_idx = rt.stack.pop_i32()?;
+
+            let array_ref = rt.stack.pop_ref()?;
+
+            let array_addr = match array_ref {
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(array_addr) => array_addr,
+                _ => exec_panic!(
+                    "array.get argument is not an array reference: {:?}",
+                    array_ref
+                ),
+            };
+
+            let array = rt.store.get_array_mut(array_addr);
+
+            let elem_size = storage_type_size(&array_elem_type);
+            let elem_offset = elem_size * elem_idx as usize;
+
+            elem.store_le(&mut array.payload[elem_offset..]);
+
+            rt.ip += 1;
+        }
+
+        Instruction::ArrayLen => {
+            let array_ref = rt.stack.pop_ref()?;
+
+            let array_addr = match array_ref {
+                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(array_addr) => array_addr,
+                _ => exec_panic!(
+                    "array.get argument is not an array reference: {:?}",
+                    array_ref
+                ),
+            };
+
+            let array = rt.store.get_array(array_addr);
+
+            rt.stack.push_i32(array.len)?;
+
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
         | Instruction::ArrayNewFixed(_, _)
         | Instruction::ArrayNewData(_, _)
         | Instruction::ArrayNewElem(_, _)
         | Instruction::ArrayGetU(_)
-        | Instruction::ArraySet(_)
-        | Instruction::ArrayLen
         | Instruction::ArrayFill(_)
         | Instruction::ArrayCopy(_, _)
         | Instruction::ArrayInitData(_, _)
