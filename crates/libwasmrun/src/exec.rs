@@ -3223,7 +3223,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
-        Instruction::ArrayNew(ty_idx) => {
+        Instruction::ArrayNew(ty_idx) | Instruction::ArrayNewDefault(ty_idx) => {
             let array_type: &wasm::ArrayType = rt
                 .store
                 .get_module(module_addr)
@@ -3235,19 +3235,22 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let elem_size = storage_type_size(array_elem_type);
 
-            let array_size = rt.stack.pop_i32()?;
+            let array_size = rt.stack.pop_i32()? as usize;
 
-            let mut payload: Vec<u8> = vec![0; array_size as usize * elem_size];
+            let elem = if let Instruction::ArrayNewDefault(_) = instr {
+                Value::default_from_storage_type(array_elem_type)
+            } else {
+                rt.stack.pop_value()?
+            };
 
-            let mut payload_idx = payload.len();
+            let mut elem_encoding: Vec<u8> = vec![0; elem_size];
+            elem.store_le(&mut elem_encoding);
 
-            for _ in 0..array_size {
-                payload_idx -= elem_size;
-                let elem = rt.stack.pop_value()?;
-                elem.store_le(&mut payload[payload_idx..]);
+            let mut payload: Vec<u8> = vec![0; elem_size * array_size];
+
+            for i in 0..array_size {
+                payload[i * elem_size..(i + 1) * elem_size].clone_from_slice(&elem_encoding);
             }
-
-            assert_eq!(payload_idx, 0);
 
             let array_addr = rt.store.allocate_array(array_type.field.clone(), payload);
 
@@ -3256,7 +3259,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
-        Instruction::ArrayGet(ty_idx) => {
+        Instruction::ArrayGet(ty_idx) | Instruction::ArrayGetS(ty_idx) => {
             let array_type: &wasm::ArrayType = rt
                 .store
                 .get_module(module_addr)
@@ -3328,11 +3331,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::ArrayNewDefault(_)
         | Instruction::ArrayNewFixed(_, _)
         | Instruction::ArrayNewData(_, _)
         | Instruction::ArrayNewElem(_, _)
-        | Instruction::ArrayGetS(_)
         | Instruction::ArrayGetU(_)
         | Instruction::ArraySet(_)
         | Instruction::ArrayLen
