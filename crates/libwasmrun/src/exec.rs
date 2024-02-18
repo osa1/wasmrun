@@ -3,7 +3,6 @@
 mod simd;
 
 use crate::collections::Map;
-use crate::const_eval::eval_const_expr;
 use crate::export::Export;
 use crate::frame::FrameStack;
 use crate::fun::Fun;
@@ -832,12 +831,32 @@ fn tail_call(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
 
 pub fn finish(rt: &mut Runtime) -> Result<()> {
     while !rt.frames.is_empty() {
-        single_step(rt)?;
+        exec_next(rt)?;
     }
     Ok(())
 }
 
-pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
+fn eval_const_expr(
+    rt: &mut Runtime,
+    module_addr: ModuleAddr,
+    instrs: &[Instruction],
+) -> Result<Value> {
+    let stack = take(&mut rt.stack);
+    for instr in instrs {
+        if let Instruction::End = instr {
+            break;
+        } else {
+            exec_instr(rt, module_addr, instr.clone())?;
+        }
+    }
+    let value = rt.stack.pop_value();
+    rt.stack = stack;
+    value
+}
+
+/// Execute the next instruction pointed by the instruction pointer and update the instruction
+/// pointer. Store, stack, and other state will also be updated.
+pub(crate) fn exec_next(rt: &mut Runtime) -> Result<()> {
     let current_fun_addr = match rt.frames.current() {
         Ok(current_fun) => current_fun.fun_addr,
         Err(_) => {
@@ -851,8 +870,6 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
 
     assert!((rt.ip as usize) < current_fun.fun.code().elements().len());
 
-    // Instruction is just 3 words so clonning here should be fine, and avoid borrowchk issues
-    // later on
     let instr = current_fun.fun.code().elements()[rt.ip as usize].clone();
     let module_addr = current_fun.module_addr;
 
@@ -861,6 +878,11 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
     //     rt.ip, instr, rt.stack, rt.frames,
     // );
 
+    exec_instr(rt, module_addr, instr)
+}
+
+/// Execute a single instruction. Updates instruction pointer and other state (store, stack etc.).
+fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> Result<()> {
     match instr {
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Memory instructions
@@ -2537,6 +2559,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
                 args.push(rt.stack.pop_value()?);
             }
 
+            let current_fun_addr = rt.frames.current()?.fun_addr;
+            let current_fun = match &rt.store.get_fun(current_fun_addr) {
+                Fun::Wasm(fun) => fun,
+                Fun::Host { .. } => exec_panic!("exec_instr: host function"),
+            };
+
             let end_ip = match current_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of block"),
                 Some(end) => *end,
@@ -2575,6 +2603,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             for _ in 0..n_args {
                 args.push(rt.stack.pop_value()?);
             }
+
+            let current_fun_addr = rt.frames.current()?.fun_addr;
+            let current_fun = match &rt.store.get_fun(current_fun_addr) {
+                Fun::Wasm(fun) => fun,
+                Fun::Host { .. } => exec_panic!("exec_instr: host function"),
+            };
 
             let end_ip = match current_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of if"),
@@ -2918,6 +2952,12 @@ pub(crate) fn single_step(rt: &mut Runtime) -> Result<()> {
             for _ in 0..n_args {
                 args.push(rt.stack.pop_value()?);
             }
+
+            let current_fun_addr = rt.frames.current()?.fun_addr;
+            let current_fun = match &rt.store.get_fun(current_fun_addr) {
+                Fun::Wasm(fun) => fun,
+                Fun::Host { .. } => exec_panic!("exec_instr: host function"),
+            };
 
             let end_ip = match current_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of block"),

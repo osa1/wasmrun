@@ -8,7 +8,6 @@
 mod macros;
 
 mod collections;
-mod const_eval;
 pub mod exec;
 mod export;
 mod frame;
