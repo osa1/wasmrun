@@ -3293,7 +3293,41 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
-        Instruction::ArrayGet(ty_idx) | Instruction::ArrayGetS(ty_idx) => {
+        Instruction::ArrayNewData(ty_idx, data_idx) => {
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
+
+            let elem_size = storage_type_size(array_elem_type);
+
+            let array_len = rt.stack.pop_i32()? as usize;
+            let offset = rt.stack.pop_i32()? as usize;
+
+            let data_addr = rt.store.get_module(module_addr).get_data(DataIdx(data_idx));
+            let data_: &[u8] = &rt.store.get_data(data_addr).data;
+
+            let payload: Vec<u8> =
+                data_[(offset * elem_size)..(offset + array_len) * elem_size].to_vec();
+
+            let array_addr =
+                rt.store
+                    .allocate_array(array_type.field.clone(), payload, array_len as i32);
+
+            rt.stack.push_ref(Ref::Array(array_addr))?;
+
+            rt.ip += 1;
+        }
+
+        Instruction::ArrayGet(ty_idx)
+        | Instruction::ArrayGetS(ty_idx)
+        | Instruction::ArrayGetU(ty_idx) => {
+            let sign_extend = matches!(instr, Instruction::ArrayGetS(_));
+
             let array_type: &wasm::ArrayType = rt
                 .store
                 .get_module(module_addr)
@@ -3354,10 +3388,22 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 },
 
                 wasm::StorageType::Packed(packed_ty) => match packed_ty {
-                    wasm::PackedType::I8 => Value::I32(array.payload[elem_offset] as i32),
+                    wasm::PackedType::I8 => {
+                        let i8 = array.payload[elem_offset];
+                        Value::I32(if sign_extend {
+                            i8 as i32
+                        } else {
+                            i8 as u32 as i32
+                        })
+                    }
 
                     wasm::PackedType::I16 => {
-                        Value::I32(mem::load_16_le_unchecked(&array.payload, elem_offset) as i32)
+                        let i16 = mem::load_16_le_unchecked(&array.payload, elem_offset);
+                        Value::I32(if sign_extend {
+                            i16 as i32
+                        } else {
+                            i16 as u32 as i32
+                        })
                     }
                 },
             };
@@ -3400,7 +3446,18 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let elem_size = storage_type_size(&array_elem_type);
             let elem_offset = elem_size * elem_idx as usize;
 
-            elem.store_le(&mut array.payload[elem_offset..]);
+            // Handle packed elements.
+            match elem_size {
+                1 => array.payload[elem_offset] = elem.expect_i32() as i8 as u8,
+
+                2 => mem::store_16_le_unchecked(
+                    elem.expect_i32() as i16 as u16,
+                    &mut array.payload,
+                    elem_offset,
+                ),
+
+                _ => elem.store_le(&mut array.payload[elem_offset..]),
+            }
 
             rt.ip += 1;
         }
@@ -3426,9 +3483,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::ArrayNewData(_, _)
         | Instruction::ArrayNewElem(_, _)
-        | Instruction::ArrayGetU(_)
         | Instruction::ArrayFill(_)
         | Instruction::ArrayCopy(_, _)
         | Instruction::ArrayInitData(_, _)
