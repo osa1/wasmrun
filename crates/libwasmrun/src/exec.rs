@@ -3264,6 +3264,35 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ArrayNewFixed(ty_idx, array_len) => {
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
+
+            let elem_size = storage_type_size(array_elem_type);
+
+            let array_size = elem_size * array_len as usize;
+            let mut payload: Vec<u8> = vec![0; array_size];
+
+            for i in 1..=array_len as usize {
+                let value = rt.stack.pop_value()?;
+                value.store_le(&mut payload[array_size - (i * elem_size)..]);
+            }
+
+            let array_addr =
+                rt.store
+                    .allocate_array(array_type.field.clone(), payload, array_len as i32);
+
+            rt.stack.push_ref(Ref::Array(array_addr))?;
+
+            rt.ip += 1;
+        }
+
         Instruction::ArrayGet(ty_idx) | Instruction::ArrayGetS(ty_idx) => {
             let array_type: &wasm::ArrayType = rt
                 .store
@@ -3397,7 +3426,6 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefEq
-        | Instruction::ArrayNewFixed(_, _)
         | Instruction::ArrayNewData(_, _)
         | Instruction::ArrayNewElem(_, _)
         | Instruction::ArrayGetU(_)
