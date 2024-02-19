@@ -3247,7 +3247,16 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             };
 
             let mut elem_encoding: Vec<u8> = vec![0; elem_size];
-            elem.store_le(&mut elem_encoding);
+
+            match elem_size {
+                1 => elem_encoding[0] = elem.expect_i32() as i8 as u8,
+                2 => mem::store_16_le_unchecked(
+                    elem.expect_i32() as i16 as u16,
+                    &mut elem_encoding,
+                    0,
+                ),
+                _ => elem.store_le(&mut elem_encoding),
+            }
 
             let mut payload: Vec<u8> = vec![0; elem_size * array_size as usize];
 
@@ -3281,7 +3290,16 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             for i in 1..=array_len as usize {
                 let value = rt.stack.pop_value()?;
-                value.store_le(&mut payload[array_size - (i * elem_size)..]);
+                let offset = array_size - (i * elem_size);
+                match elem_size {
+                    1 => payload[offset] = value.expect_i32() as i8 as u8,
+                    2 => mem::store_16_le_unchecked(
+                        value.expect_i32() as i16 as u16,
+                        &mut payload,
+                        offset,
+                    ),
+                    _ => value.store_le(&mut payload[offset..]),
+                }
             }
 
             let array_addr =
