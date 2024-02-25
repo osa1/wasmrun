@@ -3499,9 +3499,26 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::RefEq => {
+            let ref1 = rt.stack.pop_ref()?;
+            let ref2 = rt.stack.pop_ref()?;
+
+            let eq = match (ref1, ref2) {
+                // TODO: This case should check `ty1 <: ty2`.
+                (Ref::Null(ty1), Ref::Null(ty2)) => ty1 == ty2,
+
+                (Ref::Null(_), _) | (_, Ref::Null(_)) => false,
+
+                (_, _) => ref1 == ref2,
+            };
+
+            rt.stack.push_i32(if eq { 1 } else { 0 })?;
+
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::RefEq
-        | Instruction::ArrayNewElem(_, _)
+        Instruction::ArrayNewElem(_, _)
         | Instruction::ArrayFill(_)
         | Instruction::ArrayCopy(_, _)
         | Instruction::ArrayInitData(_, _)
