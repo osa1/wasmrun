@@ -3439,7 +3439,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 .as_array_type()
                 .unwrap();
 
-            let array_elem_type: wasm::StorageType = array_type.field.storage_ty.clone();
+            let array_elem_type: wasm::StorageType = array_type.field.storage_ty;
 
             let elem = rt.stack.pop_value()?;
             let elem_idx = rt.stack.pop_i32()?;
