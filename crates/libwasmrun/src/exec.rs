@@ -402,13 +402,17 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
     let module_addr = rt.store.allocate_module(Module::default());
 
+    // Allocate types.
     if let Some(type_section) = parsed_module.type_section_mut() {
-        for rec in type_section.entries_mut().drain(..) {
-            for sub_ty in rec.tys {
-                rt.store
-                    .get_module_mut(module_addr)
-                    .add_type(sub_ty.comp_ty);
+        let module = rt.store.get_module_mut(module_addr);
+        let type_canonicalizer = &mut rt.type_canonicalizer;
+        let mut idx: u32 = 0;
+        for rec in type_section.entries() {
+            for sub_ty in &rec.tys {
+                module.add_type(sub_ty.comp_ty.clone());
             }
+            let _canonical_idx = type_canonicalizer.add_recursive_group(module, rec, idx);
+            idx += rec.tys.len() as u32;
         }
     }
 

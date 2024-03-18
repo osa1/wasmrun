@@ -34,10 +34,22 @@ impl TypeCanonicalizer {
 
         let new_group_idx = self.canonical_groups.len() as u32;
 
-        *self
+        let canonical_idx = *self
             .canonical_groups
             .entry(CanonicalGroup { types: group_types })
-            .or_insert(new_group_idx)
+            .or_insert(new_group_idx);
+
+        // Map the types in the module to their canonical indices.
+        debug_assert_eq!(
+            module.canonical_type_ids.len() as u32,
+            recursive_group_start
+        );
+        let num_tys = ty.tys.len() as u32;
+        for i in 0..num_tys {
+            module.canonical_type_ids.push(canonical_idx + i);
+        }
+
+        canonical_idx
     }
 }
 
@@ -54,7 +66,7 @@ fn canonicalize_sub_type(
 
     let canonical_super_tys: Vec<u32> = supers
         .iter()
-        .map(|super_idx| module.isorecursive_canonical_type_ids[*super_idx as usize])
+        .map(|super_idx| module.canonical_type_ids[*super_idx as usize])
         .collect();
 
     let comp_ty = match comp_ty {
@@ -125,6 +137,12 @@ fn canonicalize_storage_type(
     }
 }
 
+/// Canonicalize a value type by updating the type indices:
+///
+/// - An index of a type in the current recursive group becomes relative index of the type in the
+///   current group.
+///
+/// - An index of a type in a previous recursive group is replaced by the global index of the type.
 fn canonicalize_value_type(
     module: &Module,
     ty: &wasm::ValueType,
@@ -163,9 +181,7 @@ fn canonicalize_value_type(
                     // index of the type.
                     wasm::ValueType::Reference(wasm::ReferenceType {
                         nullable: *nullable,
-                        heap_ty: wasm::HeapType::TypeIdx(
-                            module.isorecursive_canonical_type_ids[*idx as usize],
-                        ),
+                        heap_ty: wasm::HeapType::TypeIdx(module.canonical_type_ids[*idx as usize]),
                     })
                 }
             }
