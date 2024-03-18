@@ -1,6 +1,7 @@
 #![allow(clippy::if_same_then_else)]
 
 mod simd;
+mod subtyping;
 
 use crate::collections::Map;
 use crate::export::Export;
