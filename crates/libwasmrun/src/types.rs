@@ -1,12 +1,17 @@
 use crate::collections::Map;
 use crate::module::Module;
 
+use std::collections::hash_map::Entry;
+
 use libwasmrun_syntax as wasm;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct TypeCanonicalizer {
     /// Maps groups to the canonical id of the first type in the group.
     canonical_groups: Map<CanonicalGroup, u32>,
+
+    /// Next canonical type index to be allocated.
+    next_index: u32,
 }
 
 // #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +23,13 @@ pub(crate) struct CanonicalGroup {
 }
 
 impl TypeCanonicalizer {
-    #[allow(unused)]
+    pub(crate) fn new() -> Self {
+        Self {
+            canonical_groups: Default::default(),
+            next_index: 0,
+        }
+    }
+
     pub(crate) fn add_recursive_group(
         &mut self,
         module: &mut Module,
@@ -32,12 +43,21 @@ impl TypeCanonicalizer {
             .map(|ty| canonicalize_sub_type(module, ty, recursive_group_start))
             .collect();
 
-        let new_group_idx = self.canonical_groups.len() as u32;
+        let num_group_types = group_types.len();
 
-        let canonical_idx = *self
+        let new_group_idx = self.next_index;
+
+        let canonical_idx = match self
             .canonical_groups
             .entry(CanonicalGroup { types: group_types })
-            .or_insert(new_group_idx);
+        {
+            Entry::Occupied(entry) => *entry.get(),
+            Entry::Vacant(entry) => {
+                entry.insert(new_group_idx);
+                self.next_index = new_group_idx + num_group_types as u32;
+                new_group_idx
+            }
+        };
 
         // Map the types in the module to their canonical indices.
         debug_assert_eq!(

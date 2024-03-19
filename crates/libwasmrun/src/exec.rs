@@ -145,7 +145,7 @@ impl Runtime {
             module_names: Default::default(),
             ip: Default::default(),
             unhandled_exception: None,
-            type_canonicalizer: TypeCanonicalizer::default(),
+            type_canonicalizer: TypeCanonicalizer::new(),
         }
     }
 
