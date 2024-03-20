@@ -467,14 +467,12 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
 
     // Allocate tags
     if let Some(tag_section) = parsed_module.tag_section_mut() {
-        for tag in tag_section.entries_mut().drain(..) {
-            let tag_type = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(tag.type_))
-                .as_function_type()
-                .unwrap();
-            let tag_addr = rt.store.allocate_tag(tag_type.clone());
+        for wasm::TagType {
+            attribute: _,
+            type_,
+        } in tag_section.entries_mut().drain(..)
+        {
+            let tag_addr = rt.store.allocate_tag(module_addr, TypeIdx(type_));
             rt.store.get_module_mut(module_addr).add_tag(tag_addr);
         }
     }
@@ -2996,7 +2994,12 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             // catch-all.
             let exception_tag_addr = rt.store.get_module(module_addr).get_tag(TagIdx(tag_idx));
             let exception_tag = rt.store.get_tag(exception_tag_addr);
-            let exception_n_args = exception_tag.ty.params().len();
+            let exception_ty_module = rt.store.get_module(exception_tag.module_addr);
+            let exception_ty = exception_ty_module
+                .get_type(exception_tag.ty_idx)
+                .as_function_type()
+                .unwrap();
+            let exception_n_args = exception_ty.params().len();
 
             let mut exception_args = Vec::with_capacity(exception_n_args);
             for _ in 0..exception_n_args {

@@ -8,7 +8,7 @@ use crate::value::Value;
 use crate::Result;
 pub use table::Table;
 
-use libwasmrun_syntax::{self as wasm, FunctionType, IndexMap};
+use libwasmrun_syntax::{self as wasm, IndexMap};
 
 use std::rc::Rc;
 
@@ -217,11 +217,12 @@ impl Store {
         &mut self.elems[elem_addr.0 as usize]
     }
 
-    pub(crate) fn allocate_tag(&mut self, tag_ty: wasm::FunctionType) -> TagAddr {
+    pub(crate) fn allocate_tag(&mut self, module_addr: ModuleAddr, ty_idx: TypeIdx) -> TagAddr {
         let ret = self.tags.len() as u32;
         self.tags.push(Tag {
             id: ret,
-            ty: tag_ty,
+            module_addr,
+            ty_idx,
         });
         TagAddr(ret)
     }
@@ -286,13 +287,17 @@ pub(crate) struct Global {
     pub(crate) mutable: bool, // Only needed for validation
 }
 
-// NB. Currently there is one type of tag which is for exceptions
 #[derive(Debug)]
 pub(crate) struct Tag {
     /// Unique id of the tag.
     #[allow(unused)]
     pub(crate) id: u32,
 
-    /// Type of the exception tag.
-    pub(crate) ty: FunctionType,
+    /// Address of the module that defines the tag type.
+    pub(crate) module_addr: ModuleAddr,
+
+    /// Index of the exception's type in its module.
+    ///
+    /// The type at this index will be a function type.
+    pub(crate) ty_idx: TypeIdx,
 }
