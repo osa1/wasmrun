@@ -3547,8 +3547,8 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         | Instruction::RefCastNull(_)
         | Instruction::BrOnCast(_, _, _, _, _)
         | Instruction::BrOnCastFail(_, _, _, _, _)
-        | Instruction::ExternInternalize
-        | Instruction::ExternExternalize => exec_panic!("Instruction not implemented: {}", instr),
+        | Instruction::AnyConvertExtern
+        | Instruction::ExternConvertAny => exec_panic!("Instruction not implemented: {}", instr),
     }
 
     Ok(())

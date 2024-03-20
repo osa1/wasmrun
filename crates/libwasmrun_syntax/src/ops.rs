@@ -359,8 +359,8 @@ pub enum Instruction {
     RefCastNull(HeapType),
     BrOnCast(bool, bool, u32, HeapType, HeapType), // first null, second null, label idx
     BrOnCastFail(bool, bool, u32, HeapType, HeapType), // first null, second null, label idx
-    ExternInternalize,
-    ExternExternalize,
+    AnyConvertExtern,
+    ExternConvertAny,
     RefI31,
     I31GetS,
     I31GetU,
@@ -1388,8 +1388,8 @@ mod opcodes {
     pub const REF_CAST_NULL: u8 = 0x17; // GC_PREFIX
     pub const BR_ON_CAST: u8 = 0x18; // GC_PREFIX
     pub const BR_ON_CAST_FAIL: u8 = 0x19; // GC_PREFIX
-    pub const EXTERN_INTERNALIZE: u8 = 0x1A; // GC_PREFIX
-    pub const EXTERN_EXTERNALIZE: u8 = 0x1B; // GC_PREFIX
+    pub const ANY_CONVERT_EXTERN: u8 = 0x1A; // GC_PREFIX
+    pub const EXTERN_CONVERT_ANY: u8 = 0x1B; // GC_PREFIX
     pub const REF_I31: u8 = 0x1C; // GC_PREFIX
     pub const I31_GET_S: u8 = 0x1D; // GC_PREFIX
     pub const I31_GET_U: u8 = 0x1E; // GC_PREFIX
@@ -2195,8 +2195,8 @@ fn deserialize_gc<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
             let ht2 = HeapType::deserialize(reader)?;
             BrOnCastFail(first_null, second_null, label_idx, ht1, ht2)
         }
-        EXTERN_INTERNALIZE => ExternInternalize,
-        EXTERN_EXTERNALIZE => ExternExternalize,
+        ANY_CONVERT_EXTERN => AnyConvertExtern,
+        EXTERN_CONVERT_ANY => ExternConvertAny,
         REF_I31 => RefI31,
         I31_GET_S => I31GetS,
         I31_GET_U => I31GetU,
@@ -2514,8 +2514,8 @@ impl fmt::Display for Instruction {
             RefCastNull(ty) => fmt_op!(f, "ref.cast_null", ty),
             BrOnCast(_, _, _, _, _) => fmt_op!(f, "br_on_cast"), // TODO: show args
             BrOnCastFail(_, _, _, _, _) => fmt_op!(f, "br_on_cast_fail"), // TODO: show args
-            ExternInternalize => fmt_op!(f, "extern.internalize"),
-            ExternExternalize => fmt_op!(f, "extern.externalize"),
+            AnyConvertExtern => fmt_op!(f, "any.convert_extern"),
+            ExternConvertAny => fmt_op!(f, "extern.convert_any"),
             RefI31 => fmt_op!(f, "ref.i31"),
             I31GetS => fmt_op!(f, "i31.get_s"),
             I31GetU => fmt_op!(f, "i31.get_u"),
