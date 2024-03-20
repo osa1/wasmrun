@@ -86,7 +86,7 @@ pub(crate) struct Array {
     pub(crate) payload: Vec<u8>,
 
     /// Length (number of elements) of the array.
-    pub(crate) len: i32,
+    pub(crate) len: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -260,7 +260,7 @@ impl Store {
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
         payload: Vec<u8>,
-        len: i32,
+        len: u32,
     ) -> ArrayAddr {
         let idx = self.arrays.len() as u32;
         self.arrays.push(Array {
