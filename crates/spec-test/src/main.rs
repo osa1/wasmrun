@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 #[rustfmt::skip]
-static TEST_FILES: [&str; 7] = [
+static TEST_FILES: [&str; 8] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
@@ -16,8 +16,9 @@ static TEST_FILES: [&str; 7] = [
     // Tail call tests take a long time to run, disabled for now
     // "tests/spec/proposals/tail-call",
 
-    "tests/spec/proposals/gc/struct.wast",
     "tests/spec/proposals/gc/i31.wast",
+    "tests/spec/proposals/gc/ref_eq.wast",
+    "tests/spec/proposals/gc/struct.wast",
 ];
 
 fn main() {

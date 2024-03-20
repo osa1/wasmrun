@@ -3509,11 +3509,8 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let ref2 = rt.stack.pop_ref()?;
 
             let eq = match (ref1, ref2) {
-                // TODO: This case should check `ty1 <: ty2`.
-                (Ref::Null(ty1), Ref::Null(ty2)) => ty1 == ty2,
-
+                (Ref::Null(_), Ref::Null(_)) => true,
                 (Ref::Null(_), _) | (_, Ref::Null(_)) => false,
-
                 (_, _) => ref1 == ref2,
             };
 
