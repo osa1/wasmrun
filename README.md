@@ -24,8 +24,8 @@ then run `cargo run --bin spec-test`.
 ## Related projects
 
 - [wain][5] and [wasmi][7] are Wasm interpreters written in Rust
-- [wasm-spec-interpreter][6] provides Rust bindings for the Wasm reference
-  interpreter (written in OCaml).
+- [wasm-spec-interpreter][6] provides Rust bindings for the [Wasm reference
+  interpreter][10] (written in OCaml).
 
 [1]: https://github.com/WebAssembly/testsuite
 [2]: https://github.com/WebAssembly/exception-handling
@@ -36,3 +36,4 @@ then run `cargo run --bin spec-test`.
 [7]: https://github.com/paritytech/wasmi
 [8]: https://github.com/WebAssembly/function-references
 [9]: https://github.com/WebAssembly/multi-memory
+[10]: https://github.com/WebAssembly/spec/tree/main/interpreter
