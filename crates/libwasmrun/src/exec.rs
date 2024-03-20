@@ -6,7 +6,7 @@ mod subtyping;
 use crate::collections::Map;
 use crate::export::Export;
 use crate::frame::FrameStack;
-use crate::fun::Fun;
+use crate::fun::FunKind;
 use crate::mem::{self, Mem};
 use crate::module::{
     DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
@@ -737,9 +737,9 @@ pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx)
 fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     let fun = rt.store.get_fun(fun_addr);
 
-    let caller = match fun {
-        Fun::Host(_) => rt.frames.current().ok().map(|frame| frame.fun_addr),
-        Fun::Wasm(_) => None,
+    let caller = match &fun.kind {
+        FunKind::Host(_) => rt.frames.current().ok().map(|frame| frame.fun_addr),
+        FunKind::Wasm(_) => None,
     };
 
     let fun_ty = rt
@@ -764,8 +764,8 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
     rt.stack
         .push_fun_block(rt.ip + 1, n_args as u32, n_rets as u32);
 
-    match fun {
-        Fun::Wasm(fun) => {
+    match &fun.kind {
+        FunKind::Wasm(fun) => {
             debug_assert!(match fun.fun.code().elements().last().unwrap() {
                 Instruction::End => true,
                 other => panic!("Last instruction of function is not 'end': {:?}", other),
@@ -775,7 +775,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
 
             Ok(())
         }
-        Fun::Host(fun) => {
+        FunKind::Host(fun) => {
             let caller_mem_addr = caller.and_then(|caller| {
                 let caller_module_addr = rt.store.get_fun(caller).module_addr();
                 rt.store
@@ -783,7 +783,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
                     .get_mem_opt(MemIdx(0))
             });
 
-            let vals = (fun.fun.clone())(rt, caller_mem_addr)?;
+            let vals = (fun.clone())(rt, caller_mem_addr)?;
 
             rt.stack.pop_fun_block()?;
             rt.frames.pop();
@@ -871,14 +871,17 @@ pub(crate) fn exec_next(rt: &mut Runtime) -> Result<()> {
             return Ok(());
         }
     };
-    let current_fun = match &rt.store.get_fun(current_fun_addr) {
-        Fun::Wasm(fun) => fun,
-        Fun::Host { .. } => exec_panic!("single_step: host function"),
+
+    let current_fun = rt.store.get_fun(current_fun_addr);
+
+    let current_wasm_fun = match &current_fun.kind {
+        FunKind::Wasm(fun) => fun,
+        FunKind::Host(_) => exec_panic!("single_step: host function"),
     };
 
-    assert!((rt.ip as usize) < current_fun.fun.code().elements().len());
+    assert!((rt.ip as usize) < current_wasm_fun.fun.code().elements().len());
 
-    let instr = current_fun.fun.code().elements()[rt.ip as usize].clone();
+    let instr = current_wasm_fun.fun.code().elements()[rt.ip as usize].clone();
     let module_addr = current_fun.module_addr;
 
     // println!(
@@ -2568,12 +2571,15 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             }
 
             let current_fun_addr = rt.frames.current()?.fun_addr;
-            let current_fun = match &rt.store.get_fun(current_fun_addr) {
-                Fun::Wasm(fun) => fun,
-                Fun::Host { .. } => exec_panic!("exec_instr: host function"),
+
+            let current_fun = rt.store.get_fun(current_fun_addr);
+
+            let current_wasm_fun = match &current_fun.kind {
+                FunKind::Wasm(fun) => fun,
+                FunKind::Host { .. } => exec_panic!("exec_instr: host function"),
             };
 
-            let end_ip = match current_fun.block_to_end.get(&rt.ip) {
+            let end_ip = match current_wasm_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of block"),
                 Some(end) => *end,
             };
@@ -2613,12 +2619,15 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             }
 
             let current_fun_addr = rt.frames.current()?.fun_addr;
-            let current_fun = match &rt.store.get_fun(current_fun_addr) {
-                Fun::Wasm(fun) => fun,
-                Fun::Host { .. } => exec_panic!("exec_instr: host function"),
+
+            let current_fun = rt.store.get_fun(current_fun_addr);
+
+            let current_wasm_fun = match &current_fun.kind {
+                FunKind::Wasm(fun) => fun,
+                FunKind::Host { .. } => exec_panic!("exec_instr: host function"),
             };
 
-            let end_ip = match current_fun.block_to_end.get(&rt.ip) {
+            let end_ip = match current_wasm_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of if"),
                 Some(end_ip) => *end_ip,
             };
@@ -2633,7 +2642,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 rt.ip += 1;
             } else {
                 // false
-                match current_fun.if_to_else.get(&rt.ip) {
+                match current_wasm_fun.if_to_else.get(&rt.ip) {
                     None => {
                         // No else branch, jump to 'end', which will pop the block we've just
                         // pushed above. TODO: Maybe push it later?
@@ -2701,12 +2710,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         Instruction::Return => {
             let current_fun_addr = rt.frames.current()?.fun_addr;
-            let current_fun = match rt.store.get_fun(current_fun_addr) {
-                Fun::Wasm(fun) => fun,
-                Fun::Host { .. } => {
-                    return Err(ExecError::Panic("ret: host function".to_string()));
-                }
-            };
+
+            let current_fun = rt.store.get_fun(current_fun_addr);
+
             let module_addr = current_fun.module_addr;
             let ty_idx = current_fun.ty_idx;
 
@@ -2962,12 +2968,15 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             }
 
             let current_fun_addr = rt.frames.current()?.fun_addr;
-            let current_fun = match &rt.store.get_fun(current_fun_addr) {
-                Fun::Wasm(fun) => fun,
-                Fun::Host { .. } => exec_panic!("exec_instr: host function"),
+
+            let current_fun = rt.store.get_fun(current_fun_addr);
+
+            let current_wasm_fun = match &current_fun.kind {
+                FunKind::Wasm(fun) => fun,
+                FunKind::Host { .. } => exec_panic!("exec_instr: host function"),
             };
 
-            let end_ip = match current_fun.block_to_end.get(&rt.ip) {
+            let end_ip = match current_wasm_fun.block_to_end.get(&rt.ip) {
                 None => exec_panic!("Couldn't find continuation of block"),
                 Some(cont) => cont,
             };
@@ -3558,12 +3567,10 @@ fn storage_type_size(ty: &wasm::StorageType) -> usize {
 fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
     let mut current_fun_addr = rt.frames.current().unwrap().fun_addr;
 
-    let mut current_fun = match &rt.store.get_fun(current_fun_addr) {
-        Fun::Wasm(fun) => fun,
-        Fun::Host { .. } => panic!(),
-    };
+    let mut current_fun = rt.store.get_fun(current_fun_addr);
 
     'unwind: while let Ok(block) = rt.stack.pop_block() {
+        // TODO: This unwinds host functions.
         let try_table: wasm::TryTableData = match block.kind {
             BlockKind::Top => todo!("Uncaught exception"),
             BlockKind::Block | BlockKind::Loop => continue,
@@ -3576,10 +3583,7 @@ fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
                         return Ok(());
                     }
                 };
-                current_fun = match rt.store.get_fun(current_fun_addr) {
-                    Fun::Wasm(fun) => fun,
-                    Fun::Host(_) => panic!(),
-                };
+                current_fun = rt.store.get_fun(current_fun_addr);
                 continue;
             }
             BlockKind::Try(table) => *table,

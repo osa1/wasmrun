@@ -11,7 +11,21 @@ use std::rc::Rc;
 use libwasmrun_syntax::Instruction;
 use libwasmrun_syntax::{self as wasm, IndexMap};
 
-pub enum Fun {
+pub struct Fun {
+    /// Address of the function's module.
+    pub(crate) module_addr: ModuleAddr,
+
+    /// Index of the function's type in its module.
+    pub(crate) ty_idx: TypeIdx,
+
+    /// Address of the function in the heap.
+    pub(crate) fun_addr: FunAddr,
+
+    /// Wasm or host function.
+    pub(crate) kind: FunKind,
+}
+
+pub(crate) enum FunKind {
     Wasm(WasmFun),
     Host(HostFun),
 }
@@ -22,45 +36,24 @@ impl fmt::Debug for Fun {
     }
 }
 
-pub struct HostFun {
-    /// Address of the function's module
-    pub(crate) module_addr: ModuleAddr,
-
-    /// Index of the function's type in its module
-    pub(crate) ty_idx: TypeIdx,
-
-    /// Address of the function in the heap
-    pub(crate) fun_addr: FunAddr,
-
-    /// Function code
-    pub(crate) fun: Rc<dyn Fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>>,
-}
+type HostFun = Rc<dyn Fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>>;
 
 #[derive(Debug)]
 pub struct WasmFun {
-    /// Address of the function's module
-    pub(crate) module_addr: ModuleAddr,
-
-    /// Type index of the function in its module
-    pub(crate) ty_idx: TypeIdx,
-
-    /// Address of the function in the heap
-    pub(crate) fun_addr: FunAddr,
-
-    /// Function code
+    /// Function code.
     pub(crate) fun: wasm::FuncBody,
 
-    /// Function name as specified in the name section
+    /// Function name as specified in the name section.
     pub(crate) name: Option<String>,
 
-    /// Names of locals as specified in the name section
+    /// Names of locals as specified in the name section.
     #[allow(unused)]
     pub(crate) local_names: Option<IndexMap<String>>,
 
-    /// Maps `block` and `if` instructions to their `end` instructions
+    /// Maps `block` and `if` instructions to their `end` instructions.
     pub(crate) block_to_end: Map<u32, u32>,
 
-    /// Maps `if` instructions to their else instructions
+    /// Maps `if` instructions to their else instructions.
     pub(crate) if_to_else: Map<u32, u32>,
 }
 
@@ -74,50 +67,43 @@ impl Fun {
         local_names: Option<IndexMap<String>>,
     ) -> Result<Fun> {
         let (block_to_end, if_to_else) = gen_block_bounds(fun.code().elements())?;
-        Ok(Fun::Wasm(WasmFun {
+        Ok(Fun {
             module_addr,
             ty_idx,
             fun_addr,
-            fun,
-            name,
-            local_names,
-            block_to_end,
-            if_to_else,
-        }))
+            kind: FunKind::Wasm(WasmFun {
+                fun,
+                name,
+                local_names,
+                block_to_end,
+                if_to_else,
+            }),
+        })
     }
 
     pub(crate) fn ty_idx(&self) -> TypeIdx {
-        match self {
-            Fun::Wasm(fun) => fun.ty_idx,
-            Fun::Host(fun) => fun.ty_idx,
-        }
+        self.ty_idx
     }
 
     pub(crate) fn module_addr(&self) -> ModuleAddr {
-        match self {
-            Fun::Wasm(fun) => fun.module_addr,
-            Fun::Host(fun) => fun.module_addr,
-        }
+        self.module_addr
     }
 
     pub(crate) fn fun_addr(&self) -> FunAddr {
-        match self {
-            Fun::Wasm(fun) => fun.fun_addr,
-            Fun::Host(fun) => fun.fun_addr,
-        }
+        self.fun_addr
     }
 
     pub(crate) fn locals(&self) -> &[wasm::Local] {
-        match self {
-            Fun::Wasm(fun) => fun.fun.locals(),
-            Fun::Host(_) => &[],
+        match &self.kind {
+            FunKind::Wasm(fun) => fun.fun.locals(),
+            FunKind::Host(_) => &[],
         }
     }
 
     pub fn name(&self) -> Option<&String> {
-        match self {
-            Fun::Wasm(fun) => fun.name.as_ref(),
-            Fun::Host(_) => None,
+        match &self.kind {
+            FunKind::Wasm(fun) => fun.name.as_ref(),
+            FunKind::Host(_) => None,
         }
     }
 }

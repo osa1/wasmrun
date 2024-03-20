@@ -1,7 +1,7 @@
 mod table;
 
 use crate::exec::Runtime;
-use crate::fun::{Fun, HostFun};
+use crate::fun::{Fun, FunKind};
 use crate::mem::Mem;
 use crate::module::{Module, TypeIdx};
 use crate::value::Value;
@@ -134,12 +134,12 @@ impl Store {
         fun: Rc<dyn Fn(&mut Runtime, Option<MemAddr>) -> Result<Vec<Value>>>,
     ) -> FunAddr {
         let fun_addr = FunAddr(self.funs.len() as u32);
-        self.funs.push(Fun::Host(HostFun {
+        self.funs.push(Fun {
             module_addr,
             ty_idx,
             fun_addr,
-            fun,
-        }));
+            kind: FunKind::Host(fun),
+        });
         fun_addr
     }
 
