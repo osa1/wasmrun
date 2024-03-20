@@ -3535,6 +3535,40 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ExternConvertAny => {
+            // any -> extern: convert a reference to the Wasm heap to a reference that can be
+            // shared with the host.
+
+            let ref_ = rt.stack.pop_ref()?;
+
+            if ref_.is_null() {
+                rt.stack
+                    .push_ref(Ref::Null(module_addr, wasm::HeapType::Extern))?;
+            } else {
+                // TODO: We need a different value kind for externalized references.
+                exec_panic!("TODO: any.convert_extern");
+            }
+
+            rt.ip += 1;
+        }
+
+        Instruction::AnyConvertExtern => {
+            // extern -> any: convert a reference shared with the host back to a reference to the
+            // Wasm heap.
+
+            let ref_ = rt.stack.pop_ref()?;
+
+            if ref_.is_null() {
+                rt.stack
+                    .push_ref(Ref::Null(module_addr, wasm::HeapType::Any))?;
+            } else {
+                // TODO: We need a different value kind for externalized references.
+                exec_panic!("TODO: any.convert_extern");
+            }
+
+            rt.ip += 1;
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::ArrayNewElem(_, _)
         | Instruction::ArrayFill(_)
@@ -3546,9 +3580,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         | Instruction::RefCast(_)
         | Instruction::RefCastNull(_)
         | Instruction::BrOnCast(_, _, _, _, _)
-        | Instruction::BrOnCastFail(_, _, _, _, _)
-        | Instruction::AnyConvertExtern
-        | Instruction::ExternConvertAny => exec_panic!("Instruction not implemented: {}", instr),
+        | Instruction::BrOnCastFail(_, _, _, _, _) => {
+            exec_panic!("Instruction not implemented: {}", instr)
+        }
     }
 
     Ok(())
