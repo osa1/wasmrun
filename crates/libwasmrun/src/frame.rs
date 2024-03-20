@@ -61,7 +61,7 @@ impl FrameStack {
                         libwasmrun_syntax::ValueType::Reference(wasm::ReferenceType {
                             nullable: _,
                             heap_ty,
-                        }) => Value::Ref(Ref::Null(heap_ty)),
+                        }) => Value::Ref(Ref::Null(fun.module_addr, heap_ty)),
                     })
                     .take(local.count() as usize)
                 }))

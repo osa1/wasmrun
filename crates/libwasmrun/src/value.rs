@@ -1,7 +1,7 @@
 #![allow(clippy::unusual_byte_groupings)]
 
 use crate::mem;
-use crate::store::{ArrayAddr, ExnAddr, ExternAddr, FunAddr, StructAddr};
+use crate::store::{ArrayAddr, ExnAddr, ExternAddr, FunAddr, ModuleAddr, StructAddr};
 
 use libwasmrun_syntax as wasm;
 
@@ -19,7 +19,7 @@ pub enum Value {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ref {
-    Null(wasm::HeapType),
+    Null(ModuleAddr, wasm::HeapType),
     Func(FunAddr),
     Exn(ExnAddr),
     Extern(ExternAddr),
@@ -33,7 +33,7 @@ pub enum Ref {
 impl Ref {
     pub fn is_null(&self) -> bool {
         match self {
-            Ref::Null(_) => true,
+            Ref::Null(_, _) => true,
             Ref::Func(_)
             | Ref::Exn(_)
             | Ref::Extern(_)
@@ -45,7 +45,7 @@ impl Ref {
 
     pub fn to_u32(&self) -> Option<u32> {
         match self {
-            Ref::Null(_) => None,
+            Ref::Null(_, _) => None,
             Ref::Func(addr) => Some(addr.0),
             Ref::Exn(addr) => Some(addr.0),
             Ref::Extern(addr) => Some(addr.0),

@@ -275,7 +275,7 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let mut module: Module = Default::default();
 
     let table_addr = rt.store.allocate_table(Table::new(
-        Ref::Null(wasm::HeapType::Func),
+        Ref::Null(module_addr, wasm::HeapType::Func),
         wasm::TableType::new(wasm::ReferenceType::funcref(), 10, None),
     ));
     let table_idx = module.add_table(table_addr);
@@ -510,7 +510,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
         for wasm::Table { ty, init } in table_section.entries_mut().drain(..) {
             let elem = match init {
                 Some(init) => eval_const_expr(rt, module_addr, init.code())?.expect_ref(),
-                None => Ref::Null(ty.elem_type.heap_ty),
+                None => Ref::Null(module_addr, ty.elem_type.heap_ty),
             };
             let table = Table::new(elem, ty);
             let table_addr = rt.store.allocate_table(table);
@@ -587,7 +587,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                                 rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)),
                             ),
                             &[Instruction::RefNull(heap_ty), Instruction::End] => {
-                                Ref::Null(heap_ty)
+                                Ref::Null(module_addr, heap_ty)
                             }
                             &[Instruction::GetGlobal(global_idx), Instruction::End] => {
                                 let global_addr = rt
@@ -2528,7 +2528,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
                     exec_panic!("call_ref: reference is not a function")
                 }
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
             };
             if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
@@ -2543,7 +2543,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
                     exec_panic!("return_call_ref: reference is not a function")
                 }
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullFunction)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
             };
             if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
@@ -2909,7 +2909,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         // Ref instructions
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::RefNull(heap_ty) => {
-            rt.stack.push_ref(Ref::Null(heap_ty))?;
+            rt.stack.push_ref(Ref::Null(module_addr, heap_ty))?;
             rt.ip += 1;
         }
 
@@ -3021,7 +3021,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             }
 
             let exn_addr = match ref_ {
-                Ref::Null(_) => {
+                Ref::Null(_, _) => {
                     return Err(ExecError::Trap(Trap::NullReference));
                 }
                 Ref::Func(_) | Ref::Extern(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
@@ -3156,7 +3156,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             // Struct ref can be null.
             let struct_addr = match struct_ref {
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullStructReference)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullStructReference)),
                 Ref::Struct(struct_addr) => struct_addr,
                 _ => {
                     // Validation error.
@@ -3223,7 +3223,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         Instruction::I31GetS => {
             let mut value = match rt.stack.pop_ref()? {
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullI31Reference)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullI31Reference)),
                 Ref::I31(value) => value,
                 _ => panic!(),
             };
@@ -3239,7 +3239,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         Instruction::I31GetU => {
             let value = match rt.stack.pop_ref()? {
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullI31Reference)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullI31Reference)),
                 Ref::I31(value) => value as u32,
                 _ => panic!(),
             };
@@ -3381,7 +3381,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let array_ref = rt.stack.pop_ref()?;
 
             let array_addr = match array_ref {
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
                 Ref::Array(array_addr) => array_addr,
                 _ => exec_panic!(
                     "array.get argument is not an array reference: {:?}",
@@ -3468,7 +3468,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let array_ref = rt.stack.pop_ref()?;
 
             let array_addr = match array_ref {
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
                 Ref::Array(array_addr) => array_addr,
                 _ => exec_panic!(
                     "array.get argument is not an array reference: {:?}",
@@ -3505,7 +3505,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let array_ref = rt.stack.pop_ref()?;
 
             let array_addr = match array_ref {
-                Ref::Null(_) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
                 Ref::Array(array_addr) => array_addr,
                 _ => exec_panic!(
                     "array.get argument is not an array reference: {:?}",
@@ -3525,8 +3525,8 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let ref2 = rt.stack.pop_ref()?;
 
             let eq = match (ref1, ref2) {
-                (Ref::Null(_), Ref::Null(_)) => true,
-                (Ref::Null(_), _) | (_, Ref::Null(_)) => false,
+                (Ref::Null(_, _), Ref::Null(_, _)) => true,
+                (Ref::Null(_, _), _) | (_, Ref::Null(_, _)) => false,
                 (_, _) => ref1 == ref2,
             };
 
@@ -3696,7 +3696,7 @@ fn get_fun_addr_from_table(
 
     match rt.store.get_table(table_addr).get(elem_idx as usize) {
         Some(Ref::Func(fun_addr)) => Ok(*fun_addr),
-        Some(Ref::Null(_ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
+        Some(Ref::Null(_module_addr, _ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
         Some(Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_)) => {
             // TODO: Check table type to help with debugging
             // TODO: Incorrect trap kind.
@@ -4057,7 +4057,7 @@ fn struct_get(rt: &mut Runtime, field_idx: u32) -> Result<Value> {
 
     // Struct ref can be null.
     let struct_addr = match struct_ref {
-        Ref::Null(_) => return Err(ExecError::Trap(Trap::NullStructReference)),
+        Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullStructReference)),
         Ref::Struct(struct_addr) => struct_addr,
         _ => {
             // Validation error.
