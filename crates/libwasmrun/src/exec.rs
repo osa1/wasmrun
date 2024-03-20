@@ -3007,7 +3007,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             }
 
             let exn_addr = rt.store.allocate_exn(Exception {
-                addr: exception_tag_addr,
+                tag_addr: exception_tag_addr,
                 args: exception_args,
             });
 
@@ -3087,7 +3087,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             fields.reverse();
 
-            let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
+            let struct_addr = rt
+                .store
+                .allocate_struct(module_addr, TypeIdx(ty_idx), fields);
 
             rt.stack.push_ref(Ref::Struct(struct_addr))?;
 
@@ -3095,7 +3097,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         }
 
         Instruction::StructNewDefault(ty_idx) => {
-            let struct_type = rt
+            let struct_type: &wasm::StructType = rt
                 .store
                 .get_module(module_addr)
                 .get_type(TypeIdx(ty_idx))
@@ -3114,7 +3116,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 )
                 .collect();
 
-            let struct_addr = rt.store.allocate_struct(struct_type.clone(), fields);
+            let struct_addr = rt
+                .store
+                .allocate_struct(module_addr, TypeIdx(ty_idx), fields);
 
             rt.stack.push_ref(Ref::Struct(struct_addr))?;
 
@@ -3281,9 +3285,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 payload[i * elem_size..(i + 1) * elem_size].clone_from_slice(&elem_encoding);
             }
 
-            let array_addr = rt
-                .store
-                .allocate_array(array_type.field.clone(), payload, array_size);
+            let array_addr =
+                rt.store
+                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_size);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3321,7 +3325,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array_addr =
                 rt.store
-                    .allocate_array(array_type.field.clone(), payload, array_len as i32);
+                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_len as i32);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3351,7 +3355,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array_addr =
                 rt.store
-                    .allocate_array(array_type.field.clone(), payload, array_len as i32);
+                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_len as i32);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3602,7 +3606,7 @@ fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
                         .get_module(current_fun.module_addr)
                         .get_tag(TagIdx(*tag_idx));
 
-                    if tag_addr == exn.addr {
+                    if tag_addr == exn.tag_addr {
                         // Pop blocks.
                         for _ in 0..*n_blocks {
                             let Block { kind, .. } = rt.stack.pop_block()?;
@@ -3626,7 +3630,7 @@ fn throw(rt: &mut Runtime, exn_addr: ExnAddr) -> Result<()> {
                         .get_module(current_fun.module_addr)
                         .get_tag(TagIdx(*tag_idx));
 
-                    if tag_addr == exn.addr {
+                    if tag_addr == exn.tag_addr {
                         // Pop blocks.
                         for _ in 0..*n_blocks {
                             let Block { kind, .. } = rt.stack.pop_block()?;

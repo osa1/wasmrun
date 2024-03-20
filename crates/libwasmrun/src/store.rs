@@ -64,28 +64,42 @@ pub struct Store {
 }
 
 #[derive(Debug, Clone)]
-pub struct Exception {
-    /// Address of the exception in the store.
-    pub addr: TagAddr,
+pub(crate) struct Exception {
+    /// Address of the exception's tag.
+    pub(crate) tag_addr: TagAddr,
 
     /// Arguments of the exception. Used by `throw` blocks.
-    pub args: Vec<Value>,
+    pub(crate) args: Vec<Value>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Array {
-    pub field_type: wasm::FieldType,
-    pub payload: Vec<u8>,
+pub(crate) struct Array {
+    /// Address of the module that defines the array's type.
+    #[allow(unused)]
+    pub(crate) module_addr: ModuleAddr,
 
-    // To be able to implement `array.len`, we either need the length (in number of elements) or
-    // element type here. For now let's store the length.
-    pub len: i32,
+    /// Index of the array's type in its module.
+    #[allow(unused)]
+    pub(crate) ty_idx: TypeIdx,
+
+    /// The array contents, neatly packed as plain bytes.
+    pub(crate) payload: Vec<u8>,
+
+    /// Length (number of elements) of the array.
+    pub(crate) len: i32,
 }
 
 #[derive(Debug, Clone)]
-pub struct Struct {
-    pub ty: wasm::StructType,
-    pub fields: Vec<Value>,
+pub(crate) struct Struct {
+    /// Address of the module that defines the struct's type.
+    #[allow(unused)]
+    pub(crate) module_addr: ModuleAddr,
+
+    /// Index of the struct's type in its module.
+    #[allow(unused)]
+    pub(crate) ty_idx: TypeIdx,
+
+    pub(crate) fields: Vec<Value>,
 }
 
 impl Store {
@@ -231,50 +245,61 @@ impl Store {
         &self.tags[tag_addr.0 as usize]
     }
 
-    pub fn allocate_exn(&mut self, exn: Exception) -> ExnAddr {
+    pub(crate) fn allocate_exn(&mut self, exn: Exception) -> ExnAddr {
         let idx = self.exceptions.len() as u32;
         self.exceptions.push(exn);
         ExnAddr(idx)
     }
 
-    pub fn get_exn(&self, exn_addr: ExnAddr) -> &Exception {
+    pub(crate) fn get_exn(&self, exn_addr: ExnAddr) -> &Exception {
         &self.exceptions[exn_addr.0 as usize]
     }
 
-    pub fn allocate_array(
+    pub(crate) fn allocate_array(
         &mut self,
-        field_type: wasm::FieldType,
+        module_addr: ModuleAddr,
+        ty_idx: TypeIdx,
         payload: Vec<u8>,
         len: i32,
     ) -> ArrayAddr {
         let idx = self.arrays.len() as u32;
         self.arrays.push(Array {
-            field_type,
+            module_addr,
+            ty_idx,
             payload,
             len,
         });
         ArrayAddr(idx)
     }
 
-    pub fn get_array(&self, array_addr: ArrayAddr) -> &Array {
+    pub(crate) fn get_array(&self, array_addr: ArrayAddr) -> &Array {
         &self.arrays[array_addr.0 as usize]
     }
 
-    pub fn get_array_mut(&mut self, array_addr: ArrayAddr) -> &mut Array {
+    pub(crate) fn get_array_mut(&mut self, array_addr: ArrayAddr) -> &mut Array {
         &mut self.arrays[array_addr.0 as usize]
     }
 
-    pub fn allocate_struct(&mut self, ty: wasm::StructType, fields: Vec<Value>) -> StructAddr {
+    pub(crate) fn allocate_struct(
+        &mut self,
+        module_addr: ModuleAddr,
+        ty_idx: TypeIdx,
+        fields: Vec<Value>,
+    ) -> StructAddr {
         let idx = self.structs.len() as u32;
-        self.structs.push(Struct { ty, fields });
+        self.structs.push(Struct {
+            module_addr,
+            ty_idx,
+            fields,
+        });
         StructAddr(idx)
     }
 
-    pub fn get_struct(&self, struct_addr: StructAddr) -> &Struct {
+    pub(crate) fn get_struct(&self, struct_addr: StructAddr) -> &Struct {
         &self.structs[struct_addr.0 as usize]
     }
 
-    pub fn get_struct_mut(&mut self, struct_addr: StructAddr) -> &mut Struct {
+    pub(crate) fn get_struct_mut(&mut self, struct_addr: StructAddr) -> &mut Struct {
         &mut self.structs[struct_addr.0 as usize]
     }
 }
