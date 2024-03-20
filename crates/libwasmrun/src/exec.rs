@@ -3580,6 +3580,81 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ArrayCopy(_dest_ty_idx, src_ty_idx) => {
+            let size = rt.stack.pop_i32()? as usize;
+            let src_offset = rt.stack.pop_i32()? as usize;
+            let src_ref = rt.stack.pop_ref()?;
+            let dest_offset = rt.stack.pop_i32()? as usize;
+            let dest_ref = rt.stack.pop_ref()?;
+
+            let src_array_addr = match src_ref {
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(addr) => addr,
+                _ => exec_panic!(
+                    "array.copy argument is not an array reference: {:?}",
+                    src_ref
+                ),
+            };
+
+            let dest_array_addr = match dest_ref {
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(addr) => addr,
+                _ => exec_panic!(
+                    "array.copy argument is not an array reference: {:?}",
+                    src_ref
+                ),
+            };
+
+            let src_array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(src_ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let src_array_elem_type: wasm::StorageType = src_array_type.field.storage_ty;
+
+            let elem_size = storage_type_size(&src_array_elem_type);
+
+            if src_array_addr == dest_array_addr {
+                let array = rt.store.get_array_mut(src_array_addr);
+
+                if src_offset + size > array.len as usize || dest_offset + size > array.len as usize
+                {
+                    return Err(ExecError::Trap(Trap::OOBArrayAccess));
+                }
+
+                array.payload.copy_within(
+                    src_offset * elem_size..(src_offset + size) * elem_size,
+                    dest_offset * elem_size,
+                );
+            } else {
+                // FIXME: Currently copying the source into a temporary buffer to avoid borrow
+                // checking issues.
+                let src_array = rt.store.get_array(src_array_addr);
+
+                if src_offset + size > src_array.len as usize {
+                    return Err(ExecError::Trap(Trap::OOBArrayAccess));
+                }
+
+                let mut src: Vec<u8> = vec![0; size * elem_size];
+                src.copy_from_slice(
+                    &src_array.payload[src_offset * elem_size..(src_offset + size) * elem_size],
+                );
+
+                let dest_array = rt.store.get_array_mut(dest_array_addr);
+
+                if dest_offset + size > dest_array.len as usize {
+                    return Err(ExecError::Trap(Trap::OOBArrayAccess));
+                }
+
+                dest_array.payload[dest_offset * elem_size..(dest_offset + size) * elem_size]
+                    .copy_from_slice(&src);
+            }
+
+            rt.ip += 1;
+        }
+
         Instruction::RefEq => {
             let ref1 = rt.stack.pop_ref()?;
             let ref2 = rt.stack.pop_ref()?;
@@ -3631,7 +3706,6 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::ArrayNewElem(_, _)
-        | Instruction::ArrayCopy(_, _)
         | Instruction::ArrayInitData(_, _)
         | Instruction::ArrayInitElem(_, _)
         | Instruction::RefTest(_)
