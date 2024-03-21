@@ -3417,6 +3417,55 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ArrayInitData(ty_idx, data_idx) => {
+            let size = rt.stack.pop_i32()? as usize;
+            // src_offset is in bytes, dest_offset is in elements.
+            let src_offset = rt.stack.pop_i32()? as usize;
+            let dest_offset = rt.stack.pop_i32()? as usize;
+            let array_ref = rt.stack.pop_ref()?;
+
+            let array_addr = match array_ref {
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(array_addr) => array_addr,
+                _ => exec_panic!(
+                    "array.init_elem argument is not an array reference: {:?}",
+                    array_ref
+                ),
+            };
+
+            let module = rt.store.get_module(module_addr);
+            let data_seg_addr = module.get_data(DataIdx(data_idx));
+            let data_seg = rt.store.get_data(data_seg_addr);
+
+            // TODO: Copying data into a temporary buffer to avoid borrow checking issues below.
+            // TODO: We don't have to copy the whole thing, copy just the range.
+            let data: Vec<u8> = data_seg.data.clone();
+
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+            let array_elem_type: wasm::StorageType = array_type.field.storage_ty;
+            let elem_size = storage_type_size(&array_elem_type);
+
+            let array = rt.store.get_array_mut(array_addr);
+
+            if dest_offset + size > array.len as usize {
+                return Err(ExecError::Trap(Trap::OOBArrayAccess));
+            }
+
+            if src_offset + (size * elem_size) > data.len() {
+                return Err(ExecError::Trap(Trap::OOBMemoryAccess));
+            }
+
+            array.payload[dest_offset * elem_size..(dest_offset + size) * elem_size]
+                .copy_from_slice(&data[src_offset..src_offset + (size * elem_size)]);
+
+            rt.ip += 1;
+        }
+
         Instruction::ArrayGet(ty_idx)
         | Instruction::ArrayGetS(ty_idx)
         | Instruction::ArrayGetU(ty_idx) => {
@@ -3761,7 +3810,6 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::ArrayNewElem(_, _)
-        | Instruction::ArrayInitData(_, _)
         | Instruction::RefTest(_)
         | Instruction::RefTestNull(_)
         | Instruction::RefCast(_)
