@@ -3112,7 +3112,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                     |wasm::FieldType {
                          storage_ty,
                          mutability: _,
-                     }| Value::default_from_storage_type(storage_ty),
+                     }| {
+                        Value::default_from_storage_type(module_addr, storage_ty)
+                    },
                 )
                 .collect();
 
@@ -3262,7 +3264,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let array_size = rt.stack.pop_i32()? as u32;
 
             let elem = if let Instruction::ArrayNewDefault(_) = instr {
-                Value::default_from_storage_type(array_elem_type)
+                Value::default_from_storage_type(module_addr, array_elem_type)
             } else {
                 rt.stack.pop_value()?
             };
