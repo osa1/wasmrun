@@ -582,28 +582,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                         if elem_idx >= table_len {
                             return Err(ExecError::Trap(Trap::ElementOOB));
                         }
-                        let elem = match elem.code() {
-                            &[Instruction::RefFunc(func_idx), Instruction::End] => Ref::Func(
-                                rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)),
-                            ),
-                            &[Instruction::RefNull(heap_ty), Instruction::End] => {
-                                Ref::Null(module_addr, heap_ty)
-                            }
-                            &[Instruction::GetGlobal(global_idx), Instruction::End] => {
-                                let global_addr = rt
-                                    .store
-                                    .get_module(module_addr)
-                                    .get_global(GlobalIdx(global_idx));
-                                match &rt.store.get_global(global_addr).value {
-                                    Value::Ref(ref_) => *ref_,
-                                    other => exec_panic!(
-                                        "Element get.global value is not a reference: {:?}",
-                                        other
-                                    ),
-                                }
-                            }
-                            other => exec_panic!("Unhandled element expression: {:?}", other),
-                        };
+                        let elem = eval_elem_init_expr(rt, module_addr, elem)?;
                         rt.store.get_table_mut(table_addr).set(elem_idx, elem)?;
 
                         // elem.drop
@@ -858,6 +837,30 @@ fn eval_const_expr(
     let value = rt.stack.pop_value();
     rt.stack = stack;
     value
+}
+
+fn eval_elem_init_expr(
+    rt: &mut Runtime,
+    module_addr: ModuleAddr,
+    init_expr: &wasm::InitExpr,
+) -> Result<Ref> {
+    Ok(match init_expr.code() {
+        &[Instruction::RefFunc(func_idx), Instruction::End] => {
+            Ref::Func(rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)))
+        }
+        &[Instruction::RefNull(heap_ty), Instruction::End] => Ref::Null(module_addr, heap_ty),
+        &[Instruction::GetGlobal(global_idx), Instruction::End] => {
+            let global_addr = rt
+                .store
+                .get_module(module_addr)
+                .get_global(GlobalIdx(global_idx));
+            match &rt.store.get_global(global_addr).value {
+                Value::Ref(ref_) => *ref_,
+                other => exec_panic!("Element get.global value is not a reference: {:?}", other),
+            }
+        }
+        other => exec_panic!("Unhandled element expression: {:?}", other),
+    })
 }
 
 /// Execute the next instruction pointed by the instruction pointer and update the instruction
@@ -3364,6 +3367,56 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ArrayInitElem(ty_idx, elem_idx) => {
+            let size = rt.stack.pop_i32()? as usize;
+            let src_offset = rt.stack.pop_i32()? as usize;
+            let dest_offset = rt.stack.pop_i32()? as usize;
+            let array_ref = rt.stack.pop_ref()?;
+
+            let array_addr = match array_ref {
+                Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullArrayReference)),
+                Ref::Array(array_addr) => array_addr,
+                _ => exec_panic!(
+                    "array.init_elem argument is not an array reference: {:?}",
+                    array_ref
+                ),
+            };
+
+            let module = rt.store.get_module(module_addr);
+            let elem_seg_addr = module.get_elem(ElemIdx(elem_idx));
+            let elem_seg = rt.store.get_elem(elem_seg_addr);
+
+            // TODO: Copying segment expressions into a temporary buffer to avoid borrow checking
+            // issues below in eval step.
+            let elem_exprs: Vec<wasm::InitExpr> = elem_seg.init.clone();
+
+            let mut elems: Vec<Ref> = Vec::with_capacity(elem_seg.init.len());
+            for init_expr in &elem_exprs {
+                elems.push(eval_elem_init_expr(rt, module_addr, init_expr)?);
+            }
+
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+            let array_elem_type: wasm::StorageType = array_type.field.storage_ty;
+            let elem_size = storage_type_size(&array_elem_type);
+
+            let array = rt.store.get_array_mut(array_addr);
+
+            if dest_offset + size >= array.len as usize {
+                return Err(ExecError::Trap(Trap::OOBArrayAccess));
+            }
+
+            for i in 0..size {
+                elems[i].store_le(&mut array.payload[(src_offset + i) * elem_size..]);
+            }
+
+            rt.ip += 1;
+        }
+
         Instruction::ArrayGet(ty_idx)
         | Instruction::ArrayGetS(ty_idx)
         | Instruction::ArrayGetU(ty_idx) => {
@@ -3709,7 +3762,6 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         ////////////////////////////////////////////////////////////////////////////////////////////
         Instruction::ArrayNewElem(_, _)
         | Instruction::ArrayInitData(_, _)
-        | Instruction::ArrayInitElem(_, _)
         | Instruction::RefTest(_)
         | Instruction::RefTestNull(_)
         | Instruction::RefCast(_)

@@ -75,6 +75,15 @@ impl Ref {
             _ => None,
         }
     }
+
+    // TODO FIXME: We lose the type information here, when loading we don't know which one of the
+    // heaps (struct, array, exception, ...) this points to so we can't retrieve the type
+    // information and we can't create the right `Ref` variant (or `Null` with the right type).
+    //
+    // TODO FIXME: This also cannot handle nulls.
+    pub fn store_le(&self, mem: &mut [u8]) {
+        mem::store_32_le_unchecked(self.to_u32().unwrap(), mem, 0);
+    }
 }
 
 // TODO: Make this a const once from_bits is a const fn
@@ -201,7 +210,7 @@ impl Value {
             }
 
             Value::Ref(ref_) => {
-                mem::store_32_le_unchecked(ref_.to_u32().unwrap(), mem, 0);
+                ref_.store_le(mem);
             }
         }
     }
