@@ -582,8 +582,10 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
                         if elem_idx >= table_len {
                             return Err(ExecError::Trap(Trap::ElementOOB));
                         }
-                        let elem = eval_elem_init_expr(rt, module_addr, elem)?;
-                        rt.store.get_table_mut(table_addr).set(elem_idx, elem)?;
+                        let elem = eval_const_expr(rt, module_addr, elem.code())?;
+                        rt.store
+                            .get_table_mut(table_addr)
+                            .set(elem_idx, elem.expect_ref())?;
 
                         // elem.drop
                         rt.store.get_elem_mut(elem_addr).init.clear();
@@ -826,6 +828,7 @@ fn eval_const_expr(
     module_addr: ModuleAddr,
     instrs: &[Instruction],
 ) -> Result<Value> {
+    let ip = rt.ip;
     let stack = take(&mut rt.stack);
     for instr in instrs {
         if let Instruction::End = instr {
@@ -835,32 +838,9 @@ fn eval_const_expr(
         }
     }
     let value = rt.stack.pop_value();
+    rt.ip = ip;
     rt.stack = stack;
     value
-}
-
-fn eval_elem_init_expr(
-    rt: &mut Runtime,
-    module_addr: ModuleAddr,
-    init_expr: &wasm::InitExpr,
-) -> Result<Ref> {
-    Ok(match init_expr.code() {
-        &[Instruction::RefFunc(func_idx), Instruction::End] => {
-            Ref::Func(rt.store.get_module(module_addr).get_fun(FunIdx(func_idx)))
-        }
-        &[Instruction::RefNull(heap_ty), Instruction::End] => Ref::Null(module_addr, heap_ty),
-        &[Instruction::GetGlobal(global_idx), Instruction::End] => {
-            let global_addr = rt
-                .store
-                .get_module(module_addr)
-                .get_global(GlobalIdx(global_idx));
-            match &rt.store.get_global(global_addr).value {
-                Value::Ref(ref_) => *ref_,
-                other => exec_panic!("Element get.global value is not a reference: {:?}", other),
-            }
-        }
-        other => exec_panic!("Unhandled element expression: {:?}", other),
-    })
 }
 
 /// Execute the next instruction pointed by the instruction pointer and update the instruction
@@ -3387,7 +3367,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let mut elems: Vec<Value> = Vec::with_capacity(elem_seg.init.len());
             for init_expr in &elem_exprs {
-                elems.push(Value::Ref(eval_elem_init_expr(rt, module_addr, init_expr)?));
+                elems.push(Value::Ref(
+                    eval_const_expr(rt, module_addr, init_expr.code())?.expect_ref(),
+                ));
             }
 
             let array_addr = rt.store.allocate_array(module_addr, TypeIdx(ty_idx), elems);
@@ -3420,9 +3402,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             // issues below in eval step.
             let elem_exprs: Vec<wasm::InitExpr> = elem_seg.init.clone();
 
-            let mut elems: Vec<Ref> = Vec::with_capacity(elem_seg.init.len());
+            let mut elems: Vec<Value> = Vec::with_capacity(elem_seg.init.len());
             for init_expr in &elem_exprs {
-                elems.push(eval_elem_init_expr(rt, module_addr, init_expr)?);
+                elems.push(eval_const_expr(rt, module_addr, init_expr.code())?);
             }
 
             let array = rt.store.get_array_mut(array_addr);
@@ -3431,10 +3413,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
-            #[allow(clippy::needless_range_loop)]
-            for i in 0..size {
-                array.elems[src_offset + i] = Value::Ref(elems[i]);
-            }
+            array.elems[src_offset..(size + src_offset)].copy_from_slice(&elems[..size]);
 
             rt.ip += 1;
         }
