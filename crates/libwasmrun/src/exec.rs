@@ -3303,13 +3303,15 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array_len = rt.stack.pop_i32()? as usize;
 
+            let data_offset = rt.stack.pop_i32()? as usize;
+
             let data_addr = rt.store.get_module(module_addr).get_data(DataIdx(data_idx));
             let data: &[u8] = &rt.store.get_data(data_addr).data;
 
             let mut elems: Vec<Value> = Vec::with_capacity(array_len);
 
             for i in 0..array_len {
-                let offset = i * elem_size;
+                let offset = data_offset + (i * elem_size);
                 // TODO: Move the match outside of the loop.
                 let elem = match array_elem_type {
                     wasm::StorageType::Val(value_ty) => match value_ty {
