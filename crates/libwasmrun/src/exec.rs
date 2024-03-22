@@ -3455,6 +3455,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
+            #[allow(clippy::needless_range_loop)]
             for i in 0..size {
                 elems[i].store_le(&mut array.payload[(src_offset + i) * elem_size..]);
             }

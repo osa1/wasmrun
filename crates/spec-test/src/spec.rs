@@ -25,7 +25,7 @@ enum Error {
     Exec(ExecError),
 
     /// Deserialization of a module failed.
-    Deserialize(wasm::Error),
+    Deserialize(#[allow(unused)] wasm::Error),
 
     /// A used was missing. This probably means that a module registration before the test failed.
     MissingModule,
@@ -38,7 +38,7 @@ enum Error {
 
     /// An "assert trap" test failed with unexpected error.
     #[allow(clippy::enum_variant_names)]
-    AssertTrapUnexpectedError(Box<Error>),
+    AssertTrapUnexpectedError(#[allow(unused)] Box<Error>),
 
     /// Test used stuff we don't support yet, such as components and threads.
     UnsupportedStuff,
