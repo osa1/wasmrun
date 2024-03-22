@@ -1,6 +1,5 @@
 #![allow(clippy::unusual_byte_groupings)]
 
-use crate::mem;
 use crate::store::{ArrayAddr, ExnAddr, ExternAddr, FunAddr, ModuleAddr, StructAddr};
 
 use libwasmrun_syntax as wasm;
@@ -43,18 +42,6 @@ impl Ref {
         }
     }
 
-    pub fn to_u32(&self) -> Option<u32> {
-        match self {
-            Ref::Null(_, _) => None,
-            Ref::Func(addr) => Some(addr.0),
-            Ref::Exn(addr) => Some(addr.0),
-            Ref::Extern(addr) => Some(addr.0),
-            Ref::Struct(addr) => Some(addr.0),
-            Ref::Array(addr) => Some(addr.0),
-            Ref::I31(i) => Some(*i as u32),
-        }
-    }
-
     pub fn to_i31(&self) -> Option<i32> {
         match self {
             Ref::I31(i) => Some(*i),
@@ -74,15 +61,6 @@ impl Ref {
             Ref::Array(addr) => Some(*addr),
             _ => None,
         }
-    }
-
-    // TODO FIXME: We lose the type information here, when loading we don't know which one of the
-    // heaps (struct, array, exception, ...) this points to so we can't retrieve the type
-    // information and we can't create the right `Ref` variant (or `Null` with the right type).
-    //
-    // TODO FIXME: This also cannot handle nulls.
-    pub fn store_le(&self, mem: &mut [u8]) {
-        mem::store_32_le_unchecked(self.to_u32().unwrap(), mem, 0);
     }
 }
 
