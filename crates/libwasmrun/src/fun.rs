@@ -106,6 +106,10 @@ impl Fun {
             FunKind::Host(_) => None,
         }
     }
+
+    pub(crate) fn rtt(&self) -> (ModuleAddr, wasm::HeapType) {
+        (self.module_addr, wasm::HeapType::TypeIdx(self.ty_idx.0))
+    }
 }
 
 fn gen_block_bounds(instrs: &[wasm::Instruction]) -> Result<(Map<u32, u32>, Map<u32, u32>)> {

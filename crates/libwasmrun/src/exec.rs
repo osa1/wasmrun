@@ -14,7 +14,7 @@ use crate::module::{
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{Exception, ExnAddr, FunAddr, Global, ModuleAddr, Store, Table};
 use crate::types::TypeCanonicalizer;
-use crate::value::{self, Ref, Value};
+use crate::value::{self, ExternKind, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
 use crate::{ExecError, Result};
@@ -2508,11 +2508,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         Instruction::CallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
-                    exec_panic!("call_ref: reference is not a function")
-                }
                 Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
+                _ => exec_panic!("call_ref: reference is not a function"),
             };
             if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
                 return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
@@ -2523,11 +2521,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         Instruction::ReturnCallRef(type_idx) => {
             let ref_ = rt.stack.pop_ref()?;
             let fun_addr = match ref_ {
-                Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
-                    exec_panic!("return_call_ref: reference is not a function")
-                }
                 Ref::Null(_, _) => return Err(ExecError::Trap(Trap::NullFunction)),
                 Ref::Func(fun_addr) => fun_addr,
+                _ => exec_panic!("return_call_ref: reference is not a function"),
             };
             if !check_fun_type(rt, type_idx, module_addr, fun_addr) {
                 return Err(ExecError::Trap(Trap::IndirectCallTypeMismatch));
@@ -3004,13 +3000,13 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             }
 
             let exn_addr = match ref_ {
+                Ref::Exn(exn_addr) => exn_addr,
                 Ref::Null(_, _) => {
                     return Err(ExecError::Trap(Trap::NullReference));
                 }
-                Ref::Func(_) | Ref::Extern(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_) => {
+                _ => {
                     return Err(ExecError::Trap(Trap::NullReference)); // FIXME: trap kind
                 }
-                Ref::Exn(exn_addr) => exn_addr,
             };
 
             throw(rt, exn_addr)?;
@@ -3735,13 +3731,18 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let ref_ = rt.stack.pop_ref()?;
 
-            if ref_.is_null() {
-                rt.stack
-                    .push_ref(Ref::Null(module_addr, wasm::HeapType::Extern))?;
-            } else {
-                // TODO: We need a different value kind for externalized references.
-                exec_panic!("TODO: any.convert_extern");
-            }
+            let ref_ = match ref_ {
+                Ref::Null(_, _) => Ref::Null(module_addr, wasm::HeapType::Extern),
+
+                Ref::BoxedExtern(ext) => Ref::Extern(ext), // any -> extern
+
+                _ => {
+                    let extern_addr = rt.store.externalize(ref_);
+                    Ref::Extern(ExternKind::Internal(extern_addr))
+                }
+            };
+
+            rt.stack.push_ref(ref_)?;
 
             rt.ip += 1;
         }
@@ -3752,21 +3753,50 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let ref_ = rt.stack.pop_ref()?;
 
+            let ref_ = match ref_ {
+                Ref::Null(_, _) => Ref::Null(module_addr, wasm::HeapType::Any),
+
+                Ref::Extern(ext) => Ref::BoxedExtern(ext), // extern -> any
+
+                _ => {
+                    // validation error
+                    exec_panic!("Non-extern reference in any.convert_extern")
+                }
+            };
+
+            rt.stack.push_ref(ref_)?;
+
+            rt.ip += 1;
+        }
+
+        Instruction::RefTest(heap_ty) | Instruction::RefTestNull(heap_ty) => {
+            let allow_null = matches!(instr, Instruction::RefTestNull(_));
+
+            let ref_ = rt.stack.pop_ref()?;
+
             if ref_.is_null() {
-                rt.stack
-                    .push_ref(Ref::Null(module_addr, wasm::HeapType::Any))?;
+                rt.stack.push_i32(if allow_null { 1 } else { 0 })?;
             } else {
-                // TODO: We need a different value kind for externalized references.
-                exec_panic!("TODO: any.convert_extern");
+                let (value_module_addr, value_rt) = ref_.rtt(&rt.store);
+                rt.stack.push_i32(
+                    if subtyping::is_heap_subtype_of(
+                        &value_rt,
+                        &heap_ty,
+                        rt.get_module(value_module_addr),
+                        rt.get_module(module_addr),
+                    ) {
+                        1
+                    } else {
+                        0
+                    },
+                )?;
             }
 
             rt.ip += 1;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::RefTest(_)
-        | Instruction::RefTestNull(_)
-        | Instruction::RefCast(_)
+        Instruction::RefCast(_)
         | Instruction::RefCastNull(_)
         | Instruction::BrOnCast(_, _, _, _, _)
         | Instruction::BrOnCastFail(_, _, _, _, _) => {
@@ -3920,7 +3950,7 @@ fn get_fun_addr_from_table(
     match rt.store.get_table(table_addr).get(elem_idx as usize) {
         Some(Ref::Func(fun_addr)) => Ok(*fun_addr),
         Some(Ref::Null(_module_addr, _ref_ty)) => Err(ExecError::Trap(Trap::UninitializedElement)),
-        Some(Ref::Extern(_) | Ref::Exn(_) | Ref::Struct(_) | Ref::Array(_) | Ref::I31(_)) => {
+        Some(_) => {
             // TODO: Check table type to help with debugging
             // TODO: Incorrect trap kind.
             Err(ExecError::Trap(Trap::CallIndirectOnExternRef))

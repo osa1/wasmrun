@@ -4,7 +4,7 @@ use crate::exec::Runtime;
 use crate::fun::{Fun, FunKind};
 use crate::mem::Mem;
 use crate::module::{Module, TypeIdx};
-use crate::value::Value;
+use crate::value::{Ref, Value};
 use crate::Result;
 pub use table::Table;
 
@@ -13,7 +13,7 @@ use libwasmrun_syntax::{self as wasm, IndexMap};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ModuleAddr(u32);
+pub struct ModuleAddr(pub(crate) u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FunAddr(pub(crate) u32);
@@ -61,6 +61,9 @@ pub struct Store {
     exceptions: Vec<Exception>,
     arrays: Vec<Array>,
     structs: Vec<Struct>,
+
+    /// Internal references converted to `extern` with `extern.convert_any`.
+    externalized_refs: Vec<Ref>,
 }
 
 #[derive(Debug, Clone)]
@@ -75,11 +78,9 @@ pub(crate) struct Exception {
 #[derive(Debug, Clone)]
 pub(crate) struct Array {
     /// Address of the module that defines the array's type.
-    #[allow(unused)]
     pub(crate) module_addr: ModuleAddr,
 
     /// Index of the array's type in its module.
-    #[allow(unused)]
     pub(crate) ty_idx: TypeIdx,
 
     /// The array contents.
@@ -88,17 +89,27 @@ pub(crate) struct Array {
     pub(crate) elems: Vec<Value>,
 }
 
+impl Array {
+    pub(crate) fn rtt(&self) -> (ModuleAddr, wasm::HeapType) {
+        (self.module_addr, wasm::HeapType::TypeIdx(self.ty_idx.0))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Struct {
     /// Address of the module that defines the struct's type.
-    #[allow(unused)]
     pub(crate) module_addr: ModuleAddr,
 
     /// Index of the struct's type in its module.
-    #[allow(unused)]
     pub(crate) ty_idx: TypeIdx,
 
     pub(crate) fields: Vec<Value>,
+}
+
+impl Struct {
+    pub(crate) fn rtt(&self) -> (ModuleAddr, wasm::HeapType) {
+        (self.module_addr, wasm::HeapType::TypeIdx(self.ty_idx.0))
+    }
 }
 
 impl Store {
@@ -299,6 +310,17 @@ impl Store {
     pub(crate) fn get_struct_mut(&mut self, struct_addr: StructAddr) -> &mut Struct {
         &mut self.structs[struct_addr.0 as usize]
     }
+
+    pub(crate) fn externalize(&mut self, ref_: Ref) -> ExternAddr {
+        let addr = self.externalized_refs.len() as u32;
+        self.externalized_refs.push(ref_);
+        ExternAddr(addr)
+    }
+
+    #[allow(unused)]
+    pub(crate) fn internalize(&self, extern_addr: ExternAddr) -> Ref {
+        self.externalized_refs[extern_addr.0 as usize]
+    }
 }
 
 #[derive(Debug)]
@@ -322,4 +344,10 @@ pub(crate) struct Tag {
     ///
     /// The type at this index will be a function type.
     pub(crate) ty_idx: TypeIdx,
+}
+
+impl Tag {
+    pub(crate) fn rtt(&self) -> (ModuleAddr, wasm::HeapType) {
+        (self.module_addr, wasm::HeapType::TypeIdx(self.ty_idx.0))
+    }
 }

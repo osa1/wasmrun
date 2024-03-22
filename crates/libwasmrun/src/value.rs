@@ -1,6 +1,6 @@
 #![allow(clippy::unusual_byte_groupings)]
 
-use crate::store::{ArrayAddr, ExnAddr, ExternAddr, FunAddr, ModuleAddr, StructAddr};
+use crate::store::{ArrayAddr, ExnAddr, ExternAddr, FunAddr, ModuleAddr, Store, StructAddr};
 
 use libwasmrun_syntax as wasm;
 
@@ -21,25 +21,35 @@ pub enum Ref {
     Null(ModuleAddr, wasm::HeapType),
     Func(FunAddr),
     Exn(ExnAddr),
-    Extern(ExternAddr),
     Struct(StructAddr),
     Array(ArrayAddr),
+
+    /// A host reference, or an externalized internal reference.
+    ///
+    /// Reference type: `extern`.
+    Extern(ExternKind),
+
+    /// Same as `Extern`, but converted to `any`.
+    ///
+    /// Reference type: `any`.
+    BoxedExtern(ExternKind),
 
     /// A 31-bit integer disguised as a pointer.
     I31(i32),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExternKind {
+    /// An internal reference.
+    Internal(ExternAddr),
+
+    /// A host reference.
+    Host(u32),
+}
+
 impl Ref {
     pub fn is_null(&self) -> bool {
-        match self {
-            Ref::Null(_, _) => true,
-            Ref::Func(_)
-            | Ref::Exn(_)
-            | Ref::Extern(_)
-            | Ref::Struct(_)
-            | Ref::Array(_)
-            | Ref::I31(_) => false,
-        }
+        matches!(self, Ref::Null(_, _))
     }
 
     pub fn to_i31(&self) -> Option<i32> {
@@ -60,6 +70,30 @@ impl Ref {
         match self {
             Ref::Array(addr) => Some(*addr),
             _ => None,
+        }
+    }
+
+    pub fn rtt(&self, store: &Store) -> (ModuleAddr, wasm::HeapType) {
+        match self {
+            Ref::Null(module_addr, heap_ty) => (*module_addr, *heap_ty),
+
+            Ref::Func(fun_addr) => store.get_fun(*fun_addr).rtt(),
+
+            Ref::Exn(exn_addr) => {
+                let exn = store.get_exn(*exn_addr);
+                let tag = store.get_tag(exn.tag_addr);
+                tag.rtt()
+            }
+
+            Ref::Extern(_) => (ModuleAddr(0), wasm::HeapType::Extern),
+
+            Ref::BoxedExtern(_) => (ModuleAddr(0), wasm::HeapType::Any),
+
+            Ref::Struct(struct_addr) => store.get_struct(*struct_addr).rtt(),
+
+            Ref::Array(array_addr) => store.get_array(*array_addr).rtt(),
+
+            Ref::I31(_) => (ModuleAddr(0), wasm::HeapType::I31),
         }
     }
 }
@@ -90,6 +124,10 @@ pub(crate) fn canonicalize_f64_nan(f: f64) -> f64 {
 }
 
 impl Value {
+    pub fn new_host_ref(addr: u32) -> Self {
+        Value::Ref(Ref::Extern(ExternKind::Host(addr)))
+    }
+
     pub(crate) fn default_from_storage_type(
         module_addr: ModuleAddr,
         storage_ty: &wasm::StorageType,

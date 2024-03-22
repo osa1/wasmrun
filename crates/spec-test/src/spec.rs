@@ -1,6 +1,6 @@
 use libwasmrun::exec::{self, Runtime, Trap};
-use libwasmrun::store::{ExternAddr, ModuleAddr};
-use libwasmrun::{ExecError, Ref, Value};
+use libwasmrun::store::ModuleAddr;
+use libwasmrun::{ExecError, ExternKind, Ref, Value};
 use libwasmrun_syntax as wasm;
 
 use fxhash::FxHashMap;
@@ -396,9 +396,7 @@ impl<'a> TestFileRunner<'a> {
                 },
             )),
 
-            WastArgCore::RefHost(addr) | WastArgCore::RefExtern(addr) => {
-                Value::Ref(Ref::Extern(ExternAddr(*addr)))
-            }
+            WastArgCore::RefHost(addr) | WastArgCore::RefExtern(addr) => Value::new_host_ref(*addr),
         })
     }
 }
@@ -419,6 +417,7 @@ fn test_vals(
 
 /// Check whether a wasmrun value matches the expected spec test value
 fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found: &Value) -> bool {
+    // dbg!(expected, found);
     match (expected, found) {
         (WastRetCore::I32(i1), Value::I32(i2)) => i1 == i2,
 
@@ -540,9 +539,10 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefExtern(None), Value::Ref(Ref::Extern(_))) => true,
 
-        (WastRetCore::RefExtern(Some(extern1)), Value::Ref(Ref::Extern(extern2))) => {
-            ExternAddr(*extern1) == *extern2
-        }
+        (
+            WastRetCore::RefExtern(Some(extern1)),
+            Value::Ref(Ref::Extern(ExternKind::Host(extern2))),
+        ) => *extern1 == *extern2,
 
         (WastRetCore::RefStruct, Value::Ref(Ref::Struct(_))) => true,
 
