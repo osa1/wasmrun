@@ -3367,6 +3367,51 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
+        Instruction::ArrayNewElem(ty_idx, elem_idx) => {
+            let array_type: &wasm::ArrayType = rt
+                .store
+                .get_module(module_addr)
+                .get_type(TypeIdx(ty_idx))
+                .as_array_type()
+                .unwrap();
+
+            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
+
+            let elem_size = storage_type_size(array_elem_type);
+
+            let elem_offset = rt.stack.pop_i32()? as usize;
+            let array_size = rt.stack.pop_i32()? as usize;
+
+            let elem_seg_addr = rt.store.get_module(module_addr).get_elem(ElemIdx(elem_idx));
+            let elem_seg = rt.store.get_elem(elem_seg_addr);
+
+            // TODO: Only clone the used portion of the segment.
+            let elem_exprs: Vec<wasm::InitExpr> = elem_seg.init.clone();
+
+            if elem_offset + array_size > elem_exprs.len() {
+                return Err(ExecError::Trap(Trap::ElementOOB));
+            }
+
+            let mut elems: Vec<Ref> = Vec::with_capacity(elem_seg.init.len());
+            for init_expr in &elem_exprs {
+                elems.push(eval_elem_init_expr(rt, module_addr, init_expr)?);
+            }
+
+            let mut payload: Vec<u8> = vec![0; elem_size * array_size];
+
+            for (elem_idx, elem) in elems.into_iter().enumerate() {
+                elem.store_le(&mut payload[elem_idx * elem_size..]);
+            }
+
+            let array_addr =
+                rt.store
+                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_size as u32);
+
+            rt.stack.push_ref(Ref::Array(array_addr))?;
+
+            rt.ip += 1;
+        }
+
         Instruction::ArrayInitElem(ty_idx, elem_idx) => {
             let size = rt.stack.pop_i32()? as usize;
             let src_offset = rt.stack.pop_i32()? as usize;
@@ -3809,8 +3854,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::ArrayNewElem(_, _)
-        | Instruction::RefTest(_)
+        Instruction::RefTest(_)
         | Instruction::RefTestNull(_)
         | Instruction::RefCast(_)
         | Instruction::RefCastNull(_)
