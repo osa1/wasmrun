@@ -3262,9 +3262,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
 
-            let elem_size = storage_type_size(array_elem_type);
-
-            let array_size = rt.stack.pop_i32()? as u32;
+            let array_size = rt.stack.pop_i32()? as usize;
 
             let elem = if let Instruction::ArrayNewDefault(_) = instr {
                 Value::default_from_storage_type(module_addr, array_elem_type)
@@ -3272,27 +3270,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 rt.stack.pop_value()?
             };
 
-            let mut elem_encoding: Vec<u8> = vec![0; elem_size];
+            let elems: Vec<Value> = vec![elem; array_size];
 
-            match elem_size {
-                1 => elem_encoding[0] = elem.expect_i32() as i8 as u8,
-                2 => mem::store_16_le_unchecked(
-                    elem.expect_i32() as i16 as u16,
-                    &mut elem_encoding,
-                    0,
-                ),
-                _ => elem.store_le(&mut elem_encoding),
-            }
-
-            let mut payload: Vec<u8> = vec![0; elem_size * array_size as usize];
-
-            for i in 0..array_size as usize {
-                payload[i * elem_size..(i + 1) * elem_size].clone_from_slice(&elem_encoding);
-            }
-
-            let array_addr =
-                rt.store
-                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_size);
+            let array_addr = rt.store.allocate_array(module_addr, TypeIdx(ty_idx), elems);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3312,25 +3292,17 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let elem_size = storage_type_size(array_elem_type);
 
             let array_size = elem_size * array_len as usize;
-            let mut payload: Vec<u8> = vec![0; array_size];
 
-            for i in 1..=array_len as usize {
+            let mut elems: Vec<Value> = Vec::with_capacity(array_size);
+
+            for _ in 0..array_len as usize {
                 let value = rt.stack.pop_value()?;
-                let offset = array_size - (i * elem_size);
-                match elem_size {
-                    1 => payload[offset] = value.expect_i32() as i8 as u8,
-                    2 => mem::store_16_le_unchecked(
-                        value.expect_i32() as i16 as u16,
-                        &mut payload,
-                        offset,
-                    ),
-                    _ => value.store_le(&mut payload[offset..]),
-                }
+                elems.push(value);
             }
 
-            let array_addr =
-                rt.store
-                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_len);
+            elems.reverse();
+
+            let array_addr = rt.store.allocate_array(module_addr, TypeIdx(ty_idx), elems);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3350,17 +3322,49 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let elem_size = storage_type_size(array_elem_type);
 
             let array_len = rt.stack.pop_i32()? as usize;
-            let offset = rt.stack.pop_i32()? as usize;
 
             let data_addr = rt.store.get_module(module_addr).get_data(DataIdx(data_idx));
-            let data_: &[u8] = &rt.store.get_data(data_addr).data;
+            let data: &[u8] = &rt.store.get_data(data_addr).data;
 
-            let payload: Vec<u8> =
-                data_[(offset * elem_size)..(offset + array_len) * elem_size].to_vec();
+            let mut elems: Vec<Value> = Vec::with_capacity(array_len);
 
-            let array_addr =
-                rt.store
-                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_len as u32);
+            for i in 0..array_len {
+                let offset = i * elem_size;
+                // TODO: Move the match outside of the loop.
+                let elem = match array_elem_type {
+                    wasm::StorageType::Val(value_ty) => match value_ty {
+                        wasm::ValueType::I32 => {
+                            Value::I32(mem::load_32_le_unchecked(data, offset) as i32)
+                        }
+                        wasm::ValueType::I64 => {
+                            Value::I64(mem::load_64_le_unchecked(data, offset) as i64)
+                        }
+                        wasm::ValueType::F32 => {
+                            Value::F32(f32::from_bits(mem::load_32_le_unchecked(data, offset)))
+                        }
+                        wasm::ValueType::F64 => {
+                            Value::F64(f64::from_bits(mem::load_64_le_unchecked(data, offset)))
+                        }
+                        wasm::ValueType::V128 => {
+                            Value::I128(mem::load_128_le_unchecked(data, offset) as i128)
+                        }
+                        wasm::ValueType::Reference(_) => {
+                            exec_panic!("Reference array initialized with array.new_data")
+                        }
+                    },
+                    wasm::StorageType::Packed(packed_ty) => match packed_ty {
+                        wasm::PackedType::I8 => Value::I32(data[offset] as i32),
+                        wasm::PackedType::I16 => {
+                            let b1 = data[offset];
+                            let b2 = data[offset + 1];
+                            Value::I32(i16::from_le_bytes([b1, b2]) as i32)
+                        }
+                    },
+                };
+                elems.push(elem);
+            }
+
+            let array_addr = rt.store.allocate_array(module_addr, TypeIdx(ty_idx), elems);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
@@ -3368,17 +3372,6 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         }
 
         Instruction::ArrayNewElem(ty_idx, elem_idx) => {
-            let array_type: &wasm::ArrayType = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(ty_idx))
-                .as_array_type()
-                .unwrap();
-
-            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
-
-            let elem_size = storage_type_size(array_elem_type);
-
             let elem_offset = rt.stack.pop_i32()? as usize;
             let array_size = rt.stack.pop_i32()? as usize;
 
@@ -3392,27 +3385,19 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 return Err(ExecError::Trap(Trap::ElementOOB));
             }
 
-            let mut elems: Vec<Ref> = Vec::with_capacity(elem_seg.init.len());
+            let mut elems: Vec<Value> = Vec::with_capacity(elem_seg.init.len());
             for init_expr in &elem_exprs {
-                elems.push(eval_elem_init_expr(rt, module_addr, init_expr)?);
+                elems.push(Value::Ref(eval_elem_init_expr(rt, module_addr, init_expr)?));
             }
 
-            let mut payload: Vec<u8> = vec![0; elem_size * array_size];
-
-            for (elem_idx, elem) in elems.into_iter().enumerate() {
-                elem.store_le(&mut payload[elem_idx * elem_size..]);
-            }
-
-            let array_addr =
-                rt.store
-                    .allocate_array(module_addr, TypeIdx(ty_idx), payload, array_size as u32);
+            let array_addr = rt.store.allocate_array(module_addr, TypeIdx(ty_idx), elems);
 
             rt.stack.push_ref(Ref::Array(array_addr))?;
 
             rt.ip += 1;
         }
 
-        Instruction::ArrayInitElem(ty_idx, elem_idx) => {
+        Instruction::ArrayInitElem(_ty_idx, elem_idx) => {
             let size = rt.stack.pop_i32()? as usize;
             let src_offset = rt.stack.pop_i32()? as usize;
             let dest_offset = rt.stack.pop_i32()? as usize;
@@ -3440,24 +3425,15 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 elems.push(eval_elem_init_expr(rt, module_addr, init_expr)?);
             }
 
-            let array_type: &wasm::ArrayType = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(ty_idx))
-                .as_array_type()
-                .unwrap();
-            let array_elem_type: wasm::StorageType = array_type.field.storage_ty;
-            let elem_size = storage_type_size(&array_elem_type);
-
             let array = rt.store.get_array_mut(array_addr);
 
-            if dest_offset + size >= array.len as usize {
+            if dest_offset + size >= array.elems.len() as usize {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
             #[allow(clippy::needless_range_loop)]
             for i in 0..size {
-                elems[i].store_le(&mut array.payload[(src_offset + i) * elem_size..]);
+                array.elems[src_offset + i] = Value::Ref(elems[i]);
             }
 
             rt.ip += 1;
@@ -3498,7 +3474,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array_mut(array_addr);
 
-            if dest_offset + size > array.len as usize {
+            if dest_offset + size > array.elems.len() as usize {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
@@ -3506,27 +3482,49 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 return Err(ExecError::Trap(Trap::OOBMemoryAccess));
             }
 
-            array.payload[dest_offset * elem_size..(dest_offset + size) * elem_size]
-                .copy_from_slice(&data[src_offset..src_offset + (size * elem_size)]);
+            for i in 0..size {
+                // TODO: Move the match outside of the loop.
+                let offset = src_offset + (i * elem_size);
+                let elem = match array_elem_type {
+                    wasm::StorageType::Val(value_ty) => match value_ty {
+                        wasm::ValueType::I32 => {
+                            Value::I32(mem::load_32_le_unchecked(&data, offset) as i32)
+                        }
+                        wasm::ValueType::I64 => {
+                            Value::I64(mem::load_64_le_unchecked(&data, offset) as i64)
+                        }
+                        wasm::ValueType::F32 => {
+                            Value::F32(f32::from_bits(mem::load_32_le_unchecked(&data, offset)))
+                        }
+                        wasm::ValueType::F64 => {
+                            Value::F64(f64::from_bits(mem::load_64_le_unchecked(&data, offset)))
+                        }
+                        wasm::ValueType::V128 => {
+                            Value::I128(mem::load_128_le_unchecked(&data, offset) as i128)
+                        }
+                        wasm::ValueType::Reference(_) => {
+                            exec_panic!("Reference array initialized with array.new_data")
+                        }
+                    },
+                    wasm::StorageType::Packed(packed_ty) => match packed_ty {
+                        wasm::PackedType::I8 => Value::I32(data[offset] as i32),
+                        wasm::PackedType::I16 => {
+                            let b1 = data[offset];
+                            let b2 = data[offset + 1];
+                            Value::I32(i16::from_le_bytes([b1, b2]) as i32)
+                        }
+                    },
+                };
+                array.elems[dest_offset + i] = elem;
+            }
 
             rt.ip += 1;
         }
 
-        Instruction::ArrayGet(ty_idx)
-        | Instruction::ArrayGetS(ty_idx)
-        | Instruction::ArrayGetU(ty_idx) => {
-            let sign_extend = matches!(instr, Instruction::ArrayGetS(_));
-
-            let array_type: &wasm::ArrayType = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(ty_idx))
-                .as_array_type()
-                .unwrap();
-
-            let array_elem_type: &wasm::StorageType = &array_type.field.storage_ty;
-
-            let elem_idx = rt.stack.pop_i32()? as u32;
+        Instruction::ArrayGet(_ty_idx)
+        | Instruction::ArrayGetS(_ty_idx)
+        | Instruction::ArrayGetU(_ty_idx) => {
+            let elem_idx = rt.stack.pop_i32()? as usize;
 
             let array_ref = rt.stack.pop_ref()?;
 
@@ -3541,79 +3539,21 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array(array_addr);
 
-            if elem_idx >= array.len {
+            if elem_idx >= array.elems.len() {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
-            let elem_size = storage_type_size(array_elem_type);
-            let elem_offset = elem_size * elem_idx as usize;
-
             // TODO: Check bounds.
-            let value = match array_elem_type {
-                wasm::StorageType::Val(val_ty) => match val_ty {
-                    wasm::ValueType::I32 => {
-                        Value::I32(mem::load_32_le_unchecked(&array.payload, elem_offset) as i32)
-                    }
-
-                    wasm::ValueType::I64 => {
-                        Value::I64(mem::load_64_le_unchecked(&array.payload, elem_offset) as i64)
-                    }
-
-                    wasm::ValueType::F32 => Value::F32(f32::from_bits(mem::load_32_le_unchecked(
-                        &array.payload,
-                        elem_offset,
-                    ))),
-
-                    wasm::ValueType::F64 => Value::F64(f64::from_bits(mem::load_64_le_unchecked(
-                        &array.payload,
-                        elem_offset,
-                    ))),
-
-                    wasm::ValueType::V128 => {
-                        Value::I128(mem::load_128_le_unchecked(&array.payload, elem_offset) as i128)
-                    }
-
-                    wasm::ValueType::Reference(_) => todo!(),
-                },
-
-                wasm::StorageType::Packed(packed_ty) => match packed_ty {
-                    wasm::PackedType::I8 => {
-                        let u8 = array.payload[elem_offset];
-                        Value::I32(if sign_extend {
-                            u8 as i8 as i32
-                        } else {
-                            u8 as i32
-                        })
-                    }
-
-                    wasm::PackedType::I16 => {
-                        let u16 = mem::load_16_le_unchecked(&array.payload, elem_offset);
-                        Value::I32(if sign_extend {
-                            u16 as i16 as i32
-                        } else {
-                            u16 as i32
-                        })
-                    }
-                },
-            };
+            let value = array.elems[elem_idx];
 
             rt.stack.push_value(value)?;
 
             rt.ip += 1;
         }
 
-        Instruction::ArraySet(ty_idx) => {
-            let array_type: &wasm::ArrayType = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(ty_idx))
-                .as_array_type()
-                .unwrap();
-
-            let array_elem_type: wasm::StorageType = array_type.field.storage_ty;
-
+        Instruction::ArraySet(_ty_idx) => {
             let elem = rt.stack.pop_value()?;
-            let elem_idx = rt.stack.pop_i32()? as u32;
+            let elem_idx = rt.stack.pop_i32()? as usize;
 
             let array_ref = rt.stack.pop_ref()?;
 
@@ -3628,25 +3568,11 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array_mut(array_addr);
 
-            if elem_idx >= array.len {
+            if elem_idx >= array.elems.len() {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
-            let elem_size = storage_type_size(&array_elem_type);
-            let elem_offset = elem_size * elem_idx as usize;
-
-            // Handle packed elements.
-            match elem_size {
-                1 => array.payload[elem_offset] = elem.expect_i32() as i8 as u8,
-
-                2 => mem::store_16_le_unchecked(
-                    elem.expect_i32() as i16 as u16,
-                    &mut array.payload,
-                    elem_offset,
-                ),
-
-                _ => elem.store_le(&mut array.payload[elem_offset..]),
-            }
+            array.elems[elem_idx] = elem;
 
             rt.ip += 1;
         }
@@ -3665,12 +3591,12 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array(array_addr);
 
-            rt.stack.push_i32(array.len as i32)?;
+            rt.stack.push_i32(array.elems.len() as i32)?;
 
             rt.ip += 1;
         }
 
-        Instruction::ArrayFill(ty_idx) => {
+        Instruction::ArrayFill(_ty_idx) => {
             let size = rt.stack.pop_i32()? as usize;
             let value = rt.stack.pop_value()?;
             let offset = rt.stack.pop_i32()? as usize;
@@ -3685,52 +3611,20 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 ),
             };
 
-            let array_type: &wasm::ArrayType = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(ty_idx))
-                .as_array_type()
-                .unwrap();
-
-            let array_elem_type: wasm::StorageType = array_type.field.storage_ty;
-
             let array = rt.store.get_array_mut(array_addr);
 
-            if offset + size > array.len as usize {
+            if offset + size > array.elems.len() as usize {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
-            let elem_size = storage_type_size(&array_elem_type);
-            let elem_offset = elem_size * offset;
-
-            // Handle packed elements.
-            match elem_size {
-                1 => {
-                    array.payload[offset * elem_size..(offset + size) * elem_size]
-                        .fill(value.expect_i32() as i8 as u8);
-                }
-
-                2 => {
-                    for offset in (elem_size * offset)..(offset + size) * elem_size {
-                        mem::store_16_le_unchecked(
-                            value.expect_i32() as i16 as u16,
-                            &mut array.payload[offset..],
-                            elem_offset,
-                        );
-                    }
-                }
-
-                _ => {
-                    for offset in (elem_size * offset)..(offset + size) * elem_size {
-                        value.store_le(&mut array.payload[offset..]);
-                    }
-                }
+            for i in offset..offset + size {
+                array.elems[i] = value;
             }
 
             rt.ip += 1;
         }
 
-        Instruction::ArrayCopy(_dest_ty_idx, src_ty_idx) => {
+        Instruction::ArrayCopy(_dest_ty_idx, _src_ty_idx) => {
             let size = rt.stack.pop_i32()? as usize;
             let src_offset = rt.stack.pop_i32()? as usize;
             let src_ref = rt.stack.pop_ref()?;
@@ -3755,51 +3649,37 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 ),
             };
 
-            let src_array_type: &wasm::ArrayType = rt
-                .store
-                .get_module(module_addr)
-                .get_type(TypeIdx(src_ty_idx))
-                .as_array_type()
-                .unwrap();
-
-            let src_array_elem_type: wasm::StorageType = src_array_type.field.storage_ty;
-
-            let elem_size = storage_type_size(&src_array_elem_type);
-
             if src_array_addr == dest_array_addr {
                 let array = rt.store.get_array_mut(src_array_addr);
 
-                if src_offset + size > array.len as usize || dest_offset + size > array.len as usize
+                if src_offset + size > array.elems.len() as usize
+                    || dest_offset + size > array.elems.len() as usize
                 {
                     return Err(ExecError::Trap(Trap::OOBArrayAccess));
                 }
 
-                array.payload.copy_within(
-                    src_offset * elem_size..(src_offset + size) * elem_size,
-                    dest_offset * elem_size,
-                );
+                array
+                    .elems
+                    .copy_within(src_offset..(src_offset + size), dest_offset);
             } else {
                 // FIXME: Currently copying the source into a temporary buffer to avoid borrow
                 // checking issues.
                 let src_array = rt.store.get_array(src_array_addr);
 
-                if src_offset + size > src_array.len as usize {
+                if src_offset + size > src_array.elems.len() as usize {
                     return Err(ExecError::Trap(Trap::OOBArrayAccess));
                 }
 
-                let mut src: Vec<u8> = vec![0; size * elem_size];
-                src.copy_from_slice(
-                    &src_array.payload[src_offset * elem_size..(src_offset + size) * elem_size],
-                );
+                let mut src: Vec<Value> = vec![Value::I32(0); size];
+                src.copy_from_slice(&src_array.elems[src_offset..(src_offset + size)]);
 
                 let dest_array = rt.store.get_array_mut(dest_array_addr);
 
-                if dest_offset + size > dest_array.len as usize {
+                if dest_offset + size > dest_array.elems.len() as usize {
                     return Err(ExecError::Trap(Trap::OOBArrayAccess));
                 }
 
-                dest_array.payload[dest_offset * elem_size..(dest_offset + size) * elem_size]
-                    .copy_from_slice(&src);
+                dest_array.elems[dest_offset..(dest_offset + size)].copy_from_slice(&src);
             }
 
             rt.ip += 1;

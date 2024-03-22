@@ -185,35 +185,6 @@ impl Value {
             _ => panic!("expect_ref: found {:?}", self),
         }
     }
-
-    /// Store the value in little endian in `mem` and return the size of the serialized value.
-    pub(crate) fn store_le(&self, mem: &mut [u8]) {
-        match self {
-            Value::I32(i32) => {
-                mem::store_32_le_unchecked(*i32 as u32, mem, 0);
-            }
-
-            Value::I64(i64) => {
-                mem::store_64_le_unchecked(*i64 as u64, mem, 0);
-            }
-
-            Value::I128(i128) => {
-                mem::store_128_le_unchecked(*i128 as u128, mem, 0);
-            }
-
-            Value::F32(f32) => {
-                mem::store_32_le_unchecked(f32.to_bits(), mem, 0);
-            }
-
-            Value::F64(f64) => {
-                mem::store_64_le_unchecked(f64.to_bits(), mem, 0);
-            }
-
-            Value::Ref(ref_) => {
-                ref_.store_le(mem);
-            }
-        }
-    }
 }
 
 impl fmt::Debug for Value {

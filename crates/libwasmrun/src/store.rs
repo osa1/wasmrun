@@ -82,11 +82,10 @@ pub(crate) struct Array {
     #[allow(unused)]
     pub(crate) ty_idx: TypeIdx,
 
-    /// The array contents, neatly packed as plain bytes.
-    pub(crate) payload: Vec<u8>,
-
-    /// Length (number of elements) of the array.
-    pub(crate) len: u32,
+    /// The array contents.
+    ///
+    /// For now store as `Value` to keep things simple.
+    pub(crate) elems: Vec<Value>,
 }
 
 #[derive(Debug, Clone)]
@@ -259,15 +258,13 @@ impl Store {
         &mut self,
         module_addr: ModuleAddr,
         ty_idx: TypeIdx,
-        payload: Vec<u8>,
-        len: u32,
+        elems: Vec<Value>,
     ) -> ArrayAddr {
         let idx = self.arrays.len() as u32;
         self.arrays.push(Array {
             module_addr,
             ty_idx,
-            payload,
-            len,
+            elems,
         });
         ArrayAddr(idx)
     }
