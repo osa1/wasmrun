@@ -93,6 +93,18 @@ impl SubType {
             }
         }
     }
+
+    pub fn as_function_type(&self) -> Option<&FunctionType> {
+        self.comp_ty.as_function_type()
+    }
+
+    pub fn as_struct_type(&self) -> Option<&StructType> {
+        self.comp_ty.as_struct_type()
+    }
+
+    pub fn as_array_type(&self) -> Option<&ArrayType> {
+        self.comp_ty.as_array_type()
+    }
 }
 
 /// A composite type.

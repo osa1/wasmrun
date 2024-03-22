@@ -30,7 +30,7 @@ pub(crate) struct TagIdx(pub u32);
 
 #[derive(Debug, Default)]
 pub(crate) struct Module {
-    types: Vec<wasm::CompType>,
+    types: Vec<wasm::SubType>,
     func_addrs: Vec<FunAddr>,
     table_addrs: Vec<TableAddr>,
     mem_addrs: Vec<MemAddr>,
@@ -42,18 +42,18 @@ pub(crate) struct Module {
     elems: Vec<ElemAddr>,
     tag_addrs: Vec<TagAddr>,
 
-    /// Maps type indices of the module to their global canonical index.
+    /// Maps type indices of the module to their global canonical indices.
     pub(crate) canonical_type_ids: Vec<u32>,
 }
 
 impl Module {
-    pub(crate) fn add_type(&mut self, ty: wasm::CompType) -> TypeIdx {
+    pub(crate) fn add_type(&mut self, ty: wasm::SubType) -> TypeIdx {
         let ret = self.types.len();
         self.types.push(ty);
         TypeIdx(ret as u32)
     }
 
-    pub(crate) fn get_type(&self, ty_idx: TypeIdx) -> &wasm::CompType {
+    pub(crate) fn get_type(&self, ty_idx: TypeIdx) -> &wasm::SubType {
         &self.types[ty_idx.0 as usize]
     }
 

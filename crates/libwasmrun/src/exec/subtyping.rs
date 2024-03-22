@@ -70,7 +70,7 @@ pub(crate) fn is_heap_subtype_of(
         HeapType::Eq => match sub_ty {
             HeapType::Array | HeapType::Struct | HeapType::I31 => true,
             HeapType::TypeIdx(sub_ty_idx) => !matches!(
-                sub_ty_module.get_type(TypeIdx(*sub_ty_idx)),
+                &sub_ty_module.get_type(TypeIdx(*sub_ty_idx)).comp_ty,
                 CompType::Func(_)
             ),
             _ => false,
@@ -80,7 +80,7 @@ pub(crate) fn is_heap_subtype_of(
             HeapType::Func => true,
             HeapType::TypeIdx(sub_ty_idx) => {
                 matches!(
-                    sub_ty_module.get_type(TypeIdx(*sub_ty_idx)),
+                    &sub_ty_module.get_type(TypeIdx(*sub_ty_idx)).comp_ty,
                     CompType::Func(_)
                 )
             }
@@ -91,7 +91,7 @@ pub(crate) fn is_heap_subtype_of(
             HeapType::Func => true,
             HeapType::TypeIdx(sub_ty_idx) => {
                 matches!(
-                    sub_ty_module.get_type(TypeIdx(*sub_ty_idx)),
+                    &sub_ty_module.get_type(TypeIdx(*sub_ty_idx)).comp_ty,
                     CompType::Struct(_)
                 )
             }
@@ -102,7 +102,7 @@ pub(crate) fn is_heap_subtype_of(
             HeapType::Func => true,
             HeapType::TypeIdx(sub_ty_idx) => {
                 matches!(
-                    sub_ty_module.get_type(TypeIdx(*sub_ty_idx)),
+                    &sub_ty_module.get_type(TypeIdx(*sub_ty_idx)).comp_ty,
                     CompType::Array(_)
                 )
             }
@@ -125,34 +125,51 @@ pub(crate) fn is_heap_subtype_of(
                 HeapType::Func => false,
 
                 HeapType::NoFunc => matches!(
-                    super_ty_module.get_type(TypeIdx(*super_ty_idx)),
+                    &super_ty_module.get_type(TypeIdx(*super_ty_idx)).comp_ty,
                     CompType::Func(_)
                 ),
 
                 HeapType::Eq => false,
 
                 HeapType::Struct => matches!(
-                    super_ty_module.get_type(TypeIdx(*super_ty_idx)),
+                    &super_ty_module.get_type(TypeIdx(*super_ty_idx)).comp_ty,
                     CompType::Struct(_)
                 ),
 
                 HeapType::Array => matches!(
-                    super_ty_module.get_type(TypeIdx(*super_ty_idx)),
+                    &super_ty_module.get_type(TypeIdx(*super_ty_idx)).comp_ty,
                     CompType::Array(_)
                 ),
 
                 HeapType::I31 => false,
 
-                HeapType::TypeIdx(sub_ty_idx) => {
+                HeapType::TypeIdx(mut sub_ty_idx) => {
                     let super_canonical_ty_idx =
                         super_ty_module.canonical_type_ids[*super_ty_idx as usize];
 
-                    let sub_canonical_ty_idx =
-                        sub_ty_module.canonical_type_ids[*sub_ty_idx as usize];
+                    let mut sub_canonical_ty_idx =
+                        sub_ty_module.canonical_type_ids[sub_ty_idx as usize];
 
-                    // TODO: We need to map canonical type indices to super types' canonical
-                    // indices, and compare super types of the subtype with the supertype.
-                    super_canonical_ty_idx == sub_canonical_ty_idx
+                    if super_canonical_ty_idx == sub_canonical_ty_idx {
+                        return true;
+                    }
+
+                    let mut sub_ty_supers = &sub_ty_module.get_type(TypeIdx(sub_ty_idx)).supers;
+                    debug_assert!(sub_ty_supers.len() <= 1);
+
+                    while !sub_ty_supers.is_empty() {
+                        sub_ty_idx = sub_ty_supers[0];
+                        sub_ty_supers = &sub_ty_module.get_type(TypeIdx(sub_ty_idx)).supers;
+
+                        sub_canonical_ty_idx =
+                            sub_ty_module.canonical_type_ids[sub_ty_idx as usize];
+
+                        if super_canonical_ty_idx == sub_canonical_ty_idx {
+                            return true;
+                        }
+                    }
+
+                    false
                 }
             }
         }
