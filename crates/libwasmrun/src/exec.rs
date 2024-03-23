@@ -3767,7 +3767,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         Instruction::RefTest(heap_ty) | Instruction::RefTestNull(heap_ty) => {
             let allow_null = matches!(instr, Instruction::RefTestNull(_));
 
-            if ref_test(rt, module_addr, heap_ty, allow_null)?.is_some() {
+            let ref_ = rt.stack.pop_ref()?;
+
+            if ref_test(rt, ref_, module_addr, heap_ty, allow_null)?.is_some() {
                 rt.stack.push_i32(1)?;
             } else {
                 rt.stack.push_i32(0)?;
@@ -3779,7 +3781,9 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         Instruction::RefCast(heap_ty) | Instruction::RefCastNull(heap_ty) => {
             let allow_null = matches!(instr, Instruction::RefCastNull(_));
 
-            match ref_test(rt, module_addr, heap_ty, allow_null)? {
+            let ref_ = rt.stack.pop_ref()?;
+
+            match ref_test(rt, ref_, module_addr, heap_ty, allow_null)? {
                 Some(ref_) => rt.stack.push_ref(ref_)?,
                 None => return Err(ExecError::Trap(Trap::Unreachable)),
             }
@@ -3787,9 +3791,20 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             rt.ip += 1;
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::BrOnCast(_, _, _, _, _) | Instruction::BrOnCastFail(_, _, _, _, _) => {
-            exec_panic!("Instruction not implemented: {}", instr)
+        Instruction::BrOnCast(_null_1, null_2, label_idx, _heap_ty_1, heap_ty_2)
+        | Instruction::BrOnCastFail(_null_1, null_2, label_idx, _heap_ty_1, heap_ty_2) => {
+            let break_on_fail = matches!(instr, Instruction::BrOnCastFail(_, _, _, _, _));
+
+            let ref_ = rt.stack.pop_ref()?;
+            let ref_updated = ref_test(rt, ref_, module_addr, heap_ty_2, null_2)?;
+            let test_pass = ref_updated.is_some();
+            rt.stack.push_ref(ref_updated.unwrap_or(ref_))?;
+
+            if (test_pass && !break_on_fail) || (!test_pass && break_on_fail) {
+                br(rt, label_idx)?;
+            } else {
+                rt.ip += 1;
+            }
         }
     }
 
@@ -3798,31 +3813,38 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
 fn ref_test(
     rt: &mut Runtime,
+    ref_: Ref,
     module_addr: ModuleAddr,
     heap_ty: wasm::HeapType,
     allow_null: bool,
 ) -> Result<Option<Ref>> {
-    let ref_ = rt.stack.pop_ref()?;
-
     Ok(if ref_.is_null() {
         if allow_null {
+            // TODO: Shouldn't we update null's heap type here?
             Some(ref_)
         } else {
             None
         }
+    } else if is_subtype_of(rt, ref_, &heap_ty, module_addr) {
+        Some(ref_)
     } else {
-        let (value_module_addr, value_rt) = ref_.rtt(&rt.store);
-        if subtyping::is_heap_subtype_of(
-            &value_rt,
-            &heap_ty,
-            rt.get_module(value_module_addr),
-            rt.get_module(module_addr),
-        ) {
-            Some(ref_)
-        } else {
-            None
-        }
+        None
     })
+}
+
+fn is_subtype_of(
+    rt: &Runtime,
+    ref_: Ref,
+    super_ty: &wasm::HeapType,
+    module_addr: ModuleAddr,
+) -> bool {
+    let (value_module_addr, value_rt) = ref_.rtt(&rt.store);
+    subtyping::is_heap_subtype_of(
+        &value_rt,
+        super_ty,
+        rt.get_module(value_module_addr),
+        rt.get_module(module_addr),
+    )
 }
 
 fn storage_type_size(ty: &wasm::StorageType) -> usize {
