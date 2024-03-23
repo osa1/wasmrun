@@ -83,6 +83,8 @@ pub enum Trap {
     NullI31Reference,
 
     OOBArrayAccess,
+
+    CastFailure,
 }
 
 impl fmt::Display for Trap {
@@ -105,6 +107,7 @@ impl fmt::Display for Trap {
             Trap::NullArrayReference => "null array reference in an array instruction".fmt(f),
             Trap::NullI31Reference => "null reference in an i31 instruction".fmt(f),
             Trap::OOBArrayAccess => "out of bounds array access".fmt(f),
+            Trap::CastFailure => "cast failure".fmt(f),
         }
     }
 }
@@ -3785,7 +3788,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             match ref_test(rt, ref_, module_addr, heap_ty, allow_null)? {
                 Some(ref_) => rt.stack.push_ref(ref_)?,
-                None => return Err(ExecError::Trap(Trap::Unreachable)),
+                None => return Err(ExecError::Trap(Trap::CastFailure)),
             }
 
             rt.ip += 1;

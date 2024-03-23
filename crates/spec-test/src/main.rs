@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 #[rustfmt::skip]
-static TEST_FILES: [&str; 41] = [
+static TEST_FILES: [&str; 42] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
@@ -38,6 +38,7 @@ static TEST_FILES: [&str; 41] = [
     "tests/spec/proposals/gc/local_init.wast",
     "tests/spec/proposals/gc/ref.wast",
     "tests/spec/proposals/gc/ref_as_non_null.wast",
+    "tests/spec/proposals/gc/ref_cast.wast",
     "tests/spec/proposals/gc/ref_eq.wast",
     "tests/spec/proposals/gc/ref_is_null.wast",
     "tests/spec/proposals/gc/ref_null.wast",
@@ -54,7 +55,6 @@ static TEST_FILES: [&str; 41] = [
     "tests/spec/proposals/gc/unreached-valid.wast",
 
     // "tests/spec/proposals/gc/extern.wast",
-    // "tests/spec/proposals/gc/ref_cast.wast",
     // "tests/spec/proposals/gc/type-equivalence.wast",
     // "tests/spec/proposals/gc/type-rec.wast",
     // "tests/spec/proposals/gc/type-subtyping.wast",
