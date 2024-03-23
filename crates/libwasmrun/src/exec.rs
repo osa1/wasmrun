@@ -3767,39 +3767,62 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         Instruction::RefTest(heap_ty) | Instruction::RefTestNull(heap_ty) => {
             let allow_null = matches!(instr, Instruction::RefTestNull(_));
 
-            let ref_ = rt.stack.pop_ref()?;
-
-            if ref_.is_null() {
-                rt.stack.push_i32(if allow_null { 1 } else { 0 })?;
+            if ref_test(rt, module_addr, heap_ty, allow_null)?.is_some() {
+                rt.stack.push_i32(1)?;
             } else {
-                let (value_module_addr, value_rt) = ref_.rtt(&rt.store);
-                rt.stack.push_i32(
-                    if subtyping::is_heap_subtype_of(
-                        &value_rt,
-                        &heap_ty,
-                        rt.get_module(value_module_addr),
-                        rt.get_module(module_addr),
-                    ) {
-                        1
-                    } else {
-                        0
-                    },
-                )?;
+                rt.stack.push_i32(0)?;
+            }
+
+            rt.ip += 1;
+        }
+
+        Instruction::RefCast(heap_ty) | Instruction::RefCastNull(heap_ty) => {
+            let allow_null = matches!(instr, Instruction::RefCastNull(_));
+
+            match ref_test(rt, module_addr, heap_ty, allow_null)? {
+                Some(ref_) => rt.stack.push_ref(ref_)?,
+                None => return Err(ExecError::Trap(Trap::Unreachable)),
             }
 
             rt.ip += 1;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        Instruction::RefCast(_)
-        | Instruction::RefCastNull(_)
-        | Instruction::BrOnCast(_, _, _, _, _)
-        | Instruction::BrOnCastFail(_, _, _, _, _) => {
+        Instruction::BrOnCast(_, _, _, _, _) | Instruction::BrOnCastFail(_, _, _, _, _) => {
             exec_panic!("Instruction not implemented: {}", instr)
         }
     }
 
     Ok(())
+}
+
+fn ref_test(
+    rt: &mut Runtime,
+    module_addr: ModuleAddr,
+    heap_ty: wasm::HeapType,
+    allow_null: bool,
+) -> Result<Option<Ref>> {
+    let ref_ = rt.stack.pop_ref()?;
+
+    Ok(if ref_.is_null() {
+        if allow_null {
+            Some(ref_)
+        } else {
+            None
+        }
+    } else {
+        let (value_module_addr, value_rt) = ref_.rtt(&rt.store);
+        if subtyping::is_heap_subtype_of(
+            &value_rt,
+            &heap_ty,
+            rt.get_module(value_module_addr),
+            rt.get_module(module_addr),
+        ) {
+            Some(ref_)
+        } else {
+            None
+        }
+    })
 }
 
 fn storage_type_size(ty: &wasm::StorageType) -> usize {
