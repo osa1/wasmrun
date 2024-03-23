@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 #[rustfmt::skip]
-static TEST_FILES: [&str; 17] = [
+static TEST_FILES: [&str; 41] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
@@ -21,13 +21,43 @@ static TEST_FILES: [&str; 17] = [
     "tests/spec/proposals/gc/array_fill.wast",
     "tests/spec/proposals/gc/array_init_data.wast",
     "tests/spec/proposals/gc/array_init_elem.wast",
+    "tests/spec/proposals/gc/binary-gc.wast",
+    "tests/spec/proposals/gc/binary.wast",
     "tests/spec/proposals/gc/br_on_cast.wast",
     "tests/spec/proposals/gc/br_on_cast_fail.wast",
+    "tests/spec/proposals/gc/br_on_non_null.wast",
+    "tests/spec/proposals/gc/br_table.wast",
+    "tests/spec/proposals/gc/call_ref.wast",
+    "tests/spec/proposals/gc/data.wast",
+    "tests/spec/proposals/gc/elem.wast",
+    "tests/spec/proposals/gc/func.wast",
+    "tests/spec/proposals/gc/global.wast",
     "tests/spec/proposals/gc/i31.wast",
+    "tests/spec/proposals/gc/if.wast",
+    "tests/spec/proposals/gc/local_get.wast",
+    "tests/spec/proposals/gc/local_init.wast",
+    "tests/spec/proposals/gc/ref.wast",
+    "tests/spec/proposals/gc/ref_as_non_null.wast",
     "tests/spec/proposals/gc/ref_eq.wast",
+    "tests/spec/proposals/gc/ref_is_null.wast",
+    "tests/spec/proposals/gc/ref_null.wast",
     "tests/spec/proposals/gc/ref_test.wast",
-    "tests/spec/proposals/gc/ref_test.wast",
+    "tests/spec/proposals/gc/return_call.wast",
+    "tests/spec/proposals/gc/return_call_indirect.wast",
+    "tests/spec/proposals/gc/return_call_ref.wast",
+    "tests/spec/proposals/gc/select.wast",
     "tests/spec/proposals/gc/struct.wast",
+    "tests/spec/proposals/gc/table-sub.wast",
+    "tests/spec/proposals/gc/table.wast",
+    "tests/spec/proposals/gc/type-canon.wast",
+    "tests/spec/proposals/gc/unreached-invalid.wast",
+    "tests/spec/proposals/gc/unreached-valid.wast",
+
+    // "tests/spec/proposals/gc/extern.wast",
+    // "tests/spec/proposals/gc/ref_cast.wast",
+    // "tests/spec/proposals/gc/type-equivalence.wast",
+    // "tests/spec/proposals/gc/type-rec.wast",
+    // "tests/spec/proposals/gc/type-subtyping.wast",
 ];
 
 fn main() {
