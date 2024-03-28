@@ -1,8 +1,7 @@
 use crate::module::{Module, TypeIdx};
 
-use libwasmrun_syntax::{CompType, HeapType, ValueType};
+use libwasmrun_syntax::{CompType, FunctionType, HeapType, ValueType};
 
-#[allow(unused)]
 pub(super) fn is_value_subtype_of(
     sub_ty: &ValueType,
     super_ty: &ValueType,
@@ -143,6 +142,26 @@ pub(crate) fn is_heap_subtype_of(
                 HeapType::I31 => false,
 
                 HeapType::TypeIdx(mut sub_ty_idx) => {
+                    if let Some(sub_func_ty) = sub_ty_module
+                        .get_type(TypeIdx(sub_ty_idx))
+                        .as_function_type()
+                    {
+                        let super_func_ty = match super_ty_module
+                            .get_type(TypeIdx(*super_ty_idx))
+                            .as_function_type()
+                        {
+                            Some(func_ty) => func_ty,
+                            None => return false,
+                        };
+
+                        return is_function_subtype_of(
+                            sub_func_ty,
+                            super_func_ty,
+                            sub_ty_module,
+                            super_ty_module,
+                        );
+                    }
+
                     let super_canonical_ty_idx =
                         super_ty_module.canonical_type_ids[*super_ty_idx as usize];
 
@@ -173,4 +192,31 @@ pub(crate) fn is_heap_subtype_of(
             }
         }
     }
+}
+
+pub(crate) fn is_function_subtype_of(
+    sub_ty: &FunctionType,
+    super_ty: &FunctionType,
+    sub_ty_module: &Module,
+    super_ty_module: &Module,
+) -> bool {
+    if sub_ty.params.len() != super_ty.params.len()
+        || sub_ty.results().len() != super_ty.results().len()
+    {
+        return false;
+    }
+
+    for (sub_ty_arg, super_ty_arg) in sub_ty.params().iter().zip(super_ty.params().iter()) {
+        if !is_value_subtype_of(super_ty_arg, sub_ty_arg, super_ty_module, sub_ty_module) {
+            return false;
+        }
+    }
+
+    for (sub_ty_ret, super_ty_ret) in sub_ty.results().iter().zip(super_ty.results().iter()) {
+        if !is_value_subtype_of(sub_ty_ret, super_ty_ret, sub_ty_module, super_ty_module) {
+            return false;
+        }
+    }
+
+    true
 }
