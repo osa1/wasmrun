@@ -134,7 +134,6 @@ pub struct Runtime {
     /// The exception when the execution ends with an unhandled exception.
     pub unhandled_exception: Option<ExnAddr>,
 
-    #[allow(unused)]
     type_canonicalizer: TypeCanonicalizer,
 }
 
@@ -318,39 +317,83 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
     let global_f64_idx = module.add_global(global_f64_addr);
     module.add_export(Export::new_global("global_f64".to_owned(), global_f64_idx));
 
-    fn make_fun_ty(args: Vec<wasm::ValueType>, ret: Vec<wasm::ValueType>) -> wasm::SubType {
-        wasm::SubType {
-            final_: true,
-            supers: vec![],
-            comp_ty: wasm::CompType::Func(wasm::FunctionType::new(args, ret)),
+    fn add_fun_ty(
+        module: &mut Module,
+        type_canonicalizer: &mut TypeCanonicalizer,
+        idx: &mut u32,
+        args: Vec<wasm::ValueType>,
+        ret: Vec<wasm::ValueType>,
+    ) -> TypeIdx {
+        fn make_fun_ty(args: Vec<wasm::ValueType>, ret: Vec<wasm::ValueType>) -> wasm::SubType {
+            wasm::SubType {
+                final_: true,
+                supers: vec![],
+                comp_ty: wasm::CompType::Func(wasm::FunctionType::new(args, ret)),
+            }
         }
+
+        let ty = make_fun_ty(args, ret);
+        let ty_idx = module.add_type(ty.clone());
+        let _canonical_idx = type_canonicalizer.add_recursive_group(
+            module,
+            &wasm::RecType {
+                tys: vec![ty.clone()],
+            },
+            *idx,
+        );
+        assert_eq!(*idx, ty_idx.0);
+        *idx += 1;
+        ty_idx
     }
 
-    let print_ty = module.add_type(make_fun_ty(vec![], vec![]));
+    let mut ty_idx: u32 = 0;
+
+    let print_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
+        vec![],
+        vec![],
+    );
     let print_addr = rt
         .store
         .allocate_host_fun(module_addr, print_ty, Rc::new(|_, _| Ok(vec![])));
     let print_idx = module.add_fun(print_addr);
     module.add_export(Export::new_fun("print".to_owned(), print_idx));
 
-    let print_i32_ty = module.add_type(make_fun_ty(vec![wasm::ValueType::I32], vec![]));
+    let print_i32_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
+        vec![wasm::ValueType::I32],
+        vec![],
+    );
     let print_i32_addr =
         rt.store
             .allocate_host_fun(module_addr, print_i32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_i32_idx = module.add_fun(print_i32_addr);
     module.add_export(Export::new_fun("print_i32".to_owned(), print_i32_idx));
 
-    let print_i64_ty = module.add_type(make_fun_ty(vec![wasm::ValueType::I64], vec![]));
+    let print_i64_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
+        vec![wasm::ValueType::I64],
+        vec![],
+    );
     let print_i64_addr =
         rt.store
             .allocate_host_fun(module_addr, print_i64_ty, Rc::new(|_, _| Ok(vec![])));
     let print_i64_idx = module.add_fun(print_i64_addr);
     module.add_export(Export::new_fun("print_i64".to_owned(), print_i64_idx));
 
-    let print_i32_f32_ty = module.add_type(make_fun_ty(
+    let print_i32_f32_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
         vec![wasm::ValueType::I32, wasm::ValueType::F32],
         vec![],
-    ));
+    );
     let print_i32_f32_addr =
         rt.store
             .allocate_host_fun(module_addr, print_i32_f32_ty, Rc::new(|_, _| Ok(vec![])));
@@ -360,10 +403,13 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
         print_i32_f32_idx,
     ));
 
-    let print_f64_f64_ty = module.add_type(make_fun_ty(
+    let print_f64_f64_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
         vec![wasm::ValueType::F64, wasm::ValueType::F64],
         vec![],
-    ));
+    );
     let print_f64_f64_addr =
         rt.store
             .allocate_host_fun(module_addr, print_f64_f64_ty, Rc::new(|_, _| Ok(vec![])));
@@ -373,14 +419,26 @@ pub(crate) fn allocate_spectest(rt: &mut Runtime) {
         print_f64_f64_idx,
     ));
 
-    let print_f32_ty = module.add_type(make_fun_ty(vec![wasm::ValueType::F32], vec![]));
+    let print_f32_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
+        vec![wasm::ValueType::F32],
+        vec![],
+    );
     let print_f32_addr =
         rt.store
             .allocate_host_fun(module_addr, print_f32_ty, Rc::new(|_, _| Ok(vec![])));
     let print_f32_idx = module.add_fun(print_f32_addr);
     module.add_export(Export::new_fun("print_f32".to_owned(), print_f32_idx));
 
-    let print_f64_ty = module.add_type(make_fun_ty(vec![wasm::ValueType::F64], vec![]));
+    let print_f64_ty = add_fun_ty(
+        &mut module,
+        &mut rt.type_canonicalizer,
+        &mut ty_idx,
+        vec![wasm::ValueType::F64],
+        vec![],
+    );
     let print_f64_addr =
         rt.store
             .allocate_host_fun(module_addr, print_f64_ty, Rc::new(|_, _| Ok(vec![])));
@@ -4003,25 +4061,12 @@ fn get_fun_addr_from_table(
 }
 
 fn check_fun_type(rt: &Runtime, sig: u32, module_addr: ModuleAddr, fun_addr: FunAddr) -> bool {
-    let call_instr_ty: &wasm::FunctionType = rt
-        .store
-        .get_module(module_addr)
-        .get_type(TypeIdx(sig))
-        .as_function_type()
-        .unwrap();
-
     let fun_module_addr = rt.store.get_fun(fun_addr).module_addr();
     let actual_fun_ty_idx = rt.store.get_fun(fun_addr).ty_idx();
-    let actual_ty: &wasm::FunctionType = rt
-        .store
-        .get_module(fun_module_addr)
-        .get_type(actual_fun_ty_idx)
-        .as_function_type()
-        .unwrap();
 
-    subtyping::is_function_subtype_of(
-        actual_ty,
-        call_instr_ty,
+    subtyping::is_heap_subtype_of(
+        &wasm::HeapType::TypeIdx(actual_fun_ty_idx.0),
+        &wasm::HeapType::TypeIdx(sig),
         rt.get_module(fun_module_addr),
         rt.get_module(module_addr),
     )

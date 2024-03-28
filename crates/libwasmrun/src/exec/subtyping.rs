@@ -2,38 +2,6 @@ use crate::module::{Module, TypeIdx};
 
 use libwasmrun_syntax::{CompType, FunctionType, HeapType, ValueType};
 
-pub(super) fn is_value_subtype_of(
-    sub_ty: &ValueType,
-    super_ty: &ValueType,
-    sub_ty_module: &Module,
-    super_ty_module: &Module,
-) -> bool {
-    let sub_ref_ty = match sub_ty {
-        ValueType::I32 | ValueType::I64 | ValueType::F32 | ValueType::F64 | ValueType::V128 => {
-            return sub_ty == super_ty;
-        }
-        ValueType::Reference(ref_ty) => ref_ty,
-    };
-
-    let super_ref_ty = match super_ty {
-        ValueType::I32 | ValueType::I64 | ValueType::F32 | ValueType::F64 | ValueType::V128 => {
-            return false
-        }
-        ValueType::Reference(ref_ty) => ref_ty,
-    };
-
-    if sub_ref_ty.nullable && !super_ref_ty.nullable {
-        return false;
-    }
-
-    is_heap_subtype_of(
-        &sub_ref_ty.heap_ty,
-        &super_ref_ty.heap_ty,
-        sub_ty_module,
-        super_ty_module,
-    )
-}
-
 pub(crate) fn is_heap_subtype_of(
     sub_ty: &HeapType,
     super_ty: &HeapType,
@@ -194,7 +162,39 @@ pub(crate) fn is_heap_subtype_of(
     }
 }
 
-pub(crate) fn is_function_subtype_of(
+fn is_value_subtype_of(
+    sub_ty: &ValueType,
+    super_ty: &ValueType,
+    sub_ty_module: &Module,
+    super_ty_module: &Module,
+) -> bool {
+    let sub_ref_ty = match sub_ty {
+        ValueType::I32 | ValueType::I64 | ValueType::F32 | ValueType::F64 | ValueType::V128 => {
+            return sub_ty == super_ty;
+        }
+        ValueType::Reference(ref_ty) => ref_ty,
+    };
+
+    let super_ref_ty = match super_ty {
+        ValueType::I32 | ValueType::I64 | ValueType::F32 | ValueType::F64 | ValueType::V128 => {
+            return false
+        }
+        ValueType::Reference(ref_ty) => ref_ty,
+    };
+
+    if sub_ref_ty.nullable && !super_ref_ty.nullable {
+        return false;
+    }
+
+    is_heap_subtype_of(
+        &sub_ref_ty.heap_ty,
+        &super_ref_ty.heap_ty,
+        sub_ty_module,
+        super_ty_module,
+    )
+}
+
+fn is_function_subtype_of(
     sub_ty: &FunctionType,
     super_ty: &FunctionType,
     sub_ty_module: &Module,
