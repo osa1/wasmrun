@@ -142,6 +142,16 @@ pub(crate) fn is_heap_subtype_of(
                 HeapType::I31 => false,
 
                 HeapType::TypeIdx(mut sub_ty_idx) => {
+                    let super_canonical_ty_idx =
+                        super_ty_module.canonical_type_ids[*super_ty_idx as usize];
+
+                    let mut sub_canonical_ty_idx =
+                        sub_ty_module.canonical_type_ids[sub_ty_idx as usize];
+
+                    if super_canonical_ty_idx == sub_canonical_ty_idx {
+                        return true;
+                    }
+
                     if let Some(sub_func_ty) = sub_ty_module
                         .get_type(TypeIdx(sub_ty_idx))
                         .as_function_type()
@@ -160,16 +170,6 @@ pub(crate) fn is_heap_subtype_of(
                             sub_ty_module,
                             super_ty_module,
                         );
-                    }
-
-                    let super_canonical_ty_idx =
-                        super_ty_module.canonical_type_ids[*super_ty_idx as usize];
-
-                    let mut sub_canonical_ty_idx =
-                        sub_ty_module.canonical_type_ids[sub_ty_idx as usize];
-
-                    if super_canonical_ty_idx == sub_canonical_ty_idx {
-                        return true;
                     }
 
                     let mut sub_ty_supers = &sub_ty_module.get_type(TypeIdx(sub_ty_idx)).supers;
