@@ -86,7 +86,7 @@ fn canonicalize_sub_type(
 
     let canonical_super_tys: Vec<u32> = supers
         .iter()
-        .map(|super_idx| module.canonical_type_ids[*super_idx as usize])
+        .map(|super_idx| canonicalize_type_idx(module, *super_idx, recursive_group_start))
         .collect();
 
     let comp_ty = match comp_ty {
@@ -189,22 +189,24 @@ fn canonicalize_value_type(
             | wasm::HeapType::I31 => *ty,
 
             wasm::HeapType::TypeIdx(idx) => {
-                if *idx >= recursive_group_start {
-                    // Indices to the types to the current recursive group becomes relative.
-                    // TODO: We need to mark these type indices as "relative".
-                    wasm::ValueType::Reference(wasm::ReferenceType {
-                        nullable: *nullable,
-                        heap_ty: wasm::HeapType::TypeIdx(idx - recursive_group_start),
-                    })
-                } else {
-                    // Indices to a previously defined type is replaced with the canonical type
-                    // index of the type.
-                    wasm::ValueType::Reference(wasm::ReferenceType {
-                        nullable: *nullable,
-                        heap_ty: wasm::HeapType::TypeIdx(module.canonical_type_ids[*idx as usize]),
-                    })
-                }
+                let idx = canonicalize_type_idx(module, *idx, recursive_group_start);
+                wasm::ValueType::Reference(wasm::ReferenceType {
+                    nullable: *nullable,
+                    heap_ty: wasm::HeapType::TypeIdx(idx),
+                })
             }
         },
+    }
+}
+
+fn canonicalize_type_idx(module: &Module, idx: u32, recursive_group_start: u32) -> u32 {
+    if idx >= recursive_group_start {
+        // Indices to the types to the current recursive group becomes relative.
+        // TODO: We need to mark these type indices as "relative".
+        idx - recursive_group_start
+    } else {
+        // Indices to a previously defined type is replaced with the canonical type index of the
+        // type.
+        module.canonical_type_ids[idx as usize]
     }
 }
