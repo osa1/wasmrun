@@ -35,7 +35,6 @@ pub(super) fn is_value_subtype_of(
     )
 }
 
-#[allow(unused)]
 pub(crate) fn is_heap_subtype_of(
     sub_ty: &HeapType,
     super_ty: &HeapType,
