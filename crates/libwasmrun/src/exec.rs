@@ -13,7 +13,7 @@ use crate::module::{
 };
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{Exception, ExnAddr, FunAddr, Global, ModuleAddr, Store, Table};
-use crate::types::TypeCanonicalizer;
+use crate::type_canonicalizer::TypeCanonicalizer;
 use crate::value::{self, ExternKind, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;

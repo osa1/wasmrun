@@ -16,7 +16,7 @@ mod mem;
 mod module;
 mod stack;
 pub mod store;
-mod types;
+mod type_canonicalizer;
 mod value;
 pub mod wasi;
 
