@@ -3450,7 +3450,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             // Per spec, this should be checked before element segment size.
             let array = rt.store.get_array(array_addr);
-            if dest_offset + size > array.elems.len() as usize {
+            if dest_offset + size > array.elems.len() {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
@@ -3513,7 +3513,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array_mut(array_addr);
 
-            if dest_offset + size > array.elems.len() as usize {
+            if dest_offset + size > array.elems.len() {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
@@ -3694,7 +3694,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
             let array = rt.store.get_array_mut(array_addr);
 
-            if offset + size > array.elems.len() as usize {
+            if offset + size > array.elems.len() {
                 return Err(ExecError::Trap(Trap::OOBArrayAccess));
             }
 
@@ -3733,9 +3733,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             if src_array_addr == dest_array_addr {
                 let array = rt.store.get_array_mut(src_array_addr);
 
-                if src_offset + size > array.elems.len() as usize
-                    || dest_offset + size > array.elems.len() as usize
-                {
+                if src_offset + size > array.elems.len() || dest_offset + size > array.elems.len() {
                     return Err(ExecError::Trap(Trap::OOBArrayAccess));
                 }
 
@@ -3747,7 +3745,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 // checking issues.
                 let src_array = rt.store.get_array(src_array_addr);
 
-                if src_offset + size > src_array.elems.len() as usize {
+                if src_offset + size > src_array.elems.len() {
                     return Err(ExecError::Trap(Trap::OOBArrayAccess));
                 }
 
@@ -3756,7 +3754,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
 
                 let dest_array = rt.store.get_array_mut(dest_array_addr);
 
-                if dest_offset + size > dest_array.elems.len() as usize {
+                if dest_offset + size > dest_array.elems.len() {
                     return Err(ExecError::Trap(Trap::OOBArrayAccess));
                 }
 

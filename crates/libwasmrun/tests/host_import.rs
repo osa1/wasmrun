@@ -12,7 +12,7 @@ fn host_add(rt: &mut Runtime, _: Option<MemAddr>) -> Result<Vec<Value>> {
         Value::I32(a) => a,
         _ => panic!(),
     };
-    Ok(vec![Value::I32((arg1 + arg2) as i32)])
+    Ok(vec![Value::I32(arg1 + arg2)])
 }
 
 static TEST_WAST: &str = r#"
