@@ -118,9 +118,11 @@ impl<'a> TestFileRunner<'a> {
                 let ret = match exec {
                     WastExecute::Invoke(invoke) => self.run_invoke_directive(&invoke),
                     WastExecute::Wat(mut wat) => self.run_wat_directive(&mut wat),
-                    WastExecute::Get { module, global } => {
-                        self.run_global_get_directive(&module, global).map(|_| ())
-                    }
+                    WastExecute::Get {
+                        module,
+                        global,
+                        span: _,
+                    } => self.run_global_get_directive(&module, global).map(|_| ()),
                 };
 
                 match ret {
@@ -183,7 +185,11 @@ impl<'a> TestFileRunner<'a> {
                 }
                 WastExecute::Wat(_) => panic!("Module in assert_return test"),
 
-                WastExecute::Get { module, global } => {
+                WastExecute::Get {
+                    module,
+                    global,
+                    span: _,
+                } => {
                     let module_addr = self.get_module_addr(&module)?;
                     let expected_val = match &results[0] {
                         wast::WastRet::Core(val) => val,
@@ -215,6 +221,7 @@ impl<'a> TestFileRunner<'a> {
                     WastExecute::Get {
                         module: _,
                         global: _,
+                        span: _,
                     } => todo!(),
                 }
 
@@ -388,6 +395,7 @@ impl<'a> TestFileRunner<'a> {
                     wast::core::HeapType::NoFunc => wasm::HeapType::NoFunc,
                     wast::core::HeapType::NoExtern => wasm::HeapType::NoExtern,
                     wast::core::HeapType::Exn => wasm::HeapType::Exn,
+                    wast::core::HeapType::NoExn => todo!("NoExn heap type"),
                     wast::core::HeapType::None => wasm::HeapType::None,
                     wast::core::HeapType::Concrete(wast::token::Index::Num(idx, _)) => {
                         wasm::HeapType::TypeIdx(*idx)
