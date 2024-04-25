@@ -1,6 +1,6 @@
 use crate::module::{Module, TypeIdx};
 
-use libwasmrun_syntax::{CompType, FunctionType, HeapType, ValueType};
+use libwasmrun_syntax::{CompType, HeapType};
 
 pub(crate) fn is_heap_subtype_of(
     sub_ty: &HeapType,
@@ -120,26 +120,6 @@ pub(crate) fn is_heap_subtype_of(
                         return true;
                     }
 
-                    if let Some(sub_func_ty) = sub_ty_module
-                        .get_type(TypeIdx(sub_ty_idx))
-                        .as_function_type()
-                    {
-                        let super_func_ty = match super_ty_module
-                            .get_type(TypeIdx(*super_ty_idx))
-                            .as_function_type()
-                        {
-                            Some(func_ty) => func_ty,
-                            None => return false,
-                        };
-
-                        return is_function_subtype_of(
-                            sub_func_ty,
-                            super_func_ty,
-                            sub_ty_module,
-                            super_ty_module,
-                        );
-                    }
-
                     let mut sub_ty_supers = &sub_ty_module.get_type(TypeIdx(sub_ty_idx)).supers;
                     debug_assert!(sub_ty_supers.len() <= 1);
 
@@ -160,63 +140,4 @@ pub(crate) fn is_heap_subtype_of(
             }
         }
     }
-}
-
-fn is_value_subtype_of(
-    sub_ty: &ValueType,
-    super_ty: &ValueType,
-    sub_ty_module: &Module,
-    super_ty_module: &Module,
-) -> bool {
-    let sub_ref_ty = match sub_ty {
-        ValueType::I32 | ValueType::I64 | ValueType::F32 | ValueType::F64 | ValueType::V128 => {
-            return sub_ty == super_ty;
-        }
-        ValueType::Reference(ref_ty) => ref_ty,
-    };
-
-    let super_ref_ty = match super_ty {
-        ValueType::I32 | ValueType::I64 | ValueType::F32 | ValueType::F64 | ValueType::V128 => {
-            return false
-        }
-        ValueType::Reference(ref_ty) => ref_ty,
-    };
-
-    if sub_ref_ty.nullable && !super_ref_ty.nullable {
-        return false;
-    }
-
-    is_heap_subtype_of(
-        &sub_ref_ty.heap_ty,
-        &super_ref_ty.heap_ty,
-        sub_ty_module,
-        super_ty_module,
-    )
-}
-
-fn is_function_subtype_of(
-    sub_ty: &FunctionType,
-    super_ty: &FunctionType,
-    sub_ty_module: &Module,
-    super_ty_module: &Module,
-) -> bool {
-    if sub_ty.params.len() != super_ty.params.len()
-        || sub_ty.results().len() != super_ty.results().len()
-    {
-        return false;
-    }
-
-    for (sub_ty_arg, super_ty_arg) in sub_ty.params().iter().zip(super_ty.params().iter()) {
-        if !is_value_subtype_of(super_ty_arg, sub_ty_arg, super_ty_module, sub_ty_module) {
-            return false;
-        }
-    }
-
-    for (sub_ty_ret, super_ty_ret) in sub_ty.results().iter().zip(super_ty.results().iter()) {
-        if !is_value_subtype_of(sub_ty_ret, super_ty_ret, sub_ty_module, super_ty_module) {
-            return false;
-        }
-    }
-
-    true
 }

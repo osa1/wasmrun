@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 #[rustfmt::skip]
-static TEST_FILES: [&str; 43] = [
+static TEST_FILES: [&str; 45] = [
     "tests/spec",
     "tests/spec/proposals/exception-handling",
     "tests/spec/proposals/extended-const",
@@ -52,12 +52,12 @@ static TEST_FILES: [&str; 43] = [
     "tests/spec/proposals/gc/table.wast",
     "tests/spec/proposals/gc/type-canon.wast",
     "tests/spec/proposals/gc/type-equivalence.wast",
+    "tests/spec/proposals/gc/type-rec.wast",
+    "tests/spec/proposals/gc/type-subtyping.wast",
     "tests/spec/proposals/gc/unreached-invalid.wast",
     "tests/spec/proposals/gc/unreached-valid.wast",
 
     // "tests/spec/proposals/gc/extern.wast",
-    // "tests/spec/proposals/gc/type-rec.wast",
-    // "tests/spec/proposals/gc/type-subtyping.wast",
 ];
 
 fn main() {
