@@ -15,6 +15,7 @@ proposals:
 - [Function references][8]
 - [Multi memory][9]
 - [Tail calls][4]
+- [Garbage collection][11]
 
 ## Development
 
@@ -37,3 +38,4 @@ then run `cargo run --bin spec-test`.
 [8]: https://github.com/WebAssembly/function-references
 [9]: https://github.com/WebAssembly/multi-memory
 [10]: https://github.com/WebAssembly/spec/tree/main/interpreter
+[11]: https://github.com/WebAssembly/gc
