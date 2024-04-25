@@ -24,27 +24,19 @@ pub enum Ref {
     Struct(StructAddr),
     Array(ArrayAddr),
 
-    /// A host reference, or an externalized internal reference.
+    /// A host reference.
     ///
-    /// Reference type: `extern`.
-    Extern(ExternKind),
+    /// When internalized (with `any.convert_extern`), this becomes an `any` that is not `eq`.
+    Host {
+        value: u32,
+        internal: bool,
+    },
 
-    /// Same as `Extern`, but converted to `any`.
-    ///
-    /// Reference type: `any`.
-    BoxedExtern(ExternKind),
+    /// A Wasm heap reference.
+    Extern(ExternAddr),
 
     /// A 31-bit integer disguised as a pointer.
     I31(i32),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExternKind {
-    /// An internal reference.
-    Internal(ExternAddr),
-
-    /// A host reference.
-    Host(u32),
 }
 
 impl Ref {
@@ -85,9 +77,16 @@ impl Ref {
                 tag.rtt()
             }
 
-            Ref::Extern(_) => (ModuleAddr(0), wasm::HeapType::Extern),
+            Ref::Host { value: _, internal } => (
+                ModuleAddr(0),
+                if *internal {
+                    wasm::HeapType::Any
+                } else {
+                    wasm::HeapType::Extern
+                },
+            ),
 
-            Ref::BoxedExtern(_) => (ModuleAddr(0), wasm::HeapType::Any),
+            Ref::Extern { .. } => (ModuleAddr(0), wasm::HeapType::Extern),
 
             Ref::Struct(struct_addr) => store.get_struct(*struct_addr).rtt(),
 
@@ -124,8 +123,11 @@ pub(crate) fn canonicalize_f64_nan(f: f64) -> f64 {
 }
 
 impl Value {
-    pub fn new_host_ref(addr: u32) -> Self {
-        Value::Ref(Ref::Extern(ExternKind::Host(addr)))
+    pub fn new_host_ref(value: u32) -> Self {
+        Value::Ref(Ref::Host {
+            value,
+            internal: true,
+        })
     }
 
     pub(crate) fn default_from_storage_type(

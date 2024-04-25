@@ -1,6 +1,6 @@
 use libwasmrun::exec::{self, Runtime, Trap};
 use libwasmrun::store::ModuleAddr;
-use libwasmrun::{ExecError, ExternKind, Ref, Value};
+use libwasmrun::{ExecError, Ref, Value};
 use libwasmrun_syntax as wasm;
 
 use fxhash::FxHashMap;
@@ -404,7 +404,16 @@ impl<'a> TestFileRunner<'a> {
                 },
             )),
 
-            WastArgCore::RefHost(addr) | WastArgCore::RefExtern(addr) => Value::new_host_ref(*addr),
+            WastArgCore::RefHost(addr) => Value::Ref(Ref::Host {
+                value: *addr,
+                internal: true,
+            }),
+
+            // `ref.extern` = externalized `ref.host`
+            WastArgCore::RefExtern(addr) => Value::Ref(Ref::Host {
+                value: *addr,
+                internal: false,
+            }),
         })
     }
 }
@@ -545,12 +554,31 @@ fn test_val(rt: &Runtime, module_addr: ModuleAddr, expected: &WastRetCore, found
 
         (WastRetCore::RefFunc(None), Value::Ref(Ref::Func(_))) => true,
 
-        (WastRetCore::RefExtern(None), Value::Ref(Ref::Extern(_))) => true,
+        (
+            WastRetCore::RefExtern(None),
+            Value::Ref(
+                Ref::Extern(_)
+                | Ref::Host {
+                    internal: false, ..
+                },
+            ),
+        ) => true,
 
         (
-            WastRetCore::RefExtern(Some(extern1)),
-            Value::Ref(Ref::Extern(ExternKind::Host(extern2))),
-        ) => *extern1 == *extern2,
+            WastRetCore::RefExtern(Some(ref1)),
+            Value::Ref(Ref::Host {
+                value: ref2,
+                internal: false,
+            }),
+        ) => ref1 == ref2,
+
+        (
+            WastRetCore::RefHost(ref1),
+            Value::Ref(Ref::Host {
+                value: ref2,
+                internal: true,
+            }),
+        ) => ref1 == ref2,
 
         (WastRetCore::RefStruct, Value::Ref(Ref::Struct(_))) => true,
 

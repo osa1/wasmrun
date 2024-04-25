@@ -14,7 +14,7 @@ use crate::module::{
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
 use crate::store::{Exception, ExnAddr, FunAddr, Global, ModuleAddr, Store, Table};
 use crate::type_canonicalizer::TypeCanonicalizer;
-use crate::value::{self, ExternKind, Ref, Value};
+use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
 use crate::HostFunDecl;
 use crate::{ExecError, Result};
@@ -3788,11 +3788,17 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let ref_ = match ref_ {
                 Ref::Null(_, _) => Ref::Null(module_addr, wasm::HeapType::Extern),
 
-                Ref::BoxedExtern(ext) => Ref::Extern(ext), // any -> extern
+                Ref::Host {
+                    value,
+                    internal: true,
+                } => Ref::Host {
+                    value,
+                    internal: false,
+                },
 
                 _ => {
                     let extern_addr = rt.store.externalize(ref_);
-                    Ref::Extern(ExternKind::Internal(extern_addr))
+                    Ref::Extern(extern_addr)
                 }
             };
 
@@ -3810,11 +3816,19 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let ref_ = match ref_ {
                 Ref::Null(_, _) => Ref::Null(module_addr, wasm::HeapType::Any),
 
-                Ref::Extern(ext) => Ref::BoxedExtern(ext), // extern -> any
+                Ref::Extern(addr) => rt.store.internalize(addr),
+
+                Ref::Host {
+                    value,
+                    internal: false,
+                } => Ref::Host {
+                    value,
+                    internal: true,
+                },
 
                 _ => {
                     // validation error
-                    exec_panic!("Non-extern reference in any.convert_extern")
+                    exec_panic!("Non-extern reference in any.convert_extern: {:?}", ref_)
                 }
             };
 
