@@ -1,6 +1,6 @@
 mod cli;
 
-use libwasmrun::{exec, load_wasm, Runtime};
+use libwasmrun::{exec, syntax, Runtime};
 
 use std::process::exit;
 
@@ -9,7 +9,11 @@ fn main() {
 
     let cli::Args { file, program_args } = cli::parse();
 
-    let module = load_wasm(file).unwrap();
+    let module = match syntax::deserialize_file(file) {
+        Ok(module) => module,
+        Err(err) => panic!("Error deserializing input file: {}", err),
+    };
+
     let mut rt = Runtime::new_with_wasi(program_args);
 
     let module_addr = exec::instantiate(&mut rt, module).unwrap();
