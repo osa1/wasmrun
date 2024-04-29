@@ -12,7 +12,7 @@ use crate::module::{
     DataIdx, ElemIdx, FunIdx, GlobalIdx, MemIdx, Module, TableIdx, TagIdx, TypeIdx,
 };
 use crate::stack::{Block, BlockKind, EndOrBreak, Stack, StackValue};
-use crate::store::{Exception, ExnAddr, FunAddr, Global, ModuleAddr, Store, Table};
+use crate::store::{Exception, ExnAddr, FunAddr, Global, MemAddr, ModuleAddr, Store, Table};
 use crate::type_canonicalizer::TypeCanonicalizer;
 use crate::value::{self, Ref, Value};
 use crate::wasi::allocate_wasi;
@@ -192,7 +192,7 @@ impl Runtime {
         self.frames.clear();
     }
 
-    pub(crate) fn get_module(&self, addr: ModuleAddr) -> &Module {
+    pub fn get_module(&self, addr: ModuleAddr) -> &Module {
         self.store.get_module(addr)
     }
 
@@ -242,6 +242,7 @@ impl Runtime {
         &mut self,
         module_name: String,
         fns: Vec<(String, HostFunDecl)>,
+        mems: Vec<(String, MemAddr)>,
     ) -> ModuleAddr {
         let module_addr = self.store.next_module_addr();
         let mut module: Module = Default::default();
@@ -263,12 +264,21 @@ impl Runtime {
             module.add_export(Export::new_fun(host_fn_name, fun_idx));
         }
 
+        for (mem_name, mem_addr) in mems {
+            let mem_idx = module.add_mem(mem_addr);
+            module.add_export(Export::new_mem(mem_name, mem_idx));
+        }
+
         let module_addr_ = self.store.allocate_module(module);
         assert_eq!(module_addr, module_addr_);
 
         self.module_names.insert(module_name, module_addr);
 
         module_addr
+    }
+
+    pub fn allocate_mem(&mut self, mem: Mem) -> MemAddr {
+        self.store.allocate_mem(mem)
     }
 }
 
@@ -490,7 +500,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
             match import.external() {
                 wasm::External::Function(_fun_ty_idx) => {
                     n_funs += 1;
-                    let fun_addr = imported_module.get_exported_fun(field_name).unwrap();
+                    let fun_addr = imported_module.get_exported_fun_addr(field_name).unwrap();
                     rt.store.get_module_mut(module_addr).add_fun(fun_addr);
                 }
                 wasm::External::Table(_tbl_ty) => {
@@ -764,7 +774,7 @@ pub fn invoke_by_name(rt: &mut Runtime, module_addr: ModuleAddr, fun_name: &str)
     }
 }
 
-pub(crate) fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx) -> Result<()> {
+pub fn invoke(rt: &mut Runtime, module_addr: ModuleAddr, fun_idx: FunIdx) -> Result<()> {
     let fun_addr = rt.store.get_module(module_addr).get_fun(fun_idx);
     invoke_direct(rt, fun_addr)
 }

@@ -41,6 +41,7 @@ fn test_importing_host_fn() {
                 fun: Rc::new(host_add),
             },
         )],
+        vec![],
     );
 
     let module_addr = exec::instantiate(&mut rt, module).unwrap();

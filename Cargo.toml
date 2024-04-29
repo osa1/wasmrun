@@ -5,6 +5,7 @@ members = [
     "crates/libwasmrun_syntax",
     "crates/libwasmrun_wast",
     "crates/spec-test",
+    "crates/w4wr",
     "crates/wasi-test",
     "crates/wasmrun",
 ]

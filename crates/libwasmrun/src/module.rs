@@ -5,7 +5,7 @@ use crate::store::{DataAddr, ElemAddr, FunAddr, GlobalAddr, MemAddr, TableAddr, 
 use libwasmrun_syntax as wasm;
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FunIdx(pub u32);
+pub struct FunIdx(pub u32);
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TableIdx(pub u32);
@@ -29,7 +29,7 @@ pub(crate) struct ElemIdx(pub u32);
 pub(crate) struct TagIdx(pub u32);
 
 #[derive(Debug, Default)]
-pub(crate) struct Module {
+pub struct Module {
     types: Vec<wasm::SubType>,
     func_addrs: Vec<FunAddr>,
     table_addrs: Vec<TableAddr>,
@@ -115,11 +115,15 @@ impl Module {
         self.exports.push(export);
     }
 
-    pub(crate) fn get_exported_fun(&self, fun: &str) -> Option<FunAddr> {
+    pub(crate) fn get_exported_fun_addr(&self, fun: &str) -> Option<FunAddr> {
+        self.get_exported_fun_idx(fun).map(|idx| self.get_fun(idx))
+    }
+
+    pub fn get_exported_fun_idx(&self, fun: &str) -> Option<FunIdx> {
         for export in &self.exports {
             if let ExportKind::Fun(fun_idx) = export.kind() {
                 if export.field() == fun {
-                    return Some(self.get_fun(fun_idx));
+                    return Some(fun_idx);
                 }
             }
         }
@@ -174,7 +178,7 @@ impl Module {
         self.start = Some(start);
     }
 
-    pub(crate) fn get_start(&self) -> Option<FunIdx> {
+    pub fn get_start(&self) -> Option<FunIdx> {
         self.start
     }
 

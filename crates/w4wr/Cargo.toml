@@ -1,0 +1,9 @@
+[package]
+name = "w4wr"
+version = "0.1.0"
+authors = ["Ömer Sinan Ağacan <omeragacan@gmail.com>"]
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+libwasmrun = { path = "../libwasmrun" }

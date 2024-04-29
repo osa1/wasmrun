@@ -26,7 +26,8 @@ use std::rc::Rc;
 pub use libwasmrun_syntax as syntax;
 
 pub use exec::Runtime;
-pub use module::MemIdx;
+pub use mem::Mem;
+pub use module::{FunIdx, MemIdx};
 pub use store::{ExternAddr, MemAddr};
 pub use syntax::Module;
 pub use syntax::ValueType;

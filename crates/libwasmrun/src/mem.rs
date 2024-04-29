@@ -6,7 +6,7 @@ use std::ops::{Index, IndexMut};
 use wiggle::{BorrowHandle, GuestError, GuestMemory, Region};
 use wiggle_borrow::BorrowChecker;
 
-pub(crate) struct Mem {
+pub struct Mem {
     pub mem: Vec<u8>,
     limit: Option<u32>,
     bc: BorrowChecker,
@@ -72,7 +72,7 @@ unsafe impl GuestMemory for Mem {
 impl Mem {
     /// `initial`: Initial number of pages
     /// `limit`: Max num. of pages
-    pub(crate) fn new(initial: u32, limit: Option<u32>) -> Self {
+    pub fn new(initial: u32, limit: Option<u32>) -> Self {
         Mem {
             mem: vec![0; initial as usize * PAGE_SIZE],
             limit,
