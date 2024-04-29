@@ -2,6 +2,15 @@ use libwasmrun::{exec, syntax, HostFunDecl, Mem, Runtime, ValueType};
 
 use std::rc::Rc;
 
+use pixels::{Pixels, SurfaceTexture};
+use winit::dpi::LogicalSize;
+use winit::event::{Event, VirtualKeyCode};
+use winit::event_loop::{ControlFlow, EventLoopBuilder};
+use winit::window::WindowBuilder;
+use winit_input_helper::WinitInputHelper;
+
+const SCALE: f64 = 4.0;
+
 fn main() {
     let module_path = std::env::args()
         .nth(1)
@@ -89,16 +98,88 @@ fn main() {
     let module_addr = exec::instantiate(&mut rt, module).unwrap();
 
     let start_fun_idx = rt.get_module(module_addr).get_start().unwrap();
-    let update_fun_idx = rt
+    let _update_fun_idx = rt
         .get_module(module_addr)
         .get_exported_fun_idx("update")
         .unwrap();
 
+    //
+    // Create window.
+    //
+
+    let event_loop = EventLoopBuilder::<()>::with_user_event().build();
+    let event_loop_proxy = event_loop.create_proxy();
+
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(16));
+        if event_loop_proxy.send_event(()).is_err() {
+            break;
+        }
+    });
+
+    let mut input = WinitInputHelper::new();
+    let screen_width = 160f64 * SCALE;
+    let screen_height = 160f64 * SCALE;
+    let window = {
+        let size = LogicalSize::new(screen_width, screen_height);
+        WindowBuilder::new()
+            .with_title("w4wr")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
+
+    let mut pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(screen_width as u32, screen_height as u32, surface_texture).unwrap()
+    };
+
     exec::invoke(&mut rt, module_addr, start_fun_idx).unwrap();
     exec::finish(&mut rt).unwrap();
 
-    loop {
-        exec::invoke(&mut rt, module_addr, update_fun_idx).unwrap();
-        exec::finish(&mut rt).unwrap();
-    }
+    event_loop.run(move |event, _, control_flow| {
+        // Draw the current frame
+        if let Event::RedrawRequested(_) = event {
+            // world.draw(pixels.frame_mut());
+            if let Err(err) = pixels.render() {
+                eprintln!("pixels.render error: {}", err);
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+        }
+
+        if let Event::UserEvent(()) = event {
+            println!("tick");
+            return;
+        }
+
+        // Handle input events.
+        if input.update(&event) {
+            // Close events.
+            if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+
+            // Resize the window.
+            if let Some(size) = input.window_resized() {
+                if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                    eprintln!("pixels.resize_surface error: {}", err);
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+            }
+
+            // Update internal state and request a redraw.
+            // world.update();
+            window.request_redraw();
+        }
+    });
+
+    // loop {
+    //     exec::invoke(&mut rt, module_addr, update_fun_idx).unwrap();
+    //     exec::finish(&mut rt).unwrap();
+    // }
 }
