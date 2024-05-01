@@ -120,58 +120,72 @@ impl Mem {
         }
     }
 
-    pub(crate) fn load_8(&self, addr: u32) -> Result<u8> {
+    pub fn load_8(&self, addr: u32) -> Result<u8> {
         self.check_range(addr, 1)?;
         Ok(self[addr])
     }
 
-    pub(crate) fn store_8(&mut self, addr: u32, value: u8) -> Result<()> {
+    pub fn store_8(&mut self, addr: u32, value: u8) -> Result<()> {
         self.check_range(addr, 1)?;
         self[addr] = value;
         Ok(())
     }
 
-    pub(crate) fn load_16_le(&self, addr: u32) -> Result<u16> {
+    pub fn load_16_le(&self, addr: u32) -> Result<u16> {
         self.check_range(addr, 2)?;
         Ok(load_16_le_unchecked(&self.mem, addr as usize))
     }
 
-    pub(crate) fn store_16_le(&mut self, addr: u32, value: u16) -> Result<()> {
+    pub fn store_16_le(&mut self, addr: u32, value: u16) -> Result<()> {
         self.check_range(addr, 2)?;
         store_16_le_unchecked(value, &mut self.mem, addr as usize);
         Ok(())
     }
 
-    pub(crate) fn load_32_le(&self, addr: u32) -> Result<u32> {
+    pub fn load_32_le(&self, addr: u32) -> Result<u32> {
         self.check_range(addr, 4)?;
         Ok(load_32_le_unchecked(&self.mem, addr as usize))
     }
 
-    pub(crate) fn store_32_le(&mut self, addr: u32, value: u32) -> Result<()> {
+    pub fn store_32_le(&mut self, addr: u32, value: u32) -> Result<()> {
         self.check_range(addr, 4)?;
         store_32_le_unchecked(value, &mut self.mem, addr as usize);
         Ok(())
     }
 
-    pub(crate) fn load_64_le(&self, addr: u32) -> Result<u64> {
+    pub fn load_64_le(&self, addr: u32) -> Result<u64> {
         self.check_range(addr, 8)?;
         Ok(load_64_le_unchecked(&self.mem, addr as usize))
     }
 
-    pub(crate) fn store_64_le(&mut self, addr: u32, value: u64) -> Result<()> {
+    pub fn store_64_le(&mut self, addr: u32, value: u64) -> Result<()> {
         self.check_range(addr, 8)?;
         store_64_le_unchecked(value, &mut self.mem, addr as usize);
         Ok(())
     }
 
-    pub(crate) fn load_128_le(&self, addr: u32) -> Result<u128> {
+    pub fn load_128_le(&self, addr: u32) -> Result<u128> {
         self.check_range(addr, 16)?;
         Ok(load_128_le_unchecked(&self.mem, addr as usize))
     }
 
-    pub(crate) fn store_128_le(&mut self, addr: u32, value: u128) -> Result<()> {
+    pub fn store_128_le(&mut self, addr: u32, value: u128) -> Result<()> {
         self.check_range(addr, 16)?;
         store_128_le_unchecked(value, &mut self.mem, addr as usize);
+        Ok(())
+    }
+
+    /*
+    pub fn copy_from_slice(&mut self, src: &[u8], addr: u32) -> Result<()> {
+        self.check_range(addr, src.len() as u32)?;
+        self.mem[addr as usize..(addr as usize + src.len())].copy_from_slice(src);
+        Ok(())
+    }
+    */
+
+    pub fn fill(&mut self, addr: u32, len: u32, value: u8) -> Result<()> {
+        self.check_range(addr, len)?;
+        self.mem[addr as usize..(addr + len) as usize].fill(value);
         Ok(())
     }
 }

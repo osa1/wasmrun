@@ -196,6 +196,14 @@ impl Runtime {
         self.store.get_module(addr)
     }
 
+    pub fn get_mem(&self, mem: MemAddr) -> &Mem {
+        self.store.get_mem(mem)
+    }
+
+    pub fn get_mem_mut(&mut self, mem: MemAddr) -> &mut Mem {
+        self.store.get_mem_mut(mem)
+    }
+
     // Used in spec tests to resolve `ref.func` arguments to test functions
     pub fn get_module_fun_addr(&self, module_addr: ModuleAddr, fun_idx: u32) -> FunAddr {
         self.store.get_module(module_addr).get_fun(FunIdx(fun_idx))

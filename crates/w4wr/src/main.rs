@@ -1,4 +1,7 @@
-use libwasmrun::{exec, syntax, HostFunDecl, Mem, Runtime, ValueType};
+#![allow(unused)]
+#![allow(clippy::too_many_arguments)]
+
+use libwasmrun::{exec, syntax, HostFunDecl, Mem, MemAddr, Runtime, ValueType};
 
 use std::rc::Rc;
 
@@ -22,6 +25,8 @@ fn main() {
 
     let mem_addr = rt.allocate_mem(Mem::new(1, Some(1)));
 
+    let w4state = W4State { mem: mem_addr };
+
     let _env_module_addr = rt.allocate_host_module(
         "env".to_string(),
         vec![
@@ -35,8 +40,12 @@ fn main() {
                         ValueType::I32, // flags
                     ],
                     ret_tys: vec![],
-                    fun: Rc::new(|_rt, _mem_addr| {
-                        println!("tone");
+                    fun: Rc::new(move |rt, _mem_addr| {
+                        let flags = rt.pop_i32()?;
+                        let volume = rt.pop_i32()?;
+                        let duration = rt.pop_i32()?;
+                        let frequency = rt.pop_i32()?;
+                        w4state.tone(frequency, duration, volume, flags, rt);
                         Ok(vec![])
                     }),
                 },
@@ -53,8 +62,14 @@ fn main() {
                         ValueType::I32, // flags
                     ],
                     ret_tys: vec![],
-                    fun: Rc::new(|_rt, _mem_addr| {
-                        println!("blit");
+                    fun: Rc::new(move |rt, _mem_addr| {
+                        let flags = rt.pop_i32()?;
+                        let height = rt.pop_i32()?;
+                        let width = rt.pop_i32()?;
+                        let y = rt.pop_i32()?;
+                        let x = rt.pop_i32()?;
+                        let sprite_ptr = rt.pop_i32()?;
+                        w4state.blit(flags, height, width, y, x, sprite_ptr, rt);
                         Ok(vec![])
                     }),
                 },
@@ -69,8 +84,12 @@ fn main() {
                         ValueType::I32, // y
                     ],
                     ret_tys: vec![],
-                    fun: Rc::new(|_rt, _mem_addr| {
-                        println!("textUtf16");
+                    fun: Rc::new(move |rt, _mem_addr| {
+                        let y = rt.pop_i32()?;
+                        let x = rt.pop_i32()?;
+                        let byte_length = rt.pop_i32()?;
+                        let str = rt.pop_i32()?;
+                        w4state.text_utf16(str, byte_length, x, y, rt);
                         Ok(vec![])
                     }),
                 },
@@ -85,8 +104,12 @@ fn main() {
                         ValueType::I32, // height
                     ],
                     ret_tys: vec![],
-                    fun: Rc::new(|_rt, _mem_addr| {
-                        println!("rect");
+                    fun: Rc::new(move |rt, _mem_addr| {
+                        let height = rt.pop_i32()?;
+                        let width = rt.pop_i32()?;
+                        let y = rt.pop_i32()?;
+                        let x = rt.pop_i32()?;
+                        w4state.rect(x, y, width, height, rt);
                         Ok(vec![])
                     }),
                 },
@@ -182,4 +205,77 @@ fn main() {
     //     exec::invoke(&mut rt, module_addr, update_fun_idx).unwrap();
     //     exec::finish(&mut rt).unwrap();
     // }
+}
+
+const PALETTE_ADDR: u32 = 0x4; // 16 bytes
+const DRAW_COLORS_ADDR: u32 = 0x14; // 2 bytes
+const GAMEPADS_ADDR: u32 = 0x16; // 4 bytes
+const MOUSE_X_ADDR: u32 = 0x1A; // 2 bytes
+const MOUSE_Y_ADDR: u32 = 0x1C; // 2 bytes
+const MOUSE_BUTTONS_ADDR: u32 = 0x1e; // 1 byte
+const SYSTEM_FLAGS_ADDR: u32 = 0x1f; // 1 byte
+const NETPLAY_ADDR: u32 = 0x20; // 1 byte
+const FRAMEBUFFER_ADDR: u32 = 0xA0; // 6,400 bytes
+const PROGRAM_MEM_ADDR: u32 = 0x19A0; // 58,976 bytes
+
+#[derive(Debug, Clone, Copy)]
+struct W4State {
+    mem: MemAddr,
+}
+
+impl W4State {
+    /// Returns indices into palette for draw colors.
+    fn get_draw_color_indices(&self, rt: &Runtime) -> (u8, u8, u8, u8) {
+        let mem = rt.get_mem(self.mem);
+        let bytes = mem.load_16_le(DRAW_COLORS_ADDR).unwrap();
+        (
+            (bytes & 0b00001111) as u8,
+            ((bytes >> 4) & 0b00001111) as u8,
+            ((bytes >> 8) & 0b00001111) as u8,
+            ((bytes >> 12) & 0b00001111) as u8,
+        )
+    }
+
+    /// Indexes palette. Returns (r, g, b) channels.
+    fn index_palette(&self, idx: u8, rt: &Runtime) -> (u8, u8, u8) {
+        let mem = rt.get_mem(self.mem);
+        let idx = PALETTE_ADDR + (u32::from(idx) * 4);
+        let palette = mem.load_32_le(idx).unwrap();
+        (
+            (palette & 0xFF) as u8,
+            ((palette >> 8) & 0xFF) as u8,
+            ((palette >> 16) & 0xFF) as u8,
+        )
+    }
+
+    fn rect(&self, x: i32, y: i32, width: i32, height: i32, rt: &mut Runtime) {
+        let buffer_start = (y * 320) + (x * 2);
+        let size = (height * 320) + (width * 2);
+        rt.get_mem_mut(self.mem)
+            .fill(buffer_start as u32, size as u32, 1)
+            .unwrap();
+
+        // TODO: Draw outline using color 2.
+    }
+
+    fn blit(
+        &self,
+        sprite_addr: i32,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        flags: i32,
+        rt: &mut Runtime,
+    ) {
+        todo!()
+    }
+
+    fn tone(&self, frequency: i32, duration: i32, volume: i32, flags: i32, rt: &mut Runtime) {
+        todo!()
+    }
+
+    fn text_utf16(&self, str_addr: i32, byte_length: i32, x: i32, y: i32, rt: &mut Runtime) {
+        todo!()
+    }
 }
