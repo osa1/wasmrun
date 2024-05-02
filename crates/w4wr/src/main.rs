@@ -121,7 +121,7 @@ fn main() {
     let module_addr = exec::instantiate(&mut rt, module).unwrap();
 
     let start_fun_idx = rt.get_module(module_addr).get_start().unwrap();
-    let _update_fun_idx = rt
+    let update_fun_idx = rt
         .get_module(module_addr)
         .get_exported_fun_idx("update")
         .unwrap();
@@ -163,9 +163,8 @@ fn main() {
     exec::finish(&mut rt).unwrap();
 
     event_loop.run(move |event, _, control_flow| {
-        // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            // world.draw(pixels.frame_mut());
+            w4state.draw(pixels.frame_mut(), &mut rt);
             if let Err(err) = pixels.render() {
                 eprintln!("pixels.render error: {}", err);
                 *control_flow = ControlFlow::Exit;
@@ -175,6 +174,9 @@ fn main() {
 
         if let Event::UserEvent(()) = event {
             println!("tick");
+            exec::invoke(&mut rt, module_addr, update_fun_idx);
+            exec::finish(&mut rt);
+            window.request_redraw();
             return;
         }
 
@@ -249,13 +251,60 @@ impl W4State {
     }
 
     fn rect(&self, x: i32, y: i32, width: i32, height: i32, rt: &mut Runtime) {
-        let buffer_start = (y * 320) + (x * 2);
-        let size = (height * 320) + (width * 2);
-        rt.get_mem_mut(self.mem)
-            .fill(buffer_start as u32, size as u32, 1)
-            .unwrap();
+        println!("rect");
 
-        // TODO: Draw outline using color 2.
+        let x = x as u32;
+        let y = y as u32;
+        let width = width as u32;
+        let height = height as u32;
+
+        // Framebuffer is 160x160, contains 2 bits per pixel for colors 0-3.
+        let buffer_start_bit = (y * 320) + (x * 2);
+        let size_bits = (height * 320) + (width * 2);
+
+        let whole_bytes_start = buffer_start_bit.div_ceil(8);
+        let whole_bytes_end = (buffer_start_bit + size_bits) / 8;
+
+        let mem = rt.get_mem_mut(self.mem);
+
+        // Copy whole bytes.
+        mem.fill(
+            whole_bytes_start,
+            whole_bytes_end - whole_bytes_start,
+            0b01010101,
+        )
+        .unwrap();
+
+        // Update bits of the first byte.
+        let first_byte_idx = buffer_start_bit / 8;
+        if first_byte_idx != whole_bytes_start {
+            let old_byte = mem[first_byte_idx];
+
+            // Bit index will always be 2, 4, or 6. Example:
+            // Bit index 6 => ((old_byte & 0b00111111) | 0b01000000)
+            const BIT_IDX_MASKS: [u8; 3] = [0b00000011, 0b00001111, 0b00111111];
+            const FILLED_BIT_PATTERNS: [u8; 3] = [0b01010100, 0b01010000, 0b01000000];
+
+            let bit_index = (((buffer_start_bit % 8) / 2) - 1) as usize;
+            let new_byte = (old_byte & BIT_IDX_MASKS[bit_index]) | FILLED_BIT_PATTERNS[bit_index];
+
+            mem[first_byte_idx] = new_byte;
+        }
+
+        // Update bits of the last byte.
+        let last_byte_idx = (buffer_start_bit + size_bits).div_ceil(8);
+        if last_byte_idx != whole_bytes_end {
+            let old_byte = mem[last_byte_idx];
+
+            // Similar to the first byte.
+            // Bit index 6 => ((old_byte & 0b11000000) | 0b00010101)
+            const BIT_IDX_MASKS: [u8; 3] = [0b11111100, 0b11110000, 0b11000000];
+            const FILLED_BIT_PATTERNS: [u8; 3] = [0b00000001, 0b00000101, 0b00010101];
+
+            let bit_index = ((((buffer_start_bit + size_bits) % 8) / 2) - 1) as usize;
+            let new_byte = (old_byte & BIT_IDX_MASKS[bit_index]) | FILLED_BIT_PATTERNS[bit_index];
+            mem[last_byte_idx] = new_byte;
+        }
     }
 
     fn blit(
@@ -268,14 +317,25 @@ impl W4State {
         flags: i32,
         rt: &mut Runtime,
     ) {
-        todo!()
+        let format_2bpp = flags & 0b1 != 0;
+        let flip_x = flags & 0b10 != 0;
+        let flip_y = flags & 0b100 != 0;
+        let rotate = flags & 0b1000 != 0;
+
+        // TODO: Apply flags.
+
+        println!("blit");
     }
 
     fn tone(&self, frequency: i32, duration: i32, volume: i32, flags: i32, rt: &mut Runtime) {
-        todo!()
+        println!("tone");
     }
 
     fn text_utf16(&self, str_addr: i32, byte_length: i32, x: i32, y: i32, rt: &mut Runtime) {
-        todo!()
+        println!("textUtf16");
+    }
+
+    fn draw(&self, frame: &mut [u8], rt: &mut Runtime) {
+        let mem = rt.get_mem(self.mem);
     }
 }
