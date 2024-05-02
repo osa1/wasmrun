@@ -41,10 +41,10 @@ fn main() {
                     ],
                     ret_tys: vec![],
                     fun: Rc::new(move |rt, _mem_addr| {
-                        let flags = rt.pop_i32()?;
-                        let volume = rt.pop_i32()?;
-                        let duration = rt.pop_i32()?;
-                        let frequency = rt.pop_i32()?;
+                        let frequency = rt.get_local(0)?.expect_i32();
+                        let duration = rt.get_local(1)?.expect_i32();
+                        let volume = rt.get_local(2)?.expect_i32();
+                        let flags = rt.get_local(3)?.expect_i32();
                         w4state.tone(frequency, duration, volume, flags, rt);
                         Ok(vec![])
                     }),
@@ -63,13 +63,13 @@ fn main() {
                     ],
                     ret_tys: vec![],
                     fun: Rc::new(move |rt, _mem_addr| {
-                        let flags = rt.pop_i32()?;
-                        let height = rt.pop_i32()?;
-                        let width = rt.pop_i32()?;
-                        let y = rt.pop_i32()?;
-                        let x = rt.pop_i32()?;
-                        let sprite_ptr = rt.pop_i32()?;
-                        w4state.blit(flags, height, width, y, x, sprite_ptr, rt);
+                        let sprite_ptr = rt.get_local(0)?.expect_i32();
+                        let x = rt.get_local(0)?.expect_i32();
+                        let y = rt.get_local(1)?.expect_i32();
+                        let width = rt.get_local(3)?.expect_i32();
+                        let height = rt.get_local(4)?.expect_i32();
+                        let flags = rt.get_local(5)?.expect_i32();
+                        w4state.blit(sprite_ptr, x, y, width, height, flags, rt);
                         Ok(vec![])
                     }),
                 },
@@ -85,11 +85,29 @@ fn main() {
                     ],
                     ret_tys: vec![],
                     fun: Rc::new(move |rt, _mem_addr| {
-                        let y = rt.pop_i32()?;
-                        let x = rt.pop_i32()?;
-                        let byte_length = rt.pop_i32()?;
-                        let str = rt.pop_i32()?;
+                        let str = rt.get_local(0)?.expect_i32();
+                        let byte_length = rt.get_local(1)?.expect_i32();
+                        let x = rt.get_local(2)?.expect_i32();
+                        let y = rt.get_local(3)?.expect_i32();
                         w4state.text_utf16(str, byte_length, x, y, rt);
+                        Ok(vec![])
+                    }),
+                },
+            ),
+            (
+                "text".to_string(),
+                HostFunDecl {
+                    arg_tys: vec![
+                        ValueType::I32, // str
+                        ValueType::I32, // x
+                        ValueType::I32, // y
+                    ],
+                    ret_tys: vec![],
+                    fun: Rc::new(move |rt, _mem_addr| {
+                        let str = rt.get_local(0)?.expect_i32();
+                        let x = rt.get_local(1)?.expect_i32();
+                        let y = rt.get_local(2)?.expect_i32();
+                        w4state.text(str, x, y, rt);
                         Ok(vec![])
                     }),
                 },
@@ -105,10 +123,10 @@ fn main() {
                     ],
                     ret_tys: vec![],
                     fun: Rc::new(move |rt, _mem_addr| {
-                        let height = rt.pop_i32()?;
-                        let width = rt.pop_i32()?;
-                        let y = rt.pop_i32()?;
-                        let x = rt.pop_i32()?;
+                        let x = rt.get_local(0)?.expect_i32();
+                        let y = rt.get_local(1)?.expect_i32();
+                        let width = rt.get_local(2)?.expect_i32();
+                        let height = rt.get_local(3)?.expect_i32();
                         w4state.rect(x, y, width, height, rt);
                         Ok(vec![])
                     }),
@@ -120,7 +138,7 @@ fn main() {
 
     let module_addr = exec::instantiate(&mut rt, module).unwrap();
 
-    let start_fun_idx = rt.get_module(module_addr).get_start().unwrap();
+    let start_fun_idx = rt.get_module(module_addr).get_start();
     let update_fun_idx = rt
         .get_module(module_addr)
         .get_exported_fun_idx("update")
@@ -156,11 +174,13 @@ fn main() {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(screen_width as u32, screen_height as u32, surface_texture).unwrap()
+        Pixels::new(160, 160, surface_texture).unwrap()
     };
 
-    exec::invoke(&mut rt, module_addr, start_fun_idx).unwrap();
-    exec::finish(&mut rt).unwrap();
+    if let Some(start_fun_idx) = start_fun_idx {
+        exec::invoke(&mut rt, module_addr, start_fun_idx).unwrap();
+        exec::finish(&mut rt).unwrap();
+    }
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
@@ -173,9 +193,9 @@ fn main() {
         }
 
         if let Event::UserEvent(()) = event {
-            println!("tick");
-            exec::invoke(&mut rt, module_addr, update_fun_idx);
-            exec::finish(&mut rt);
+            println!("tick {:?}", update_fun_idx);
+            exec::invoke(&mut rt, module_addr, update_fun_idx).unwrap();
+            exec::finish(&mut rt).unwrap();
             window.request_redraw();
             return;
         }
@@ -198,15 +218,9 @@ fn main() {
             }
 
             // Update internal state and request a redraw.
-            // world.update();
             window.request_redraw();
         }
     });
-
-    // loop {
-    //     exec::invoke(&mut rt, module_addr, update_fun_idx).unwrap();
-    //     exec::finish(&mut rt).unwrap();
-    // }
 }
 
 const PALETTE_ADDR: u32 = 0x4; // 16 bytes
@@ -251,8 +265,6 @@ impl W4State {
     }
 
     fn rect(&self, x: i32, y: i32, width: i32, height: i32, rt: &mut Runtime) {
-        println!("rect");
-
         let x = x as u32;
         let y = y as u32;
         let width = width as u32;
@@ -324,18 +336,74 @@ impl W4State {
 
         // TODO: Apply flags.
 
-        println!("blit");
+        println!("NOT IMPLEMENTED: blit");
     }
 
     fn tone(&self, frequency: i32, duration: i32, volume: i32, flags: i32, rt: &mut Runtime) {
-        println!("tone");
+        println!("NOT IMPLEMENTED: tone");
     }
 
     fn text_utf16(&self, str_addr: i32, byte_length: i32, x: i32, y: i32, rt: &mut Runtime) {
-        println!("textUtf16");
+        println!("NOT IMPLEMENTED: textUtf16");
+    }
+
+    fn text(&self, str_addr: i32, x: i32, y: i32, rt: &mut Runtime) {
+        println!("NOT IMPLEMENTED: text");
     }
 
     fn draw(&self, frame: &mut [u8], rt: &mut Runtime) {
         let mem = rt.get_mem(self.mem);
+
+        let mut frame_offset = 0;
+        for frame_byte in mem.range(FRAMEBUFFER_ADDR, FRAMEBUFFER_ADDR + 6400) {
+            let color = frame_byte & 0b11;
+            let (r, g, b) = self.get_palette_color(color, rt);
+
+            frame[frame_offset] = r;
+            frame[frame_offset + 1] = g;
+            frame[frame_offset + 2] = b;
+            frame[frame_offset + 3] = 0xFF;
+            frame_offset += 4;
+
+            let color = (frame_byte & 0b1100) >> 2;
+            let (r, g, b) = self.get_palette_color(color, rt);
+
+            frame[frame_offset] = r;
+            frame[frame_offset + 1] = g;
+            frame[frame_offset + 2] = b;
+            frame[frame_offset + 3] = 0xFF;
+            frame_offset += 4;
+
+            let color = (frame_byte & 0b110000) >> 4;
+            let (r, g, b) = self.get_palette_color(color, rt);
+
+            frame[frame_offset] = r;
+            frame[frame_offset + 1] = g;
+            frame[frame_offset + 2] = b;
+            frame[frame_offset + 3] = 0xFF;
+            frame_offset += 4;
+
+            let color = (frame_byte & 0b11000000) >> 6;
+            let (r, g, b) = self.get_palette_color(color, rt);
+
+            frame[frame_offset] = r;
+            frame[frame_offset + 1] = g;
+            frame[frame_offset + 2] = b;
+            frame[frame_offset + 3] = 0xFF;
+            frame_offset += 4;
+        }
+
+        assert_eq!(frame_offset, frame.len());
+    }
+
+    /// Get (r, g, b) of `color` from the palette.
+    fn get_palette_color(&self, color: u8, rt: &Runtime) -> (u8, u8, u8) {
+        let mem = rt.get_mem(self.mem);
+        let rgb = mem.load_32_le(PALETTE_ADDR + u32::from(color)).unwrap();
+        (
+            ((rgb & 0xFF0000) >> 16) as u8,
+            ((rgb & 0xFF00) >> 8) as u8,
+            (rgb & 0xFF) as u8,
+        )
     }
 }

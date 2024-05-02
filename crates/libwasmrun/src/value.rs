@@ -183,7 +183,7 @@ impl Value {
         Value::I128(0i128)
     }
 
-    pub(crate) fn expect_i32(&self) -> i32 {
+    pub fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
             _ => panic!("expect_i32: found {:?}", self),
