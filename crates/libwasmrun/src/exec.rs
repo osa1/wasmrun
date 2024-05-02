@@ -2909,7 +2909,7 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let table = rt.store.get_table(table_addr);
 
             let elem_addr = rt.get_module(module_addr).get_elem(ElemIdx(elem_idx));
-            let elem = rt.store.get_elem(elem_addr);
+            let elem = rt.store.get_elem(elem_addr).clone();
 
             let amt = rt.stack.pop_i32()? as usize;
             let src = rt.stack.pop_i32()? as usize;
@@ -2929,22 +2929,17 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
                 return Err(ExecError::Trap(Trap::OOBTableAccess));
             }
 
-            let mut fun_addrs: Vec<Ref> = Vec::with_capacity(amt);
+            let mut refs: Vec<Ref> = Vec::with_capacity(amt);
 
             for i in 0..amt {
                 let elem: &wasm::InitExpr = &elem.init[src + i];
-                match elem.code() {
-                    &[Instruction::RefFunc(fun_idx), Instruction::End] => {
-                        let fun_addr = rt.store.get_module(module_addr).get_fun(FunIdx(fun_idx));
-                        fun_addrs.push(Ref::Func(fun_addr));
-                    }
-                    _ => todo!(),
-                }
+                let elem_value = eval_const_expr(rt, module_addr, elem.code())?;
+                refs.push(elem_value.expect_ref());
             }
 
             let table = rt.store.get_table_mut(table_addr);
-            for (addr_idx, addr) in fun_addrs.into_iter().enumerate() {
-                let ret = table.set(dst + addr_idx, addr); // bounds already checked
+            for (ref_idx, ref_) in refs.into_iter().enumerate() {
+                let ret = table.set(dst + ref_idx, ref_); // bounds already checked
                 debug_assert_eq!(ret, Ok(()));
             }
 
