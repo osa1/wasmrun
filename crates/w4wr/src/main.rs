@@ -1,4 +1,3 @@
-#![allow(unused)]
 #![allow(clippy::too_many_arguments)]
 
 use libwasmrun::{exec, syntax, HostFunDecl, Mem, MemAddr, Runtime, ValueType};
@@ -77,8 +76,8 @@ fn main() {
                     ret_tys: vec![],
                     fun: Rc::new(move |rt, _mem_addr| {
                         let sprite_ptr = rt.get_local(0)?.expect_i32();
-                        let x = rt.get_local(0)?.expect_i32();
-                        let y = rt.get_local(1)?.expect_i32();
+                        let x = rt.get_local(1)?.expect_i32();
+                        let y = rt.get_local(2)?.expect_i32();
                         let width = rt.get_local(3)?.expect_i32();
                         let height = rt.get_local(4)?.expect_i32();
                         let flags = rt.get_local(5)?.expect_i32();
@@ -238,14 +237,14 @@ fn main() {
 
 const PALETTE_ADDR: u32 = 0x4; // 16 bytes
 const DRAW_COLORS_ADDR: u32 = 0x14; // 2 bytes
-const GAMEPADS_ADDR: u32 = 0x16; // 4 bytes
-const MOUSE_X_ADDR: u32 = 0x1A; // 2 bytes
-const MOUSE_Y_ADDR: u32 = 0x1C; // 2 bytes
-const MOUSE_BUTTONS_ADDR: u32 = 0x1e; // 1 byte
-const SYSTEM_FLAGS_ADDR: u32 = 0x1f; // 1 byte
-const NETPLAY_ADDR: u32 = 0x20; // 1 byte
+const _GAMEPADS_ADDR: u32 = 0x16; // 4 bytes
+const _MOUSE_X_ADDR: u32 = 0x1A; // 2 bytes
+const _MOUSE_Y_ADDR: u32 = 0x1C; // 2 bytes
+const _MOUSE_BUTTONS_ADDR: u32 = 0x1e; // 1 byte
+const _SYSTEM_FLAGS_ADDR: u32 = 0x1f; // 1 byte
+const _NETPLAY_ADDR: u32 = 0x20; // 1 byte
 const FRAMEBUFFER_ADDR: u32 = 0xA0; // 6,400 bytes
-const PROGRAM_MEM_ADDR: u32 = 0x19A0; // 58,976 bytes
+const _PROGRAM_MEM_ADDR: u32 = 0x19A0; // 58,976 bytes
 
 #[derive(Debug, Clone, Copy)]
 struct W4State {
@@ -254,7 +253,7 @@ struct W4State {
 
 impl W4State {
     /// Returns indices into palette for draw colors.
-    fn get_draw_color_indices(&self, rt: &Runtime) -> (u8, u8, u8, u8) {
+    fn _get_draw_color_indices(&self, rt: &Runtime) -> (u8, u8, u8, u8) {
         let mem = rt.get_mem(self.mem);
         let bytes = mem.load_16_le(DRAW_COLORS_ADDR).unwrap();
         (
@@ -266,7 +265,7 @@ impl W4State {
     }
 
     /// Indexes palette. Returns (r, g, b) channels.
-    fn index_palette(&self, idx: u8, rt: &Runtime) -> (u8, u8, u8) {
+    fn _index_palette(&self, idx: u8, rt: &Runtime) -> (u8, u8, u8) {
         let mem = rt.get_mem(self.mem);
         let idx = PALETTE_ADDR + (u32::from(idx) * 4);
         let palette = mem.load_32_le(idx).unwrap();
@@ -347,20 +346,91 @@ impl W4State {
         let flip_y = flags & 0b100 != 0;
         let rotate = flags & 0b1000 != 0;
 
-        // TODO: Apply flags.
+        let sprite_addr = sprite_addr as u32;
+        let x = x as u32;
+        let y = y as u32;
+        let width = width as u32;
+        let height = height as u32;
 
-        println!("NOT IMPLEMENTED: blit");
+        if format_2bpp {
+            self.blit_2bpp(sprite_addr, x, y, width, height, flip_x, flip_y, rotate, rt);
+        } else {
+            self.blit_1bpp(sprite_addr, x, y, width, height, flip_x, flip_y, rotate, rt);
+        }
     }
 
-    fn tone(&self, frequency: i32, duration: i32, volume: i32, flags: i32, rt: &mut Runtime) {
+    fn blit_2bpp(
+        &self,
+        _sprite_addr: u32,
+        _x: u32,
+        _y: u32,
+        _width: u32,
+        _height: u32,
+        _flip_x: bool,
+        _flip_y: bool,
+        _rotate: bool,
+        _rt: &mut Runtime,
+    ) {
+        println!("NOT IMPLEMENTED: blit_2bpp");
+    }
+
+    fn blit_1bpp(
+        &self,
+        sprite_addr: u32,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+        _flip_x: bool,
+        _flip_y: bool,
+        _rotate: bool,
+        rt: &mut Runtime,
+    ) {
+        //println!("Framebuffer before blit:");
+        // self.dump_framebuffer(rt);
+
+        let mem = rt.get_mem_mut(self.mem);
+
+        let mut sprite_x = 0;
+        let mut sprite_y = 0;
+
+        loop {
+            let sprite_bit_offset = (sprite_y * width) + sprite_x;
+            let sprite_byte_offset = sprite_bit_offset / 8;
+            let sprite_bit_index = sprite_bit_offset % 8;
+            let byte = mem[sprite_addr + sprite_byte_offset];
+            let bit = (byte & (1 << sprite_bit_index)) == 0;
+
+            let framebuffer_pos = ((y + sprite_y) * 160) + (x + sprite_x);
+            let framebuffer_byte_offset = FRAMEBUFFER_ADDR + (framebuffer_pos / 4); // (pos * 2) / 8
+            let framebuffer_bit_offset = (framebuffer_pos % 4) * 2;
+            let framebuffer_byte = mem[framebuffer_byte_offset];
+
+            let framebuffer_new_byte = (framebuffer_byte & !(1 << (framebuffer_bit_offset + 1)))
+                | (u8::from(bit) << framebuffer_bit_offset);
+
+            mem[framebuffer_byte_offset] = framebuffer_new_byte;
+
+            sprite_x += 1;
+            if sprite_x == width {
+                sprite_x = 0;
+                sprite_y += 1;
+                if sprite_y == height {
+                    break;
+                }
+            }
+        }
+    }
+
+    fn tone(&self, _frequency: i32, _duration: i32, _volume: i32, _flags: i32, _rt: &mut Runtime) {
         println!("NOT IMPLEMENTED: tone");
     }
 
-    fn text_utf16(&self, str_addr: i32, byte_length: i32, x: i32, y: i32, rt: &mut Runtime) {
+    fn text_utf16(&self, _str_addr: i32, _byte_length: i32, _x: i32, _y: i32, _rt: &mut Runtime) {
         println!("NOT IMPLEMENTED: textUtf16");
     }
 
-    fn text(&self, str_addr: i32, x: i32, y: i32, rt: &mut Runtime) {
+    fn text(&self, _str_addr: i32, _x: i32, _y: i32, _rt: &mut Runtime) {
         println!("NOT IMPLEMENTED: text");
     }
 
@@ -418,5 +488,25 @@ impl W4State {
             ((rgb & 0xFF00) >> 8) as u8,
             (rgb & 0xFF) as u8,
         )
+    }
+
+    // For debugging.
+    #[allow(unused)]
+    fn dump_framebuffer(&self, rt: &Runtime) {
+        use std::fmt::Write;
+
+        let mem = rt.get_mem(self.mem);
+
+        // 2 bits per pixel = 4 pixels per byte.
+        for y in 0..160 {
+            let mut buffer = String::with_capacity(160 * 4);
+            for x in 0..(160 / 4) {
+                let byte_offset = ((y * 160) / 4) + x;
+                let byte = mem[FRAMEBUFFER_ADDR + byte_offset];
+                let byte = byte.swap_bytes();
+                write!(&mut buffer, "{:08b}", byte).unwrap();
+            }
+            println!("{}", buffer);
+        }
     }
 }
