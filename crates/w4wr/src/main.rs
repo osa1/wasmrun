@@ -25,6 +25,19 @@ fn main() {
 
     let mem_addr = rt.allocate_mem(Mem::new(1, Some(1)));
 
+    // Initialize palette and draw colors. Reference:
+    // https://github.com/aduros/wasm4/blob/0dff7ad4e6c7b28b87a6555bea8574e5aa748e27/runtimes/native/src/runtime.c#L50-L55
+    {
+        let mem = rt.get_mem_mut(mem_addr);
+        mem.store_32_le(PALETTE_ADDR, 0xe0f8cf).unwrap();
+        mem.store_32_le(PALETTE_ADDR + 4, 0x86c06c).unwrap();
+        mem.store_32_le(PALETTE_ADDR + 8, 0x306850).unwrap();
+        mem.store_32_le(PALETTE_ADDR + 12, 0x071821).unwrap();
+
+        mem.store_8(DRAW_COLORS_ADDR, 0x03).unwrap();
+        mem.store_8(DRAW_COLORS_ADDR + 1, 0x03).unwrap();
+    }
+
     let w4state = W4State { mem: mem_addr };
 
     let _env_module_addr = rt.allocate_host_module(
