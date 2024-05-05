@@ -192,6 +192,10 @@ impl Mem {
     pub fn range(&self, start: u32, end: u32) -> &[u8] {
         &self.mem[start as usize..end as usize]
     }
+
+    pub fn range_mut(&mut self, start: u32, end: u32) -> &mut [u8] {
+        &mut self.mem[start as usize..end as usize]
+    }
 }
 
 pub(crate) fn store_16_le_unchecked(value: u16, mem: &mut [u8], addr: usize) {
