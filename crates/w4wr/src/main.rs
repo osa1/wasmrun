@@ -215,7 +215,6 @@ fn main() {
         }
 
         if let Event::UserEvent(()) = event {
-            println!("tick {:?}", update_fun_idx);
             exec::invoke(&mut rt, module_addr, update_fun_idx).unwrap();
             exec::finish(&mut rt).unwrap();
             window.request_redraw();
@@ -410,6 +409,8 @@ impl W4State {
             let sprite_byte_offset = sprite_bit_offset / 8;
             let sprite_bit_index = sprite_bit_offset % 8;
             let sprite_byte = mem[sprite_addr + sprite_byte_offset];
+
+            // Sprite bit 1 = color 1, 0 = color 0 (background)
             let sprite_bit = (sprite_byte & (1 << sprite_bit_index)) == 0;
 
             let framebuffer_pos = ((framebuffer_y + (sprite_y - sprite_y0)) * 160)
@@ -418,7 +419,7 @@ impl W4State {
             let framebuffer_bit_offset = (framebuffer_pos % 4) * 2;
             let framebuffer_byte = mem[framebuffer_byte_offset];
 
-            let framebuffer_new_byte = (framebuffer_byte & !(1 << (framebuffer_bit_offset + 1)))
+            let framebuffer_new_byte = (framebuffer_byte & !(0b11 << framebuffer_bit_offset))
                 | (u8::from(sprite_bit) << framebuffer_bit_offset);
 
             mem[framebuffer_byte_offset] = framebuffer_new_byte;
@@ -453,8 +454,47 @@ impl W4State {
         println!("NOT IMPLEMENTED: tone");
     }
 
-    fn text_utf16(&self, _str_addr: i32, _byte_length: i32, _x: i32, _y: i32, _rt: &mut Runtime) {
-        println!("NOT IMPLEMENTED: textUtf16");
+    fn text_utf16(&self, str_addr: i32, byte_length: i32, x0: i32, y0: i32, rt: &mut Runtime) {
+        let mut str_addr = str_addr as u32;
+        let mut byte_length = byte_length as u32;
+        let x0 = x0 as u32;
+        let y0 = y0 as u32;
+
+        let mut x = x0;
+        let mut y = y0;
+
+        while byte_length != 0 {
+            let char_code_point = rt.get_mem(self.mem).load_16_le(str_addr).unwrap();
+            let char = char::decode_utf16([char_code_point])
+                .next()
+                .unwrap()
+                .unwrap();
+
+            if char == '\n' {
+                x = x0;
+                y += 8;
+            } else if char as u32 >= 32 {
+                self.blit_1bpp(
+                    FONT_ADDR,                // sprite_addr
+                    x,                        // framebuffer_x
+                    y,                        // framebuffer_y
+                    8,                        // width
+                    8,                        // height
+                    0,                        // sprite_x
+                    ((char as u32) - 32) * 8, // sprite_y
+                    8,                        // stride
+                    false,                    // flip_x
+                    false,                    // flip_y
+                    false,                    // rotate
+                    rt,
+                );
+                x += 8;
+            } else {
+                x += 8;
+            }
+            str_addr += 2;
+            byte_length -= 2;
+        }
     }
 
     fn text(&self, str_addr: i32, x0: i32, y0: i32, rt: &mut Runtime) {
@@ -468,7 +508,6 @@ impl W4State {
         let mut y = y0;
 
         while char != 0 {
-            println!("Printing char: {}", char::from_u32(char as u32).unwrap());
             if char == b'\n' {
                 x = x0;
                 y += 8;
