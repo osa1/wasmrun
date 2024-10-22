@@ -3373,6 +3373,10 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let data_addr = rt.store.get_module(module_addr).get_data(DataIdx(data_idx));
             let data: &[u8] = &rt.store.get_data(data_addr).data;
 
+            if array_len + data_offset > data.len() {
+                return Err(ExecError::Trap(Trap::OOBMemoryAccess));
+            }
+
             let mut elems: Vec<Value> = Vec::with_capacity(array_len);
 
             for i in 0..array_len {
@@ -3419,8 +3423,8 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
         }
 
         Instruction::ArrayNewElem(ty_idx, elem_idx) => {
-            let elem_offset = rt.stack.pop_i32()? as usize;
             let array_size = rt.stack.pop_i32()? as usize;
+            let elem_offset = rt.stack.pop_i32()? as usize;
 
             let elem_seg_addr = rt.store.get_module(module_addr).get_elem(ElemIdx(elem_idx));
             let elem_seg = rt.store.get_elem(elem_seg_addr);
@@ -3429,11 +3433,11 @@ fn exec_instr(rt: &mut Runtime, module_addr: ModuleAddr, instr: Instruction) -> 
             let elem_exprs: Vec<wasm::InitExpr> = elem_seg.init.clone();
 
             if elem_offset + array_size > elem_exprs.len() {
-                return Err(ExecError::Trap(Trap::ElementOOB));
+                return Err(ExecError::Trap(Trap::OOBTableAccess));
             }
 
             let mut elems: Vec<Value> = Vec::with_capacity(elem_seg.init.len());
-            for init_expr in &elem_exprs {
+            for init_expr in &elem_exprs[elem_offset..] {
                 elems.push(Value::Ref(
                     eval_const_expr(rt, module_addr, init_expr.code())?.expect_ref(),
                 ));
