@@ -1,5 +1,5 @@
 use crate::{
-    io, BlockType, CountedList, Deserialize, Error, HeapType, Uint32, Uint64, ValueType, VarInt32,
+    BlockType, CountedList, Deserialize, Error, HeapType, Uint32, Uint64, ValueType, VarInt32,
     VarInt64, VarUint32,
 };
 
@@ -27,7 +27,7 @@ impl Instructions {
 }
 
 impl Deserialize for Instructions {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut instructions = Vec::new();
         let mut depth: u32 = 1;
 
@@ -86,7 +86,7 @@ impl InitExpr {
 }
 
 impl Deserialize for InitExpr {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut instructions = Vec::new();
 
         loop {
@@ -740,7 +740,7 @@ pub struct TryTableData {
 }
 
 impl Deserialize for TryTableData {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let table: Vec<(CatchKind, u32)> =
             CountedList::<(CatchKind, u32)>::deserialize_with(reader, |reader| {
                 let op = u8::deserialize(reader)?;
@@ -1404,7 +1404,7 @@ mod opcodes {
 }
 
 impl Deserialize for Instruction {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         use self::{opcodes::*, Instruction::*};
 
         let val: u8 = u8::deserialize(reader)?;
@@ -1666,7 +1666,7 @@ impl Deserialize for Instruction {
     }
 }
 
-fn deserialize_atomic<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
+fn deserialize_atomic<R: std::io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     use self::{opcodes::*, AtomicsInstruction::*};
 
     let val: u8 = u8::deserialize(reader)?;
@@ -1751,7 +1751,7 @@ fn deserialize_atomic<R: io::Read>(reader: &mut R) -> Result<Instruction, Error>
     }))
 }
 
-fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
+fn deserialize_simd<R: std::io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     use self::{opcodes::*, SimdInstruction::*};
 
     let val = VarUint32::deserialize(reader)?.into();
@@ -1812,12 +1812,12 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
         }
         V128_CONST => {
             let mut bytes = [0; 16];
-            reader.read(&mut bytes)?;
+            reader.read_exact(&mut bytes)?;
             V128Const(bytes)
         }
         I8X16_SHUFFLE => {
             let mut lanes = [0; 16];
-            reader.read(&mut lanes)?;
+            reader.read_exact(&mut lanes)?;
             I8x16Shuffle(lanes)
         }
         I8X16_EXTRACT_LANE_S => I8x16ExtractLaneS(u8::deserialize(reader)?),
@@ -2057,7 +2057,7 @@ fn deserialize_simd<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     }))
 }
 
-fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
+fn deserialize_bulk<R: std::io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     use self::{opcodes::*, Instruction::*};
 
     let val = VarUint32::deserialize(reader)?.into();
@@ -2104,7 +2104,7 @@ fn deserialize_bulk<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     })
 }
 
-fn deserialize_gc<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
+fn deserialize_gc<R: std::io::Read>(reader: &mut R) -> Result<Instruction, Error> {
     use self::{opcodes::*, Instruction::*};
     let val: u8 = u8::deserialize(reader)?;
     Ok(match val {
@@ -2205,7 +2205,7 @@ fn deserialize_gc<R: io::Read>(reader: &mut R) -> Result<Instruction, Error> {
 }
 
 impl Deserialize for MemArg {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let align: u32 = VarUint32::deserialize(reader)?.into();
         let mem_idx: u32 = if align & 0b01000000 != 0 {
             VarUint32::deserialize(reader)?.into()

@@ -1,6 +1,4 @@
-use crate::{io, CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, VarUint32};
-
-const VALUES_BUFFER_LENGTH: usize = 16384;
+use crate::{CountedList, Deserialize, Error, InitExpr, Instruction, ReferenceType, VarUint32};
 
 /// Entry in an element section
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,7 +37,7 @@ fn func_idx_vec_to_init(func_idxs: &[u32]) -> Vec<InitExpr> {
 
 impl Deserialize for ElementSegment {
     // https://webassembly.github.io/spec/core/binary/modules.html#element-section
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u32 = VarUint32::deserialize(reader)?.into();
 
         // Parsing every tag value separately is easier as I don't have to deal with exceptions,
@@ -169,7 +167,7 @@ impl Deserialize for ElementSegment {
 }
 
 impl Deserialize for ElementKind {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let kind: u8 = u8::deserialize(reader)?;
         match kind {
             0 => Ok(ElementKind::FuncRef),
@@ -192,7 +190,7 @@ pub enum DataSegmentMode {
 }
 
 impl Deserialize for DataSegment {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u32 = VarUint32::deserialize(reader)?.into();
         if flags >> 2 != 0 {
             return Err(Error::InvalidSegmentFlags(flags));
@@ -206,7 +204,8 @@ impl Deserialize for DataSegment {
 
         if passive {
             let data_len = u32::from(VarUint32::deserialize(reader)?) as usize;
-            let data = io::buffered_read::<R, VALUES_BUFFER_LENGTH>(data_len, reader)?;
+            let mut data: Vec<u8> = vec![0; data_len];
+            reader.read_exact(data.as_mut_slice())?;
             Ok(DataSegment {
                 data,
                 mode: DataSegmentMode::Passive,
@@ -219,7 +218,8 @@ impl Deserialize for DataSegment {
             };
             let offset = InitExpr::deserialize(reader)?;
             let data_len = u32::from(VarUint32::deserialize(reader)?) as usize;
-            let data = io::buffered_read::<R, VALUES_BUFFER_LENGTH>(data_len, reader)?;
+            let mut data: Vec<u8> = vec![0; data_len];
+            reader.read_exact(data.as_mut_slice())?;
             Ok(DataSegment {
                 data,
                 mode: DataSegmentMode::Active { mem_idx, offset },

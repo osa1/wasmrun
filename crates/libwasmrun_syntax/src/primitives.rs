@@ -1,11 +1,9 @@
-use crate::{io, Deserialize, Error};
-
-const PRIMITIVES_BUFFER_LENGTH: usize = 1024;
+use crate::{Deserialize, Error};
 
 impl Deserialize for u8 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut buf = [0u8; 1];
-        reader.read(&mut buf)?;
+        reader.read_exact(&mut buf)?;
         Ok(buf[0])
     }
 }
@@ -41,7 +39,7 @@ impl From<usize> for VarUint32 {
 }
 
 impl Deserialize for VarUint32 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0;
         let mut shift = 0;
         let mut buf = [0u8; 1];
@@ -50,7 +48,7 @@ impl Deserialize for VarUint32 {
                 return Err(Error::InvalidVarUint32);
             }
 
-            reader.read(&mut buf)?;
+            reader.read_exact(&mut buf)?;
             let b = buf[0] as u32;
             res |= (b & 0x7f)
                 .checked_shl(shift)
@@ -79,7 +77,7 @@ impl From<VarUint64> for u64 {
 }
 
 impl Deserialize for VarUint64 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0;
         let mut shift = 0;
         let mut buf = [0u8; 1];
@@ -88,7 +86,7 @@ impl Deserialize for VarUint64 {
                 return Err(Error::InvalidVarUint64);
             }
 
-            reader.read(&mut buf)?;
+            reader.read_exact(&mut buf)?;
             let b = buf[0] as u64;
             res |= (b & 0x7f)
                 .checked_shl(shift)
@@ -128,9 +126,9 @@ impl From<u8> for VarUint7 {
 }
 
 impl Deserialize for VarUint7 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut buf = [0u8; 1];
-        reader.read(&mut buf)?;
+        reader.read_exact(&mut buf)?;
         Ok(VarUint7(buf[0]))
     }
 }
@@ -152,7 +150,7 @@ impl From<i32> for VarInt32 {
 }
 
 impl Deserialize for VarInt32 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0;
         let mut shift = 0;
         let mut buf = [0u8; 1];
@@ -160,7 +158,7 @@ impl Deserialize for VarInt32 {
             if shift > 31 {
                 return Err(Error::InvalidVarInt32);
             }
-            reader.read(&mut buf)?;
+            reader.read_exact(&mut buf)?;
             let b = buf[0];
 
             res |= ((b & 0b0111_1111) as i32)
@@ -202,7 +200,7 @@ impl From<i64> for VarInt64 {
 }
 
 impl Deserialize for VarInt64 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut res = 0i64;
         let mut shift = 0;
         let mut buf = [0u8; 1];
@@ -211,7 +209,7 @@ impl Deserialize for VarInt64 {
             if shift > 63 {
                 return Err(Error::InvalidVarInt64);
             }
-            reader.read(&mut buf)?;
+            reader.read_exact(&mut buf)?;
             let b = buf[0];
 
             res |= ((b & 0b0111_1111) as i64)
@@ -241,9 +239,9 @@ impl Deserialize for VarInt64 {
 pub struct Uint32(u32);
 
 impl Deserialize for Uint32 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut buf = [0u8; 4];
-        reader.read(&mut buf)?;
+        reader.read_exact(&mut buf)?;
         // todo check range
         Ok(u32::from_le_bytes(buf).into())
     }
@@ -266,9 +264,9 @@ impl From<u32> for Uint32 {
 pub struct Uint64(u64);
 
 impl Deserialize for Uint64 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut buf = [0u8; 8];
-        reader.read(&mut buf)?;
+        reader.read_exact(&mut buf)?;
         // todo check range
         Ok(u64::from_le_bytes(buf).into())
     }
@@ -303,9 +301,9 @@ impl From<bool> for VarUint1 {
 }
 
 impl Deserialize for VarUint1 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut buf = [0u8; 1];
-        reader.read(&mut buf)?;
+        reader.read_exact(&mut buf)?;
         match buf[0] {
             0 => Ok(VarUint1(false)),
             1 => Ok(VarUint1(true)),
@@ -315,12 +313,11 @@ impl Deserialize for VarUint1 {
 }
 
 impl Deserialize for String {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let length = u32::from(VarUint32::deserialize(reader)?) as usize;
-        String::from_utf8(io::buffered_read::<R, PRIMITIVES_BUFFER_LENGTH>(
-            length, reader,
-        )?)
-        .map_err(|_| Error::NonUtf8String)
+        let mut utf8_bytes: Vec<u8> = vec![0; length];
+        reader.read_exact(utf8_bytes.as_mut_slice())?;
+        String::from_utf8(utf8_bytes).map_err(|_| Error::NonUtf8String)
     }
 }
 
@@ -335,7 +332,7 @@ impl<T> CountedList<T> {
 }
 
 impl<T: Deserialize> Deserialize for CountedList<T> {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         CountedList::<T>::deserialize_with(reader, T::deserialize)
     }
 }
@@ -343,7 +340,7 @@ impl<T: Deserialize> Deserialize for CountedList<T> {
 impl<T> CountedList<T> {
     pub fn deserialize_with<R, F>(reader: &mut R, deserialize_element: F) -> Result<Self, Error>
     where
-        R: io::Read,
+        R: std::io::Read,
         F: Fn(&mut R) -> Result<T, Error>,
     {
         let count: usize = VarUint32::deserialize(reader)?.into();

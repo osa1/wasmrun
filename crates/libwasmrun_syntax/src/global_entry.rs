@@ -1,4 +1,4 @@
-use crate::{io, Deserialize, Error, GlobalType, InitExpr};
+use crate::{Deserialize, Error, GlobalType, InitExpr};
 
 /// Global entry in the module.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,7 +34,7 @@ impl GlobalEntry {
 }
 
 impl Deserialize for GlobalEntry {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let global_type = GlobalType::deserialize(reader)?;
         let init_expr = InitExpr::deserialize(reader)?;
 

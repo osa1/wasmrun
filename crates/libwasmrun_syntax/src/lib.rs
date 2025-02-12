@@ -3,7 +3,6 @@ mod func;
 mod global_entry;
 mod import_entry;
 mod index_map;
-mod io;
 mod module;
 mod name_section;
 mod ops;
@@ -50,7 +49,7 @@ pub use self::{
 use core::fmt;
 
 pub trait Deserialize: Sized {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error>;
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error>;
 }
 
 /// Deserialization/serialization error.
@@ -157,6 +156,8 @@ pub enum Error {
     InvalidHeapType(i32),
 
     InvalidTagAttribute(u8),
+
+    DecodingError,
 }
 
 impl fmt::Display for Error {
@@ -202,6 +203,7 @@ impl fmt::Display for Error {
             Error::UnknownElementKind(n) => write!(f, "Unknown element kind: {}", n),
             Error::InvalidHeapType(n) => write!(f, "Invalid heap type: {}", n),
             Error::InvalidTagAttribute(n) => write!(f, "Invalid tag attribute: {}", n),
+            Error::DecodingError => write!(f, "Decoding error"),
         }
     }
 }
@@ -244,13 +246,14 @@ impl std::error::Error for Error {
             Error::UnknownElementKind(_) => "Unknown element kind",
             Error::InvalidHeapType(_) => "Invalid heap type",
             Error::InvalidTagAttribute(_) => "Invalid tag attribute",
+            Error::DecodingError => "Decoding error",
         }
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
-        Error::Other(format!("I/O Error: {:?}", err))
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::Other(format!("IO Error: {:?}", err))
     }
 }
 

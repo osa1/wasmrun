@@ -1,4 +1,4 @@
-use crate::{io, Deserialize, Error, InitExpr, Limits32, ReferenceType, TableType};
+use crate::{Deserialize, Error, InitExpr, Limits32, ReferenceType, TableType};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
@@ -7,7 +7,7 @@ pub struct Table {
 }
 
 impl Deserialize for Table {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = u8::deserialize(reader)?;
         let val_u8: u8 = val;
         if val_u8 == 0x40 {

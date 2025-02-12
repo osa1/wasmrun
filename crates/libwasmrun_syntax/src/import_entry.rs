@@ -1,6 +1,5 @@
 use crate::{
-    io, Deserialize, Error, ReferenceType, TagType, ValueType, VarUint1, VarUint32, VarUint64,
-    VarUint7,
+    Deserialize, Error, ReferenceType, TagType, ValueType, VarUint1, VarUint32, VarUint64, VarUint7,
 };
 
 /// Global definition struct
@@ -31,7 +30,7 @@ impl GlobalType {
 }
 
 impl Deserialize for GlobalType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let content_type = ValueType::deserialize(reader)?;
         let is_mutable = VarUint1::deserialize(reader)?;
         Ok(GlobalType {
@@ -69,7 +68,7 @@ impl TableType {
 }
 
 impl Deserialize for TableType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let elem_type = ReferenceType::deserialize(reader)?;
         let limits = Limits32::deserialize(reader)?;
         Ok(TableType { elem_type, limits })
@@ -93,7 +92,7 @@ impl MemoryType {
 }
 
 impl Deserialize for MemoryType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(MemoryType(Limits::deserialize(reader)?))
     }
 }
@@ -180,7 +179,7 @@ impl Limits64 {
 }
 
 impl Deserialize for Limits {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u8 = u8::deserialize(reader)?;
 
         if flags >> 3 != 0 {
@@ -204,7 +203,7 @@ impl Deserialize for Limits {
 }
 
 impl Limits32 {
-    fn deserialize_rest<R: io::Read>(
+    fn deserialize_rest<R: std::io::Read>(
         reader: &mut R,
         has_max: bool,
         shared: bool,
@@ -224,7 +223,7 @@ impl Limits32 {
 }
 
 impl Deserialize for Limits32 {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let flags: u8 = u8::deserialize(reader)?;
 
         if flags >> 2 != 0 {
@@ -238,7 +237,7 @@ impl Deserialize for Limits32 {
 }
 
 impl Limits64 {
-    fn deserialize_rest<R: io::Read>(
+    fn deserialize_rest<R: std::io::Read>(
         reader: &mut R,
         has_max: bool,
         shared: bool,
@@ -274,7 +273,7 @@ pub enum External {
 }
 
 impl Deserialize for External {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let kind = VarUint7::deserialize(reader)?;
         match kind.into() {
             0x00 => Ok(External::Function(VarUint32::deserialize(reader)?.into())),
@@ -337,7 +336,7 @@ impl ImportEntry {
 }
 
 impl Deserialize for ImportEntry {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let module_str = String::deserialize(reader)?;
         let field_str = String::deserialize(reader)?;
         let external = External::deserialize(reader)?;

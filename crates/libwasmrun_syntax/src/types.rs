@@ -1,6 +1,6 @@
 #![allow(unused)] // temporary while implementing GC stuff
 
-use crate::{io, CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
+use crate::{CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
 
 use std::fmt;
 
@@ -11,7 +11,7 @@ pub struct RecType {
 }
 
 impl Deserialize for RecType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let form: u8 = VarUint7::deserialize(reader)?.into();
         match form {
             0x4E => {
@@ -42,14 +42,14 @@ pub struct SubType {
 }
 
 impl Deserialize for SubType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let form: u8 = VarUint7::deserialize(reader)?.into();
         SubType::deserialize_val(reader, form)
     }
 }
 
 impl SubType {
-    fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
+    fn deserialize_val<R: std::io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val {
             0x50 => {
                 let supers: Vec<u32> = CountedList::<VarUint32>::deserialize(reader)?
@@ -116,14 +116,14 @@ pub enum CompType {
 }
 
 impl Deserialize for CompType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let form: u8 = VarUint7::deserialize(reader)?.into();
         CompType::deserialize_val(reader, form)
     }
 }
 
 impl CompType {
-    fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
+    fn deserialize_val<R: std::io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val {
             0x5e => Ok(CompType::Array(ArrayType::deserialize(reader)?)),
 
@@ -163,7 +163,7 @@ pub struct StructType {
 }
 
 impl Deserialize for StructType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let fields: Vec<FieldType> = CountedList::<FieldType>::deserialize(reader)?.into_inner();
         Ok(StructType { fields })
     }
@@ -175,7 +175,7 @@ pub struct ArrayType {
 }
 
 impl Deserialize for ArrayType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let field = FieldType::deserialize(reader)?;
         Ok(ArrayType { field })
     }
@@ -188,7 +188,7 @@ pub struct FieldType {
 }
 
 impl Deserialize for FieldType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let storage_ty = StorageType::deserialize(reader)?;
         let mutability = Mutability::deserialize(reader)?;
         Ok(FieldType {
@@ -206,7 +206,7 @@ pub enum Mutability {
 }
 
 impl Deserialize for Mutability {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         match u8::deserialize(reader)? {
             0x00 => Ok(Mutability::Immutable),
             0x01 => Ok(Mutability::Mutable),
@@ -222,7 +222,7 @@ pub enum StorageType {
 }
 
 impl Deserialize for StorageType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val: u8 = VarUint7::deserialize(reader)?.into();
         match val {
             0x78 => Ok(StorageType::Packed(PackedType::I8)),
@@ -265,14 +265,14 @@ pub enum ValueType {
 }
 
 impl Deserialize for ValueType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = VarUint7::deserialize(reader)?.into();
         ValueType::deserialize_val(reader, val)
     }
 }
 
 impl ValueType {
-    fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
+    fn deserialize_val<R: std::io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
         match val.into() {
             // -0x01
             0x7f => Ok(ValueType::I32),
@@ -323,7 +323,7 @@ pub enum BlockType {
 }
 
 impl Deserialize for BlockType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         // https://webassembly.github.io/spec/core/binary/instructions.html#binary-blocktype
         //
         // > Unlike any other occurrence, the type index in a block type is encoded as a positive
@@ -436,7 +436,7 @@ impl FunctionType {
 }
 
 impl Deserialize for FunctionType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let params: Vec<ValueType> = CountedList::deserialize(reader)?.into_inner();
         let results: Vec<ValueType> = CountedList::deserialize(reader)?.into_inner();
         Ok(FunctionType { params, results })
@@ -541,14 +541,17 @@ impl ReferenceType {
 }
 
 impl Deserialize for ReferenceType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let val = u8::deserialize(reader)?;
         ReferenceType::deserialize_val(reader, val)
     }
 }
 
 impl ReferenceType {
-    pub(crate) fn deserialize_val<R: io::Read>(reader: &mut R, val: u8) -> Result<Self, Error> {
+    pub(crate) fn deserialize_val<R: std::io::Read>(
+        reader: &mut R,
+        val: u8,
+    ) -> Result<Self, Error> {
         match val {
             // -0x0D
             0x73 => Ok(ReferenceType::nullfuncref()),
@@ -657,7 +660,7 @@ pub enum HeapType {
 }
 
 impl Deserialize for HeapType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         // TODO: This should be signed 33-bit to allow entire type index range
         let val = VarInt32::deserialize(reader)?.into();
 

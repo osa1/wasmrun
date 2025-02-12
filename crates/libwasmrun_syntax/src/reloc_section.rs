@@ -1,4 +1,4 @@
-use crate::{io, CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
+use crate::{CountedList, Deserialize, Error, VarInt32, VarUint32, VarUint7};
 
 const FUNCTION_INDEX_LEB: u8 = 0;
 const TABLE_INDEX_SLEB: u8 = 1;
@@ -69,7 +69,7 @@ impl RelocSection {
 
 impl RelocSection {
     /// Deserialize a reloc section.
-    pub fn deserialize<R: io::Read>(name: String, rdr: &mut R) -> Result<Self, Error> {
+    pub fn deserialize<R: std::io::Read>(name: String, rdr: &mut R) -> Result<Self, Error> {
         let section_id = VarUint32::deserialize(rdr)?.into();
 
         let relocation_section_name = if section_id == 0 {
@@ -175,7 +175,7 @@ pub enum RelocationEntry {
 }
 
 impl Deserialize for RelocationEntry {
-    fn deserialize<R: io::Read>(rdr: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(rdr: &mut R) -> Result<Self, Error> {
         match VarUint7::deserialize(rdr)?.into() {
             FUNCTION_INDEX_LEB => Ok(RelocationEntry::FunctionIndexLeb {
                 offset: VarUint32::deserialize(rdr)?.into(),

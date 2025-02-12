@@ -1,4 +1,4 @@
-use crate::{io, Deserialize, Error, VarUint32};
+use crate::{Deserialize, Error, VarUint32};
 
 use std::{
     cmp::min,
@@ -132,7 +132,7 @@ impl<T> IndexMap<T> {
         rdr: &mut R,
     ) -> Result<IndexMap<T>, Error>
     where
-        R: io::Read,
+        R: std::io::Read,
         F: Fn(u32, &mut R) -> Result<T, Error>,
     {
         let len: u32 = VarUint32::deserialize(rdr)?.into();
@@ -307,7 +307,10 @@ where
     /// Deserialize a map containing simple values that support `Deserialize`.
     /// We will allocate an underlying array no larger than `max_entry_space` to
     /// hold the data, so the maximum index must be less than `max_entry_space`.
-    pub fn deserialize<R: io::Read>(max_entry_space: usize, rdr: &mut R) -> Result<Self, Error> {
+    pub fn deserialize<R: std::io::Read>(
+        max_entry_space: usize,
+        rdr: &mut R,
+    ) -> Result<Self, Error> {
         let deserialize_value: fn(u32, &mut R) -> Result<T, Error> =
             |_idx, rdr| T::deserialize(rdr).map_err(Error::from);
         Self::deserialize_with(max_entry_space, &deserialize_value, rdr)

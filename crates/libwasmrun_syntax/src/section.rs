@@ -1,10 +1,8 @@
 use crate::{
-    io, name_section::NameSection, reloc_section::RelocSection, types::RecType, CountedList,
+    name_section::NameSection, reloc_section::RelocSection, types::RecType, CountedList,
     DataSegment, Deserialize, ElementSegment, Error, ExportEntry, Func, FuncBody, GlobalEntry,
     ImportEntry, MemoryType, Table, VarUint32, VarUint7,
 };
-
-const ENTRIES_BUFFER_LENGTH: usize = 16384;
 
 /// A section in a WebAssembly module
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,7 +38,7 @@ pub enum Section {
 }
 
 impl Deserialize for Section {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let id = match VarUint7::deserialize(reader) {
             Err(_) => {
                 // println!("{}", ::std::backtrace::Backtrace::capture());
@@ -114,34 +112,33 @@ pub(crate) struct SectionReader {
 }
 
 impl SectionReader {
-    pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    pub fn new<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let length = u32::from(VarUint32::deserialize(reader)?) as usize;
-        let buffer = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(length, reader)?;
-
+        let mut buffer: Vec<u8> = vec![0; length];
+        reader.read_exact(buffer.as_mut_slice())?;
         Ok(SectionReader { buffer, cursor: 0 })
     }
 
-    pub fn close(self) -> Result<(), io::Error> {
+    pub fn close(self) -> Result<(), Error> {
         if self.cursor != self.buffer.len() {
-            Err(io::Error::InvalidData)
+            Err(Error::DecodingError)
         } else {
             Ok(())
         }
     }
 }
 
-impl io::Read for SectionReader {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<()> {
+impl std::io::Read for SectionReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let mut slice = &self.buffer[self.cursor..];
-        let slice_len = slice.len();
-        slice.read(buf)?;
-        self.cursor += slice_len - slice.len();
-        Ok(())
+        slice.read_exact(buf)?;
+        self.cursor += buf.len();
+        Ok(buf.len())
     }
 }
 
 /// Read section size, then vector size, then the vector.
-fn read_section_entries<R: io::Read, T: Deserialize>(reader: &mut R) -> Result<Vec<T>, Error> {
+fn read_section_entries<R: std::io::Read, T: Deserialize>(reader: &mut R) -> Result<Vec<T>, Error> {
     let mut section_reader = SectionReader::new(reader)?;
     let result = CountedList::<T>::deserialize(&mut section_reader)?.into_inner();
     section_reader.close()?;
@@ -183,9 +180,10 @@ impl CustomSection {
 }
 
 impl Deserialize for CustomSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let section_length: usize = u32::from(VarUint32::deserialize(reader)?) as usize;
-        let buf = io::buffered_read::<R, ENTRIES_BUFFER_LENGTH>(section_length, reader)?;
+        let mut buf: Vec<u8> = vec![0; section_length];
+        reader.read_exact(buf.as_mut_slice())?;
         let mut buf_slice = &buf[..];
         let buf_len = buf_slice.len();
         let name = String::deserialize(&mut buf_slice)?;
@@ -214,7 +212,7 @@ impl TypeSection {
 }
 
 impl Deserialize for TypeSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(TypeSection(read_section_entries(reader)?))
     }
 }
@@ -238,7 +236,7 @@ impl ImportSection {
 }
 
 impl Deserialize for ImportSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(ImportSection(read_section_entries(reader)?))
     }
 }
@@ -262,7 +260,7 @@ impl FunctionSection {
 }
 
 impl Deserialize for FunctionSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(FunctionSection(read_section_entries(reader)?))
     }
 }
@@ -286,7 +284,7 @@ impl TableSection {
 }
 
 impl Deserialize for TableSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(TableSection(read_section_entries(reader)?))
     }
 }
@@ -310,7 +308,7 @@ impl MemorySection {
 }
 
 impl Deserialize for MemorySection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(MemorySection(read_section_entries(reader)?))
     }
 }
@@ -334,7 +332,7 @@ impl GlobalSection {
 }
 
 impl Deserialize for GlobalSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(GlobalSection(read_section_entries(reader)?))
     }
 }
@@ -358,7 +356,7 @@ impl ExportSection {
 }
 
 impl Deserialize for ExportSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(ExportSection(read_section_entries(reader)?))
     }
 }
@@ -382,7 +380,7 @@ impl CodeSection {
 }
 
 impl Deserialize for CodeSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(CodeSection(read_section_entries(reader)?))
     }
 }
@@ -406,7 +404,7 @@ impl ElementSection {
 }
 
 impl Deserialize for ElementSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(ElementSection(read_section_entries::<R, ElementSegment>(
             reader,
         )?))
@@ -432,7 +430,7 @@ impl DataSection {
 }
 
 impl Deserialize for DataSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(DataSection(read_section_entries(reader)?))
     }
 }
@@ -451,7 +449,7 @@ impl TagSection {
 }
 
 impl Deserialize for TagSection {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(TagSection(read_section_entries(reader)?))
     }
 }
@@ -471,7 +469,7 @@ pub enum TagAttribute {
 }
 
 impl Deserialize for TagType {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let attribute = match u8::deserialize(reader)? {
             0 => TagAttribute::Exception,
             other => return Err(Error::InvalidTagAttribute(other)),

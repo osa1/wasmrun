@@ -1,4 +1,4 @@
-use crate::{index_map::IndexMap, io, CompType, Deserialize, Error, Module, VarUint32, VarUint7};
+use crate::{index_map::IndexMap, CompType, Deserialize, Error, Module, VarUint32, VarUint7};
 
 const NAME_TYPE_MODULE: u8 = 0;
 const NAME_TYPE_FUNCTION: u8 = 1;
@@ -64,7 +64,7 @@ impl NameSection {
 
 impl NameSection {
     /// Deserialize a name section.
-    pub fn deserialize<R: io::Read>(module: &Module, rdr: &mut R) -> Result<Self, Error> {
+    pub fn deserialize<R: std::io::Read>(module: &Module, rdr: &mut R) -> Result<Self, Error> {
         let mut module_name: Option<ModuleNameSubsection> = None;
         let mut function_names: Option<FunctionNameSubsection> = None;
         let mut local_names: Option<LocalNameSubsection> = None;
@@ -100,7 +100,7 @@ impl NameSection {
                     // Consume the entire subsection size and drop it. This allows other sections to still be
                     // consumed if there are any.
                     let mut buf = vec![0; size];
-                    rdr.read(&mut buf)?;
+                    rdr.read_exact(&mut buf)?;
                 }
             };
         }
@@ -137,7 +137,7 @@ impl ModuleNameSubsection {
 }
 
 impl Deserialize for ModuleNameSubsection {
-    fn deserialize<R: io::Read>(rdr: &mut R) -> Result<ModuleNameSubsection, Error> {
+    fn deserialize<R: std::io::Read>(rdr: &mut R) -> Result<ModuleNameSubsection, Error> {
         let name = String::deserialize(rdr)?;
         Ok(ModuleNameSubsection { name })
     }
@@ -161,7 +161,7 @@ impl FunctionNameSubsection {
     }
 
     /// Deserialize names, making sure that all names correspond to functions.
-    pub fn deserialize<R: io::Read>(
+    pub fn deserialize<R: std::io::Read>(
         module: &Module,
         rdr: &mut R,
     ) -> Result<FunctionNameSubsection, Error> {
@@ -190,7 +190,7 @@ impl LocalNameSubsection {
 
     /// Deserialize names, making sure that all names correspond to local
     /// variables.
-    pub fn deserialize<R: io::Read>(
+    pub fn deserialize<R: std::io::Read>(
         module: &Module,
         rdr: &mut R,
     ) -> Result<LocalNameSubsection, Error> {

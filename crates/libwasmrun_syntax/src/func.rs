@@ -1,5 +1,5 @@
 use crate::{
-    io, section::SectionReader, CountedList, Deserialize, Error, Instructions, ValueType, VarUint32,
+    section::SectionReader, CountedList, Deserialize, Error, Instructions, ValueType, VarUint32,
 };
 
 /// Function signature (type reference)
@@ -24,7 +24,7 @@ impl Func {
 }
 
 impl Deserialize for Func {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         Ok(Func(VarUint32::deserialize(reader)?.into()))
     }
 }
@@ -54,7 +54,7 @@ impl Local {
 }
 
 impl Deserialize for Local {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let count = VarUint32::deserialize(reader)?;
         let value_type = ValueType::deserialize(reader)?;
         Ok(Local {
@@ -112,7 +112,7 @@ impl FuncBody {
 }
 
 impl Deserialize for FuncBody {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut body_reader = SectionReader::new(reader)?;
         let locals: Vec<Local> = CountedList::<Local>::deserialize(&mut body_reader)?.into_inner();
 

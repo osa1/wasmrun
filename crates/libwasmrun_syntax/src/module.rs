@@ -1,5 +1,5 @@
 use crate::{
-    deserialize_buffer, io,
+    deserialize_buffer,
     name_section::NameSection,
     reloc_section::RelocSection,
     section::{
@@ -464,7 +464,7 @@ impl Module {
                             }
                         };
                         if !rdr.is_empty() {
-                            parse_errors.push((i, io::Error::InvalidData.into()));
+                            parse_errors.push((i, Error::DecodingError));
                             continue;
                         }
                         Some(name_section)
@@ -509,7 +509,7 @@ impl Module {
                                 }
                             };
                         if !rdr.is_empty() {
-                            parse_errors.push((i, io::Error::InvalidData.into()));
+                            parse_errors.push((i, Error::DecodingError));
                             continue;
                         }
                         Some(Section::Reloc(reloc_section))
@@ -589,9 +589,9 @@ impl Module {
 }
 
 impl Deserialize for Module {
-    fn deserialize<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    fn deserialize<R: std::io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut magic = [0u8; 4];
-        reader.read(&mut magic)?;
+        reader.read_exact(&mut magic)?;
         if magic != WASM_MAGIC_NUMBER {
             return Err(Error::InvalidMagic);
         }
