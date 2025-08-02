@@ -165,44 +165,44 @@ impl fmt::Display for Error {
         match self {
             Error::UnexpectedEof => write!(f, "Unexpected end of input"),
             Error::InvalidMagic => write!(f, "Invalid magic number at start of file"),
-            Error::UnsupportedVersion(v) => write!(f, "Unsupported wasm version {}", v),
+            Error::UnsupportedVersion(v) => write!(f, "Unsupported wasm version {v}"),
             Error::InconsistentLength { expected, actual } => {
-                write!(f, "Expected length {}, found {}", expected, actual)
+                write!(f, "Expected length {expected}, found {actual}")
             }
-            Error::Other(msg) => write!(f, "{}", msg),
-            Error::UnknownValueType(ty) => write!(f, "Invalid or unknown value type {}", ty),
-            Error::UnknownBlockType(ty) => write!(f, "Invalid or unknown block type {}", ty),
-            Error::UnknownTableElementType(ty) => write!(f, "Unknown table element type {}", ty),
+            Error::Other(msg) => write!(f, "{msg}"),
+            Error::UnknownValueType(ty) => write!(f, "Invalid or unknown value type {ty}"),
+            Error::UnknownBlockType(ty) => write!(f, "Invalid or unknown block type {ty}"),
+            Error::UnknownTableElementType(ty) => write!(f, "Unknown table element type {ty}"),
             Error::NonUtf8String => write!(f, "Non-UTF-8 string"),
-            Error::UnknownExternalKind(kind) => write!(f, "Unknown external kind {}", kind),
-            Error::UnknownInternalKind(kind) => write!(f, "Unknown internal kind {}", kind),
-            Error::UnknownOpcode(opcode) => write!(f, "Unknown opcode {}", opcode),
-            Error::UnknownSimdOpcode(opcode) => write!(f, "Unknown SIMD opcode {}", opcode),
-            Error::InvalidVarUint1(val) => write!(f, "Not an unsigned 1-bit integer: {}", val),
+            Error::UnknownExternalKind(kind) => write!(f, "Unknown external kind {kind}"),
+            Error::UnknownInternalKind(kind) => write!(f, "Unknown internal kind {kind}"),
+            Error::UnknownOpcode(opcode) => write!(f, "Unknown opcode {opcode}"),
+            Error::UnknownSimdOpcode(opcode) => write!(f, "Unknown SIMD opcode {opcode}"),
+            Error::InvalidVarUint1(val) => write!(f, "Not an unsigned 1-bit integer: {val}"),
             Error::InvalidVarInt32 => write!(f, "Not a signed 32-bit integer"),
             Error::InvalidVarUint32 => write!(f, "Not an unsigned 32-bit integer"),
             Error::InvalidVarInt64 => write!(f, "Not a signed 64-bit integer"),
             Error::InvalidVarUint64 => write!(f, "Not an unsigned 64-bit integer"),
             Error::InconsistentMetadata => write!(f, "Inconsistent metadata"),
-            Error::InvalidSectionId(id) => write!(f, "Invalid section id: {}", id),
+            Error::InvalidSectionId(id) => write!(f, "Invalid section id: {id}"),
             Error::SectionsOutOfOrder => write!(f, "Sections out of order"),
-            Error::DuplicatedSections(id) => write!(f, "Duplicated sections ({})", id),
-            Error::InvalidLimitsFlags(flags) => write!(f, "Invalid limits flags ({})", flags),
-            Error::UnknownCompTypeForm(form) => write!(f, "Unknown composite type form: {}", form),
+            Error::DuplicatedSections(id) => write!(f, "Duplicated sections ({id})"),
+            Error::InvalidLimitsFlags(flags) => write!(f, "Invalid limits flags ({flags})"),
+            Error::UnknownCompTypeForm(form) => write!(f, "Unknown composite type form: {form}"),
             Error::InconsistentCode => {
                 write!(
                     f,
                     "Number of function body entries and signatures does not match"
                 )
             }
-            Error::InvalidSegmentFlags(n) => write!(f, "Invalid segment flags: {}", n),
+            Error::InvalidSegmentFlags(n) => write!(f, "Invalid segment flags: {n}"),
             Error::TooManyLocals => write!(f, "Too many locals"),
-            Error::DuplicatedNameSubsections(n) => write!(f, "Duplicated name subsections: {}", n),
-            Error::UnknownNameSubsectionType(n) => write!(f, "Unknown subsection type: {}", n),
-            Error::UnknownReferenceType(n) => write!(f, "Unknown reference type: {}", n),
-            Error::UnknownElementKind(n) => write!(f, "Unknown element kind: {}", n),
-            Error::InvalidHeapType(n) => write!(f, "Invalid heap type: {}", n),
-            Error::InvalidTagAttribute(n) => write!(f, "Invalid tag attribute: {}", n),
+            Error::DuplicatedNameSubsections(n) => write!(f, "Duplicated name subsections: {n}"),
+            Error::UnknownNameSubsectionType(n) => write!(f, "Unknown subsection type: {n}"),
+            Error::UnknownReferenceType(n) => write!(f, "Unknown reference type: {n}"),
+            Error::UnknownElementKind(n) => write!(f, "Unknown element kind: {n}"),
+            Error::InvalidHeapType(n) => write!(f, "Invalid heap type: {n}"),
+            Error::InvalidTagAttribute(n) => write!(f, "Invalid tag attribute: {n}"),
             Error::DecodingError => write!(f, "Decoding error"),
         }
     }
@@ -253,7 +253,7 @@ impl std::error::Error for Error {
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
-        Error::Other(format!("IO Error: {:?}", err))
+        Error::Other(format!("IO Error: {err:?}"))
     }
 }
 
@@ -269,7 +269,7 @@ pub fn deserialize_buffer<T: Deserialize>(mut contents: &[u8]) -> Result<T, Erro
 /// Deserialize module from file.
 pub fn deserialize_file<P: AsRef<std::path::Path>>(p: P) -> Result<Module, Error> {
     let mut f = std::fs::File::open(p)
-        .map_err(|e| Error::Other(format!("Can't read from the file: {:?}", e)))?;
+        .map_err(|e| Error::Other(format!("Can't read from the file: {e:?}")))?;
 
     Module::deserialize(&mut f)
 }

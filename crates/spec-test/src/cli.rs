@@ -12,7 +12,7 @@ pub fn parse() -> Args {
     let mut version = crate_version!().to_owned();
     let commit_hash = env!("GIT_HASH");
     if !commit_hash.is_empty() {
-        version = format!("{} ({})", version, commit_hash);
+        version = format!("{version} ({commit_hash})");
     }
 
     let m = App::new(crate_name!())

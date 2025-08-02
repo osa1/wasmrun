@@ -208,7 +208,7 @@ fn main() {
         if let Event::RedrawRequested(_) = event {
             w4state.draw(pixels.frame_mut(), &mut rt);
             if let Err(err) = pixels.render() {
-                eprintln!("pixels.render error: {}", err);
+                eprintln!("pixels.render error: {err}");
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -232,7 +232,7 @@ fn main() {
             // Resize the window.
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                    eprintln!("pixels.resize_surface error: {}", err);
+                    eprintln!("pixels.resize_surface error: {err}");
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
@@ -605,9 +605,9 @@ impl W4State {
                 let byte_offset = ((y * 160) / 4) + x;
                 let byte = mem[FRAMEBUFFER_ADDR + byte_offset];
                 let byte = byte.swap_bytes();
-                write!(&mut buffer, "{:08b}", byte).unwrap();
+                write!(&mut buffer, "{byte:08b}").unwrap();
             }
-            println!("{}", buffer);
+            println!("{buffer}");
         }
     }
 }

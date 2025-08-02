@@ -216,7 +216,7 @@ lexgen::lexer! {
             let match_ = lexer.match_();
             let char = match_.chars().last().unwrap();
             use std::io::Write;
-            write!(&mut lexer.state().string_buf, "{}", char).unwrap();
+            write!(&mut lexer.state().string_buf, "{char}").unwrap();
             lexer.continue_()
         },
     }

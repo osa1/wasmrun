@@ -552,7 +552,7 @@ pub fn instantiate(rt: &mut Runtime, parsed_module: wasm::Module) -> Result<Modu
     }
 
     // Allocate functions
-    if let Some(code_section) = parsed_module.code_section_mut().take() {
+    if let Some(code_section) = parsed_module.code_section_mut() {
         for (fun_idx, fun) in take(code_section.entries_mut()).into_iter().enumerate() {
             let function_section = parsed_module.function_section().ok_or_else(|| {
                 ExecError::Panic("Module has a code section but no function section".to_string())
@@ -821,7 +821,7 @@ fn invoke_direct(rt: &mut Runtime, fun_addr: FunAddr) -> Result<()> {
         FunKind::Wasm(fun) => {
             debug_assert!(match fun.fun.code().elements().last().unwrap() {
                 Instruction::End => true,
-                other => panic!("Last instruction of function is not 'end': {:?}", other),
+                other => panic!("Last instruction of function is not 'end': {other:?}"),
             });
 
             rt.ip = 0;

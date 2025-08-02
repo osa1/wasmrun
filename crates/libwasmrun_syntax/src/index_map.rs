@@ -142,8 +142,7 @@ impl<T> IndexMap<T> {
             let idx: u32 = VarUint32::deserialize(rdr)?.into();
             if idx as usize >= max_entry_space {
                 return Err(Error::Other(format!(
-                    "Index {} is larger than max. index {}",
-                    idx, max_entry_space
+                    "Index {idx} is larger than max. index {max_entry_space}"
                 )));
             }
             match prev_idx {
@@ -312,7 +311,7 @@ where
         rdr: &mut R,
     ) -> Result<Self, Error> {
         let deserialize_value: fn(u32, &mut R) -> Result<T, Error> =
-            |_idx, rdr| T::deserialize(rdr).map_err(Error::from);
+            |_idx, rdr| T::deserialize(rdr);
         Self::deserialize_with(max_entry_space, &deserialize_value, rdr)
     }
 }

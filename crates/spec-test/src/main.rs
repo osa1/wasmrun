@@ -44,7 +44,7 @@ fn run_file_or_dir(file_or_dir: &str) -> usize {
     } else if file_meta.is_file() {
         run_file(file_or_dir)
     } else {
-        eprintln!("Input file {} is not a directory or file", file_or_dir);
+        eprintln!("Input file {file_or_dir} is not a directory or file");
         1
     }
 }
@@ -76,7 +76,7 @@ fn run_dir(dir_path: &str) -> usize {
         total_fails += lines.len();
     }
     if total_fails != 0 {
-        println!("Total fails: {}", total_fails);
+        println!("Total fails: {total_fails}");
     }
 
     total_fails
@@ -90,7 +90,7 @@ fn run_file(file_path: &str) -> usize {
     match file_path.extension() {
         Some(ext) => {
             if ext != "wast" {
-                println!("Spec test extension should be .wast, found: {:?}", ext);
+                println!("Spec test extension should be .wast, found: {ext:?}");
                 return 1;
             }
         }
@@ -105,12 +105,12 @@ fn run_file(file_path: &str) -> usize {
             if fails.is_empty() {
                 0
             } else {
-                println!("{:?}", fails);
+                println!("{fails:?}");
                 1
             }
         }
         Err(err) => {
-            println!("{}", err);
+            println!("{err}");
             1
         }
     }
@@ -134,7 +134,7 @@ fn run_spec_dir(dir: &[PathBuf]) -> Vec<(PathBuf, Vec<usize>)> {
                         }
                     }
                     Err(err) => {
-                        println!("{}", err);
+                        println!("{err}");
                         fails.push((file_path.to_owned(), vec![]));
                     }
                 }
@@ -148,7 +148,7 @@ fn run_spec_dir(dir: &[PathBuf]) -> Vec<(PathBuf, Vec<usize>)> {
 /// Run a single .wast file
 fn run_spec_test(path: &Path) -> Result<Vec<usize>, String> {
     let wast = std::fs::read_to_string(path)
-        .map_err(|err| format!("Unable to read wast file: {:?}", err))?;
+        .map_err(|err| format!("Unable to read wast file: {err:?}"))?;
 
     let adjust_wast = |mut err: wast::Error| {
         err.set_path(path.as_ref());
@@ -179,11 +179,11 @@ fn run_spec_test(path: &Path) -> Result<Vec<usize>, String> {
 
     let buf = wast::parser::ParseBuffer::new_with_lexer(lexer)
         .map_err(adjust_wast)
-        .map_err(|err| format!("Unable to tokenize wast file: {:?}", err))?;
+        .map_err(|err| format!("Unable to tokenize wast file: {err:?}"))?;
 
     let ast = wast::parser::parse::<wast::Wast>(&buf)
         .map_err(adjust_wast)
-        .map_err(|err| format!("Unable to parse wast file: {:?}", err))?;
+        .map_err(|err| format!("Unable to parse wast file: {err:?}"))?;
 
     let mut test_runner = spec::TestFileRunner::new(&wast);
 

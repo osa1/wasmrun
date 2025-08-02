@@ -1423,7 +1423,7 @@ pub fn exec_simd_instr(
         }
 
         SimdInstruction::I16x8AvgrU => i16x8_lanewise_zip_map(rt, |i1, i2| {
-            ((u32::from(i1 as u16) + u32::from(i2 as u16) + 1) / 2) as u16 as i16
+            (u32::from(i1 as u16) + u32::from(i2 as u16)).div_ceil(2) as u16 as i16
         })?,
 
         SimdInstruction::I16x8ExtaddPairwiseI8x16S => {

@@ -2169,7 +2169,7 @@ fn deserialize_gc<R: std::io::Read>(reader: &mut R) -> Result<Instruction, Error
                 1 => (true, false),
                 2 => (false, true),
                 3 => (true, true),
-                other => return Err(Error::Other(format!("Invalid br_on_cast flag: {}", other))),
+                other => return Err(Error::Other(format!("Invalid br_on_cast flag: {other}"))),
             };
             let label_idx = VarUint32::deserialize(reader)?.into();
             let ht1 = HeapType::deserialize(reader)?;
@@ -2185,8 +2185,7 @@ fn deserialize_gc<R: std::io::Read>(reader: &mut R) -> Result<Instruction, Error
                 3 => (true, true),
                 other => {
                     return Err(Error::Other(format!(
-                        "Invalid br_on_cast_fail flag: {}",
-                        other
+                        "Invalid br_on_cast_fail flag: {other}"
                     )))
                 }
             };
@@ -2242,13 +2241,13 @@ impl fmt::Display for Instruction {
             Nop => fmt_op!(f, "nop"),
             Block(BlockType::Empty) => fmt_op!(f, "block"),
             Block(BlockType::Value(value_type)) => fmt_op!(f, "block", value_type),
-            Block(BlockType::TypeIndex(idx)) => write!(f, "block type_idx={}", idx),
+            Block(BlockType::TypeIndex(idx)) => write!(f, "block type_idx={idx}"),
             Loop(BlockType::Empty) => fmt_op!(f, "loop"),
             Loop(BlockType::Value(value_type)) => fmt_op!(f, "loop", value_type),
-            Loop(BlockType::TypeIndex(idx)) => write!(f, "loop type_idx={}", idx),
+            Loop(BlockType::TypeIndex(idx)) => write!(f, "loop type_idx={idx}"),
             If(BlockType::Empty) => fmt_op!(f, "if"),
             If(BlockType::Value(value_type)) => fmt_op!(f, "if", value_type),
-            If(BlockType::TypeIndex(idx)) => write!(f, "if type_idx={}", idx),
+            If(BlockType::TypeIndex(idx)) => write!(f, "if type_idx={idx}"),
             Else => fmt_op!(f, "else"),
             End => fmt_op!(f, "end"),
             Br(idx) => fmt_op!(f, "br", idx),
@@ -2263,7 +2262,7 @@ impl fmt::Display for Instruction {
             ReturnCallRef(_type_idx) => fmt_op!(f, "return_call_ref"),
             Drop => fmt_op!(f, "drop"),
             Select(None) => fmt_op!(f, "select"),
-            Select(Some(tys)) => write!(f, "select {:?}", tys),
+            Select(Some(tys)) => write!(f, "select {tys:?}"),
             GetLocal(index) => fmt_op!(f, "get_local", index),
             SetLocal(index) => fmt_op!(f, "set_local", index),
             TeeLocal(index) => fmt_op!(f, "tee_local", index),
@@ -2477,10 +2476,10 @@ impl fmt::Display for Instruction {
             TableInit {
                 elem_idx,
                 table_idx,
-            } => write!(f, "table.init {}, {}", table_idx, elem_idx),
+            } => write!(f, "table.init {table_idx}, {elem_idx}"),
             ElemDrop(table_idx) => fmt_op!(f, "elem.drop", table_idx),
 
-            RefNull(ty) => write!(f, "ref.null {}", ty),
+            RefNull(ty) => write!(f, "ref.null {ty}"),
             RefIsNull => write!(f, "ref.is_null"),
             RefFunc(func_idx) => fmt_op!(f, "ref.func", func_idx),
             RefEq => fmt_op!(f, "ref.eq"),

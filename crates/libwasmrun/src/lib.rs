@@ -55,10 +55,10 @@ pub enum ExecError {
 impl Display for ExecError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExecError::Trap(trap) => write!(f, "Wasm module trapped: {}", trap),
-            ExecError::Panic(msg) => write!(f, "Wasm interpreter panicked: {}", msg),
-            ExecError::WASI(wasi_err) => write!(f, "WASI error: {}", wasi_err),
-            ExecError::Exit(exit) => write!(f, "proc_exit({})", exit),
+            ExecError::Trap(trap) => write!(f, "Wasm module trapped: {trap}"),
+            ExecError::Panic(msg) => write!(f, "Wasm interpreter panicked: {msg}"),
+            ExecError::WASI(wasi_err) => write!(f, "WASI error: {wasi_err}"),
+            ExecError::Exit(exit) => write!(f, "proc_exit({exit})"),
         }
     }
 }

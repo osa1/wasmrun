@@ -5,8 +5,6 @@ use crate::{ExecError, Result};
 
 use libwasmrun_syntax as wasm;
 
-use std::iter::repeat;
-
 #[derive(Default, Debug)]
 pub struct FrameStack {
     pub frames: Vec<Frame>,
@@ -49,21 +47,23 @@ impl FrameStack {
             locals: args
                 .into_iter()
                 .chain(fun.locals().iter().flat_map(|local| {
-                    repeat(match local.value_type() {
-                        libwasmrun_syntax::ValueType::I32 => Value::default_i32(),
-                        libwasmrun_syntax::ValueType::I64 => Value::default_i64(),
-                        libwasmrun_syntax::ValueType::F32 => Value::default_f32(),
-                        libwasmrun_syntax::ValueType::F64 => Value::default_f64(),
-                        libwasmrun_syntax::ValueType::V128 => Value::default_i128(),
-                        // Type system guarantees that locals can't be read without being
-                        // initialized first, so it doesn't matter what value we use for
-                        // non-nullable refs.
-                        libwasmrun_syntax::ValueType::Reference(wasm::ReferenceType {
-                            nullable: _,
-                            heap_ty,
-                        }) => Value::Ref(Ref::Null(fun.module_addr, heap_ty)),
-                    })
-                    .take(local.count() as usize)
+                    std::iter::repeat_n(
+                        match local.value_type() {
+                            libwasmrun_syntax::ValueType::I32 => Value::default_i32(),
+                            libwasmrun_syntax::ValueType::I64 => Value::default_i64(),
+                            libwasmrun_syntax::ValueType::F32 => Value::default_f32(),
+                            libwasmrun_syntax::ValueType::F64 => Value::default_f64(),
+                            libwasmrun_syntax::ValueType::V128 => Value::default_i128(),
+                            // Type system guarantees that locals can't be read without being
+                            // initialized first, so it doesn't matter what value we use for
+                            // non-nullable refs.
+                            libwasmrun_syntax::ValueType::Reference(wasm::ReferenceType {
+                                nullable: _,
+                                heap_ty,
+                            }) => Value::Ref(Ref::Null(fun.module_addr, heap_ty)),
+                        },
+                        local.count() as usize,
+                    )
                 }))
                 .collect(),
         });

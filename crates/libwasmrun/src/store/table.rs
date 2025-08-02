@@ -46,10 +46,7 @@ impl Table {
     pub fn grow(&mut self, amt: usize, elem: Ref) -> Option<usize> {
         // debug_assert_eq!(self.ty.elem_type().heap_ty, elem.heap_ty());
         let old_size = self.elems.len();
-        let new_size = match old_size.checked_add(amt) {
-            Some(new_size) => new_size,
-            None => return None,
-        };
+        let new_size = old_size.checked_add(amt)?;
         if let Some(max_size) = self.ty.limits().maximum() {
             if new_size > max_size as usize {
                 return None;

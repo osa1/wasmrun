@@ -186,21 +186,21 @@ impl Value {
     pub fn expect_i32(&self) -> i32 {
         match self {
             Value::I32(i) => *i,
-            _ => panic!("expect_i32: found {:?}", self),
+            _ => panic!("expect_i32: found {self:?}"),
         }
     }
 
     pub(crate) fn expect_i64(&self) -> i64 {
         match self {
             Value::I64(i) => *i,
-            _ => panic!("expect_i64: found {:?}", self),
+            _ => panic!("expect_i64: found {self:?}"),
         }
     }
 
     pub(crate) fn expect_ref(&self) -> Ref {
         match self {
             Value::Ref(ref_) => *ref_,
-            _ => panic!("expect_ref: found {:?}", self),
+            _ => panic!("expect_ref: found {self:?}"),
         }
     }
 }
@@ -208,9 +208,9 @@ impl Value {
 impl fmt::Debug for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::I32(i) => write!(fmt, "{}i32", i),
-            Value::I64(i) => write!(fmt, "{}i64", i),
-            Value::I128(i) => write!(fmt, "{}i128", i),
+            Value::I32(i) => write!(fmt, "{i}i32"),
+            Value::I64(i) => write!(fmt, "{i}i64"),
+            Value::I128(i) => write!(fmt, "{i}i128"),
             Value::F32(f) => write!(fmt, "{}f32 ({:?})", f, F32Debug(*f)),
             Value::F64(f) => write!(fmt, "{}f64 ({:?})", f, F64Debug(*f)),
             Value::Ref(r) => r.fmt(fmt),

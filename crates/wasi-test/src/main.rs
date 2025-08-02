@@ -60,7 +60,7 @@ fn print_version(pgm: &str) {
             );
         }
         Err(err) => {
-            println!("`{} --version` failed: {}", pgm, err);
+            println!("`{pgm} --version` failed: {err}");
             exit(1);
         }
     }
@@ -119,22 +119,22 @@ fn report(
 
     if out != expected_out {
         println!("\tExpected and actual stdsout outputs don't match");
-        println!("\tExpected: {:?}", expected_out);
-        println!("\tFound:    {:?}", out);
+        println!("\tExpected: {expected_out:?}");
+        println!("\tFound:    {out:?}");
         fail = true;
     }
 
     if err != expected_err {
         println!("\tExpected and actual stderr outputs don't match");
-        println!("\tExpected: {:?}", expected_err);
-        println!("\tFound:    {:?}", err);
+        println!("\tExpected: {expected_err:?}");
+        println!("\tFound:    {err:?}");
         fail = true;
     }
 
     if wasm_exit != expected_exit {
         println!("\tExpected and actual exit codes don't match");
-        println!("\tExpected: {}", expected_exit);
-        println!("\tFound:    {}", wasm_exit);
+        println!("\tExpected: {expected_exit}");
+        println!("\tFound:    {wasm_exit}");
         fail = true;
     }
 
@@ -166,7 +166,7 @@ fn handle_commands(
                 // TODO: This assumes all files are relative to the wasm file's directory
                 // TODO: Reading the file eagerly for now
                 // TODO: Hard-coded file path
-                let path = format!("tests/wasi/{}", file_path);
+                let path = format!("tests/wasi/{file_path}");
                 let file_contents = fs::read(path).unwrap();
                 let entry =
                     VirtualDirEntry::File(Box::new(VecFileContents::with_content(file_contents)));
@@ -188,23 +188,23 @@ fn run_file(file: &Path) -> bool {
     println!("{}", file.to_string_lossy());
 
     let file_stem = file.file_stem().unwrap().to_str().unwrap();
-    let file_src_path = format!("tests/wasi/src/{}.rs", file_stem);
+    let file_src_path = format!("tests/wasi/src/{file_stem}.rs");
     let file_src = fs::read_to_string(file_src_path).unwrap();
 
     let cmds = cmd::parse_cmds(&file_src);
     let (wasi, expected_exit, stdout, stderr) = handle_commands(cmds);
     let mut rt = Runtime::new_with_wasi_ctx(wasi);
 
-    let out_path = format!("tests/wasi/src/{}.out", file_stem);
+    let out_path = format!("tests/wasi/src/{file_stem}.out");
     let out = fs::read_to_string(out_path).unwrap_or_else(|_| "".to_owned());
 
-    let err_path = format!("tests/wasi/src/{}.err", file_stem);
+    let err_path = format!("tests/wasi/src/{file_stem}.err");
     let err = fs::read_to_string(err_path).unwrap_or_else(|_| "".to_owned());
 
     let module = match wasm::deserialize_file(file) {
         Ok(module) => module,
         Err(err) => {
-            println!("\tUnable to parse Wasm: {}", err);
+            println!("\tUnable to parse Wasm: {err}");
             return true;
         }
     };
@@ -212,7 +212,7 @@ fn run_file(file: &Path) -> bool {
     let module_addr = match exec::instantiate(&mut rt, module) {
         Ok(module_addr) => module_addr,
         Err(err) => {
-            println!("\tUnable to load Wasm module: {}", err);
+            println!("\tUnable to load Wasm module: {err}");
             return true;
         }
     };
@@ -223,7 +223,7 @@ fn run_file(file: &Path) -> bool {
         Ok(()) => 0,
         Err(ExecError::Exit(exit)) => exit,
         Err(err) => {
-            println!("\tError while invoking _start: {}", err);
+            println!("\tError while invoking _start: {err}");
 
             /*
             let err = {
@@ -234,7 +234,7 @@ fn run_file(file: &Path) -> bool {
             };
             */
 
-            println!("\tStderr: {}", err);
+            println!("\tStderr: {err}");
 
             return true;
         }
